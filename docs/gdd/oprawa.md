@@ -121,7 +121,7 @@ pełnym ekranie — zastąpiona stylem inspirowanym Don't Starve:
   spotkaniach).
 - **Toalety** mają na tabliczce sam znaczek: damska, męska, wózek (WC dla
   niepełnosprawnych, `accessible` w mapie) albo oba (toaleta przy portierni).
-  Gdy przy jednym miejscu są dwie pary drzwi, czyta się te, w które się patrzy.
+  Gdy obok jest dwoje drzwi, czyta się te, w które się patrzy.
 - Tabliczek nie mają drzwi do korytarzy, holu, na zewnątrz, windy i bramki —
   tam widać, gdzie się jest. Liczy to klient z mapy (`MapData.plaque_at`),
   serwer nic o tym nie wie.
