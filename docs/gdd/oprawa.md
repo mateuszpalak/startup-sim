@@ -165,4 +165,8 @@ pełnym ekranie — zastąpiona stylem inspirowanym Don't Starve:
   przechodzi → wszyscy do domu z wypłatą i czas leci do rana. Rano zegar
   zwalnia — każdy wybiera dojazd (wcześniej po pominięciu wyjście z domu
   działo się od razu i nie dało się wybrać środka transportu).
+- **Noc w domu regeneruje**: rano przy wyjściu do pracy postać jest
+  wypoczęta, po śniadaniu i prysznicu, trzeźwa i zdrowa (potrzeby jak na
+  starcie; dojazd zmienia je jak dotąd). Wcześniej potrzeby w domu stały w
+  miejscu — kto wyszedł zmęczony i głodny, wracał rano taki sam.
 

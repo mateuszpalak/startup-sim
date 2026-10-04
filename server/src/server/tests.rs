@@ -892,3 +892,24 @@ fn colleagues_who_left_stay_on_the_messenger_as_away() {
     }
     assert_eq!(s.offline_colleagues(), vec!["Kuba".to_string()]);
 }
+
+#[test]
+fn back_to_work_from_home_rested_and_fed() {
+    let mut s = server();
+    add_player(&mut s, 1);
+    let p = s.players.get_mut(&1).unwrap();
+    p.contract = true;
+    p.stage = Stage::Home { arrive_at: None };
+    // Went home worn out, hungry, drunk and beaten up.
+    p.needs.energy = 5 * crate::needs::SCALE;
+    p.needs.hunger = 95 * crate::needs::SCALE;
+    p.needs.hygiene = 10 * crate::needs::SCALE;
+    p.needs.alcohol = 80;
+    p.needs.health = 0;
+    s.clock.ds = 8 * 60 * crate::clock::DS_PER_MIN;
+    s.players.get_mut(&1).unwrap().depart_at = Some(s.clock.total_minutes());
+    s.tick_clock();
+    let n = &s.players[&1].needs;
+    assert!(matches!(s.players[&1].stage, Stage::Home { arrive_at: Some(_) }), "on the way");
+    assert_eq!(*n, crate::needs::Needs::default(), "a night at home: all fresh");
+}

@@ -97,6 +97,8 @@ impl Server {
         for pid in leaving {
             let traffic = self.rng.u32(0..=commute::MAX_TRAFFIC);
             let Some(p) = self.players.get_mut(&pid) else { continue };
+            // Back to work from home: rested, fed and washed.
+            p.needs.rested_at_home();
             let mut m = commute::mode(p.commute_mode).copied().unwrap_or(commute::MODES[0]);
             if p.money < m.cost {
                 m = commute::MODES[0]; // can't afford it: on foot
