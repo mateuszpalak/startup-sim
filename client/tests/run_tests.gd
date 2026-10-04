@@ -23,6 +23,7 @@ func _init() -> void:
 	test_scripts_compile()
 	test_roll_scores()
 	test_doorway_floors()
+	test_door_plaques()
 	print("%d checks, %d failures" % [checks, failures])
 	quit(1 if failures > 0 else 0)
 
@@ -287,6 +288,22 @@ func test_doorway_floors() -> void:
 						bad.append(Vector2i(x, y))
 		expect(bad.is_empty(), "floor %d: doorways with two floors at %s" % [f, bad])
 		p.free()
+
+## Door plaques: the room behind the door, read from the other side.
+func test_door_plaques() -> void:
+	var building = Building.new()
+	building.load_path("res://maps/building.json")
+	var m0 = building.get_floor(0)
+	var m1 = building.get_floor(1)
+	var at := func(m, x: int, y: int) -> String:
+		return m.plaque_at(x, y, m.room_at_tile(x, y))
+	expect(at.call(m1, 42, 14) == "HR", "HR from the corridor: %s" % at.call(m1, 42, 14))
+	expect(at.call(m1, 44, 14) == "", "no plaque for the corridor (from inside HR)")
+	expect(at.call(m1, 30, 19) == "Zarząd", "the board room's door")
+	expect(at.call(m1, 23, 7) == "Balkon" and at.call(m1, 23, 5) == "Aneks kuchenny", "the balcony's glass door, both ways")
+	expect(at.call(m1, 37, 44) == "", "no plaque on the lift")
+	expect(at.call(m1, 37, 20) == "", "nothing away from doors")
+	expect(at.call(m0, 22, 58) == "Sklep", "the shop from the street: %s" % at.call(m0, 22, 58))
 
 
 ## Sealed packets: the same bytes as the server's (and back).

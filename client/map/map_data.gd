@@ -20,6 +20,13 @@ const DIR_LEFT := 3
 const DIR_RIGHT := 4
 const DIR_NAMES := {"up": DIR_UP, "down": DIR_DOWN, "left": DIR_LEFT, "right": DIR_RIGHT}
 
+## Doors with a plaque by them (the name of the room behind): not the lifts,
+## the card gates or the garage gate.
+const PLAQUE_DOORS := ["door", "glass_door", "board_door", "service_door", "storeroom_door", "locked_door", "stall_door"]
+## Rooms whose doors get no plaque: you can see where you are.
+const NO_PLAQUE := ["corridor", "hall", "outside", "entrance", "parking", "smoking"]
+const SIDES: Array[Vector2i] = [Vector2i(0, -1), Vector2i(0, 1), Vector2i(-1, 0), Vector2i(1, 0)]
+
 var id: String
 var floor_index: int
 var width: int
@@ -180,6 +187,46 @@ func room_at_tile(tx: int, ty: int) -> int:
 
 func room_name(rid: int) -> String:
 	return room_names.get(rid, "-")
+
+
+func is_plaque_door(tx: int, ty: int) -> bool:
+	if tx < 0 or ty < 0 or tx >= width or ty >= height:
+		return false
+	return legend.get(tile_chars[ty * width + tx], {}).get("type", "") in PLAQUE_DOORS
+
+
+func has_plaque(rid: int) -> bool:
+	return room_names.has(rid) and room_types.get(rid, "") not in NO_PLAQUE
+
+
+## The rooms a door tile joins: [[room id, direction from the door], ...].
+func door_sides(tx: int, ty: int) -> Array:
+	var out := []
+	for d in SIDES:
+		var n: Vector2i = Vector2i(tx, ty) + d
+		if is_blocked(n.x, n.y) or is_plaque_door(n.x, n.y):
+			continue
+		var r := room_at_tile(n.x, n.y)
+		if r != NO_ROOM:
+			out.append([r, d])
+	return out
+
+
+## The plaque you can read standing at (tx, ty) in room `here`: the name of
+## the room behind a door right next to you; "" = none.
+func plaque_at(tx: int, ty: int, here: int) -> String:
+	for d: Vector2i in SIDES + [Vector2i(-1, -1), Vector2i(1, -1), Vector2i(-1, 1), Vector2i(1, 1)]:
+		var x := tx + d.x
+		var y := ty + d.y
+		if not is_plaque_door(x, y):
+			continue
+		var sides := door_sides(x, y)
+		if not sides.any(func(s): return s[0] == here):
+			continue
+		for s in sides:
+			if s[0] != here and has_plaque(s[0]):
+				return room_name(s[0])
+	return ""
 
 
 ## Link covering a tile, or {} if none.
