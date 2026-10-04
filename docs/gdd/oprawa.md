@@ -146,3 +146,23 @@ pełnym ekranie — zastąpiona stylem inspirowanym Don't Starve:
   pani Maria pokazuje się dopiero na obchód (15–16).
 - Taca ze słodyczami stoi na blacie między sofami w chill roomie.
 
+## 10.56 Usprawnienia (2026-10-04)
+
+- **Terminal** (i komunikator, komentarze na tablicy) po Enterze pisze dalej
+  — wcześniej pole kończyło edycję i wyglądało na zawieszone.
+- **Komunikator**: kto się wylogował, zostaje na liście wiadomości
+  prywatnych jako „poza biurem” (wyszarzony, bez rozmowy).
+- **Krew**: dźgnięcie nożem — rozprysk kropli, na podłodze plama krwi
+  (sprzątaczka: „Krew?! Co tu się działo… Ja już nic nie widziałam.”;
+  inaczej znika o 22:00).
+- **Szafka, apteczka, magazynek, barek** pokazują zawartość jak ekwipunek:
+  sloty z obrazkami (klik albo klawisz numeru), „Zamknij” pod spodem.
+- **Tab — menu akcji**: lista tego, co da się zrobić tu i teraz, z
+  klawiszami (E przy rzeczy obok, F / Q z tym, co w rękach, kieszenie, G / X
+  przy osobie obok, L w kabinie, R, czat, dziennik); wybór numerem albo
+  kliknięciem.
+- **Pomiń czekanie = głosowanie** wszystkich grających (większość, 30 s):
+  przechodzi → wszyscy do domu z wypłatą i czas leci do rana. Rano zegar
+  zwalnia — każdy wybiera dojazd (wcześniej po pominięciu wyjście z domu
+  działo się od razu i nie dało się wybrać środka transportu).
+
