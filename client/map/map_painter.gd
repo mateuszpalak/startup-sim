@@ -35,6 +35,7 @@ func _draw() -> void:
 	_props()
 	_plaques()
 	_exit_signs()
+	_shelters()
 
 
 # ----------------------------------------------------------------- helpers
@@ -205,6 +206,15 @@ func _floor(x: int, y: int, t: String) -> void:
 			draw_rect(r, Color("#5b5954"))
 			for i in 5:
 				draw_circle(o + Vector2(_rf(x, y, i) * TP, _rf(y, x, i) * TP), 0.4, Color("#66645e") if i % 2 else Color("#4f4d49"))
+		"ramp":  # down to the west: darker and darker, arrows on the asphalt
+			var depth := clampf((11 - x) / 9.0, 0.0, 1.0)
+			draw_rect(r, Color("#55575c").darkened(0.45 * depth))
+			if y == 53 or y == 54:
+				var c := o + Vector2(8, 8 if y == 53 else 8)
+				draw_line(c + Vector2(3, -2.5), c + Vector2(-2, 0), Color("#e8e2c8", 0.8 - 0.5 * depth), 1.0)
+				draw_line(c + Vector2(3, 2.5), c + Vector2(-2, 0), Color("#e8e2c8", 0.8 - 0.5 * depth), 1.0)
+			else:
+				draw_line(o + Vector2(0, 15.5), o + Vector2(TP, 15.5), Color(0, 0, 0, 0.15), 0.5)
 		"street":
 			draw_rect(r, Color("#4c4a46"))
 			draw_line(o + Vector2(0, 0.4), o + Vector2(TP, 0.4), Color("#7c7870"), 0.8)
@@ -393,6 +403,49 @@ func _plaques() -> void:
 				draw_line(mid - Vector2(plate.size.x / 2 - 1.6, 0), mid + Vector2(plate.size.x / 2 - 1.6, 0), Color(INK, 0.7), 0.5)
 
 
+## The smokers' shelter, like a bus stop: glass at the back and the sides,
+## a bench, a roof (its shade on the paving) and a sign.
+func _shelters() -> void:
+	var glass := Rect2i()
+	var found := false
+	for y in map.height:
+		for x in map.width:
+			if _type(x, y) in ["shelter_glass", "shelter_bench"]:
+				glass = Rect2i(x, y, 1, 1) if not found else glass.merge(Rect2i(x, y, 1, 1))
+				found = true
+	if not found:
+		return
+	var room: int = map.room_at_tile(glass.position.x + glass.size.x, glass.position.y + 1)
+	# The roof: over the whole shelter (its tiles in that room).
+	var roof := Rect2(Vector2(glass.position) * TP, Vector2(glass.size) * TP)
+	for y in range(glass.position.y, glass.end.y):
+		for x in range(glass.position.x, map.width):
+			if map.room_at_tile(x, y) != room:
+				break
+			roof = roof.merge(Rect2(Vector2(x, y) * TP, Vector2(TP, TP)))
+	draw_rect(roof, Color(0, 0, 0, 0.16))
+	for y in map.height:
+		for x in map.width:
+			var o := Vector2(x, y) * TP
+			match _type(x, y):
+				"shelter_glass":
+					var g := Rect2(o + Vector2(3, 0.5), Vector2(10, TP - 1))
+					draw_rect(g, Color("#a9cfdc", 0.55))
+					draw_line(g.position + Vector2(2, 2), g.position + Vector2(5, 6), Color(1, 1, 1, 0.5), 0.7)
+					draw_rect(g, Color("#6e7c84"), false, 0.8)
+				"shelter_bench":
+					_box(Rect2(o + Vector2(2, 0.5), Vector2(9, TP - 1)), Color("#9a7550"), true, 0.5, 0.45)
+					for i in 3:
+						draw_line(o + Vector2(4 + i * 3, 1), o + Vector2(4 + i * 3, TP - 1), Color("#7a5a3a"), 0.5)
+	# The roof's front edge, with its posts, and the sign on top.
+	var edge := Rect2(Vector2(roof.position.x, roof.position.y - 2), Vector2(roof.size.x, 3))
+	_box(edge, Color("#5d666d"), true, 0.6)
+	_box(Rect2(Vector2(roof.end.x - 2.5, roof.position.y), Vector2(2.5, roof.size.y)), Color("#5d666d"), true, 0.5)
+	var sign_r := Rect2(Vector2(roof.end.x - 30, roof.position.y - 10), Vector2(28, 9))
+	_box(sign_r, Color("#2f6fb0"), true, 0.5, 0.4)
+	draw_string(ThemeDB.fallback_font, sign_r.position + Vector2(2, 6.6), "PALARNIA", HORIZONTAL_ALIGNMENT_LEFT, -1, 5, Color.WHITE)
+
+
 ## A green EXIT sign over the stairwell's door (on the side you come from).
 func _exit_signs() -> void:
 	for y in map.height:
@@ -454,6 +507,22 @@ func _tile_object(x: int, y: int) -> void:
 			_box(Rect2(o + Vector2(TP - 3, 2), Vector2(3, 12)), Color("#6f7278"))
 			_box(Rect2(o + Vector2(3, 7), Vector2(7, 2)), Color("#d4a94a"), true, 0.3, 0.45)
 			draw_circle(o + Vector2(1.5, 4), 0.6, Color("#6fd06b"))
+		"ramp_wall":  # a concrete parapet along the ramp
+			_box(Rect2(o + Vector2(0, 4), Vector2(TP, 8)), Color("#b5b2aa"), true, 0.5, 0.3)
+			draw_line(o + Vector2(0, 6), o + Vector2(TP, 6), Color("#d2cfc6"), 0.6)
+		"garage_shutter":  # the underground car park's shutter, down
+			draw_rect(r, Color("#2f3236"))
+			for i in range(1, 8):
+				draw_line(o + Vector2(2 + i * 1.6, 0), o + Vector2(2 + i * 1.6, TP), Color("#4b4f55"), 0.5)
+			draw_rect(r, INK, false, 0.5)
+		"boom_barrier":  # red and white, across the way in; the post at the top
+			var top := _type(x, y - 1) != t
+			for i in 4:
+				draw_rect(Rect2(o + Vector2(6.5, i * 4), Vector2(3, 4)), Color("#d23b2e") if (y * 4 + i) % 2 == 0 else Color("#f2efe6"))
+			draw_rect(Rect2(o + Vector2(6.5, 0), Vector2(3, TP)), INK, false, 0.4)
+			if top:
+				_box(Rect2(o + Vector2(4.5, 1), Vector2(7, 7)), Color("#e6b23a"), true, 0.8)
+				draw_circle(o + Vector2(8, 4.5), 1.0, Color("#c9463a"))
 		"garage_gate":
 			for i in 5:
 				draw_rect(Rect2(o + Vector2(i * 3.2, 0), Vector2(3.2, 3)), Color("#d4a94a") if i % 2 == 0 else Color("#2b2522"))
