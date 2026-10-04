@@ -349,13 +349,14 @@ def floor0():
     f.put(9, 49, 9, 49, "]")
     f.put(9, 45, 9, 48, "{")                             # the bench
     f.put(11, 47, 11, 47, "A")                           # ashtray
-    # The ramp down to the underground car park, off the drive: closed for
-    # now - a barrier at the top, a shutter at the bottom.
-    f.area(2, 50, 11, 50, "[")
-    f.area(2, 57, 11, 57, "[")
+    # The ramp down to the underground car park, in from the sidewalk (going
+    # down northwards): closed for now - a barrier at the bottom, by the
+    # sidewalk, a shutter at the far end; parapets on both sides.
+    f.area(2, 50, 2, 57, "[")
+    f.area(11, 50, 11, 57, "[")
+    f.area(3, 50, 10, 50, "^")
     f.area(3, 51, 10, 56, "/")
-    f.area(2, 51, 2, 56, "^")
-    f.area(11, 51, 11, 56, "!")
+    f.area(3, 57, 10, 57, "!")
 
     f.spawns = [[x, y] for y in (59, 60) for x in range(26, 36)]
     f.places.update({

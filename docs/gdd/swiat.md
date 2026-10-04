@@ -21,9 +21,9 @@ tramwaju, stojak na rowery i popielniczka przy wejściu. Przy podjeździe do
 garażu (na zachód od sklepu): **palarnia** — wiata jak przystanek autobusowy
 (szkło z tyłu i po bokach, ławka, popielniczka, daszek, tabliczka
 „PALARNIA”; żaden autobus nie przyjeżdża), otwarta w stronę podjazdu; obok,
-bliżej ulicy, **zjazd do garażu podziemnego** — na razie zamknięty: szlaban
-od strony podjazdu i opuszczona brama na dole rampy (podziemia jeszcze nie
-ma). Do 2026-10-05 strefa palenia była za ulicą, obok parkingu.
+bliżej ulicy, **zjazd do garażu podziemnego** — wjazd od chodnika, rampa
+w dół na północ, murki po bokach; na razie zamknięty: szlaban przy chodniku
+i opuszczona brama na dole rampy (podziemia jeszcze nie ma). Do 2026-10-05 strefa palenia była za ulicą, obok parkingu.
 
 ```
 FvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvF

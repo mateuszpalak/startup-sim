@@ -206,15 +206,25 @@ func _floor(x: int, y: int, t: String) -> void:
 			draw_rect(r, Color("#5b5954"))
 			for i in 5:
 				draw_circle(o + Vector2(_rf(x, y, i) * TP, _rf(y, x, i) * TP), 0.4, Color("#66645e") if i % 2 else Color("#4f4d49"))
-		"ramp":  # down to the west: darker and darker, arrows on the asphalt
-			var depth := clampf((11 - x) / 9.0, 0.0, 1.0)
+		"ramp":  # down to the shutter: darker and darker, arrows on the asphalt
+			var down := Vector2i(0, -1)  # towards the shutter
+			var to_shutter := 6
+			for d in [Vector2i(0, -1), Vector2i(0, 1), Vector2i(-1, 0), Vector2i(1, 0)]:
+				var k := 1
+				while _type(x + d.x * k, y + d.y * k) == "ramp":
+					k += 1
+				if _type(x + d.x * k, y + d.y * k) == "garage_shutter":
+					down = d
+					to_shutter = k
+			var depth := clampf(1.0 - (to_shutter - 1) / 6.0, 0.0, 1.0)  # deeper by the shutter
 			draw_rect(r, Color("#55575c").darkened(0.45 * depth))
-			if y == 53 or y == 54:
-				var c := o + Vector2(8, 8 if y == 53 else 8)
-				draw_line(c + Vector2(3, -2.5), c + Vector2(-2, 0), Color("#e8e2c8", 0.8 - 0.5 * depth), 1.0)
-				draw_line(c + Vector2(3, 2.5), c + Vector2(-2, 0), Color("#e8e2c8", 0.8 - 0.5 * depth), 1.0)
-			else:
-				draw_line(o + Vector2(0, 15.5), o + Vector2(TP, 15.5), Color(0, 0, 0, 0.15), 0.5)
+			var mid := (x == 6 or x == 7) if down.y != 0 else (y == 53 or y == 54)
+			if mid:
+				var c := o + Vector2(8, 8)
+				var ink := Color("#e8e2c8", 0.8 - 0.5 * depth)
+				var side := Vector2(down.y, down.x) * 2.5
+				draw_line(c - Vector2(down) * 2.5 + side, c + Vector2(down) * 2.0, ink, 1.0)
+				draw_line(c - Vector2(down) * 2.5 - side, c + Vector2(down) * 2.0, ink, 1.0)
 		"street":
 			draw_rect(r, Color("#4c4a46"))
 			draw_line(o + Vector2(0, 0.4), o + Vector2(TP, 0.4), Color("#7c7870"), 0.8)
@@ -508,21 +518,31 @@ func _tile_object(x: int, y: int) -> void:
 			_box(Rect2(o + Vector2(3, 7), Vector2(7, 2)), Color("#d4a94a"), true, 0.3, 0.45)
 			draw_circle(o + Vector2(1.5, 4), 0.6, Color("#6fd06b"))
 		"ramp_wall":  # a concrete parapet along the ramp
-			_box(Rect2(o + Vector2(0, 4), Vector2(TP, 8)), Color("#b5b2aa"), true, 0.5, 0.3)
-			draw_line(o + Vector2(0, 6), o + Vector2(TP, 6), Color("#d2cfc6"), 0.6)
+			if _type(x, y - 1) == t or _type(x, y + 1) == t:  # running up-down
+				_box(Rect2(o + Vector2(4, 0), Vector2(8, TP)), Color("#b5b2aa"), true, 0.5, 0.3)
+				draw_line(o + Vector2(6, 0), o + Vector2(6, TP), Color("#d2cfc6"), 0.6)
+			else:
+				_box(Rect2(o + Vector2(0, 4), Vector2(TP, 8)), Color("#b5b2aa"), true, 0.5, 0.3)
+				draw_line(o + Vector2(0, 6), o + Vector2(TP, 6), Color("#d2cfc6"), 0.6)
 		"garage_shutter":  # the underground car park's shutter, down
 			draw_rect(r, Color("#2f3236"))
+			var along_x := _type(x - 1, y) == t or _type(x + 1, y) == t
 			for i in range(1, 8):
-				draw_line(o + Vector2(2 + i * 1.6, 0), o + Vector2(2 + i * 1.6, TP), Color("#4b4f55"), 0.5)
+				if along_x:
+					draw_line(o + Vector2(0, 2 + i * 1.6), o + Vector2(TP, 2 + i * 1.6), Color("#4b4f55"), 0.5)
+				else:
+					draw_line(o + Vector2(2 + i * 1.6, 0), o + Vector2(2 + i * 1.6, TP), Color("#4b4f55"), 0.5)
 			draw_rect(r, INK, false, 0.5)
-		"boom_barrier":  # red and white, across the way in; the post at the top
-			var top := _type(x, y - 1) != t
+		"boom_barrier":  # red and white, across the way in; the post at one end
+			var across := _type(x - 1, y) == t or _type(x + 1, y) == t
+			var first := _type(x - 1, y) != t if across else _type(x, y - 1) != t
 			for i in 4:
-				draw_rect(Rect2(o + Vector2(6.5, i * 4), Vector2(3, 4)), Color("#d23b2e") if (y * 4 + i) % 2 == 0 else Color("#f2efe6"))
-			draw_rect(Rect2(o + Vector2(6.5, 0), Vector2(3, TP)), INK, false, 0.4)
-			if top:
-				_box(Rect2(o + Vector2(4.5, 1), Vector2(7, 7)), Color("#e6b23a"), true, 0.8)
-				draw_circle(o + Vector2(8, 4.5), 1.0, Color("#c9463a"))
+				var stripe := Color("#d23b2e") if ((x if across else y) * 4 + i) % 2 == 0 else Color("#f2efe6")
+				draw_rect(Rect2(o + (Vector2(i * 4, 6.5) if across else Vector2(6.5, i * 4)), Vector2(4, 3) if across else Vector2(3, 4)), stripe)
+			draw_rect(Rect2(o + (Vector2(0, 6.5) if across else Vector2(6.5, 0)), Vector2(TP, 3) if across else Vector2(3, TP)), INK, false, 0.4)
+			if first:
+				_box(Rect2(o + Vector2(1, 4.5) if across else o + Vector2(4.5, 1), Vector2(7, 7)), Color("#e6b23a"), true, 0.8)
+				draw_circle(o + (Vector2(4.5, 8) if across else Vector2(8, 4.5)), 1.0, Color("#c9463a"))
 		"garage_gate":
 			for i in 5:
 				draw_rect(Rect2(o + Vector2(i * 3.2, 0), Vector2(3.2, 3)), Color("#d4a94a") if i % 2 == 0 else Color("#2b2522"))
