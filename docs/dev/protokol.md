@@ -548,7 +548,7 @@ liczy klient: pora dnia (`Clock.minute`), pogoda, `windows`, `light`
 n × {`kind u8`, `price u32` (grosze), `name` str16}. `ShopTake`: token u32,
 shelf u8, kind u8 — weź jedną sztukę (serwer sprawdza zasięg półki); towar
 trafia do ekwipunku jako niezapłacony (etykieta w `Inventory` z dopiskiem i
-ceną). Płacenie: E przy NPC „Kasa” (odpowiedź jako `Say`). Wyjście ze sklepu
+ceną). Płacenie: E przy NPC „Kasjer” (odpowiedź jako `Say`). Wyjście ze sklepu
 z niezapłaconym towarem: `Say` z alarmem od kasy, towar znika.
 
 Rodzaje przedmiotów sklepowych (`held`, `Inventory.kind`): 10 kanapka z serem,

@@ -111,6 +111,7 @@ Grafika „papier i atrament”, okna i światło, dźwięk.
 - **10.34** Okna, światło, kamera i ręcznie rysowana mapa
 - **10.38** Dźwięk
 - **10.54** Tabliczki na drzwiach
+- **10.55** Poprawki piętra 1 i parteru (2026-10-04)
 
 ## [Stan implementacji](stan.md)
 

@@ -205,9 +205,10 @@ func setup(p_net, p_building, welcome: Dictionary, p_nick: String, args: Diction
 		if m == null:
 			continue
 		var view := MapView.new()
-		var names := {}
+		var names := {}  # where stairs lead (not "to the stairwell": the EXIT sign says it)
 		for g in building.floors.size():
-			names[g] = building.floor_name(g)
+			if not building.floors[g].stairwell:
+				names[g] = building.floor_name(g)
 		view.build(m, ZOOM, names)
 		view.visible = false
 		add_child(view)
@@ -251,6 +252,7 @@ func setup(p_net, p_building, welcome: Dictionary, p_nick: String, args: Diction
 				if ttype == "stall_door":
 					var dv := StallDoorView.new()
 					dv.tile = Vector2i(x, y)
+					dv.across = m.is_blocked(x - 1, y) and m.is_blocked(x + 1, y)  # in a wall running left-right
 					dv.position = Movement.to_px(Movement.tile_center(x, y))
 					dv.visible = false
 					world.add_child(dv)
@@ -1178,7 +1180,7 @@ func _update_hint() -> void:
 					best_id = id
 		if best_id >= 0:
 			var who: String = nicks.get(best_id, "?")
-			text = "[E] Kasa — zapłać za zakupy" if who == "Kasa" else "[E] Porozmawiaj: %s" % who
+			text = "[E] Kasjer — zapłać za zakupy" if who == "Kasjer" else "[E] Porozmawiaj: %s" % who
 	if text == "" and map:
 		# Kitchenette things (the nearest within 1.5 tiles).
 		var kitchen_names := {"cupboard": "[E] Zajrzyj do szafki", "dishwasher": "[E] Zmywarka", "fridge": "[E] Lodówka", "kitchen_sink": "[E] Zlew"}
