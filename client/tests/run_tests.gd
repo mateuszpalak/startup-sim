@@ -296,7 +296,9 @@ func test_door_plaques() -> void:
 	var m0 = building.get_floor(0)
 	var m1 = building.get_floor(1)
 	var at := func(m, x: int, y: int) -> String:
-		return m.plaque_at(x, y, m.room_at_tile(x, y))
+		return m.room_name(m.plaque_at(x, y, m.room_at_tile(x, y))) if m.plaque_at(x, y, m.room_at_tile(x, y)) else ""
+	var icon := func(m, x: int, y: int) -> String:
+		return m.plaque_icon(m.plaque_at(x, y, m.room_at_tile(x, y)))
 	expect(at.call(m1, 42, 14) == "HR", "HR from the corridor: %s" % at.call(m1, 42, 14))
 	expect(at.call(m1, 44, 14) == "", "no plaque for the corridor (from inside HR)")
 	expect(at.call(m1, 30, 19) == "Zarząd", "the board room's door")
@@ -304,6 +306,14 @@ func test_door_plaques() -> void:
 	expect(at.call(m1, 37, 44) == "", "no plaque on the lift")
 	expect(at.call(m1, 37, 20) == "", "nothing away from doors")
 	expect(at.call(m0, 22, 58) == "Sklep", "the shop from the street: %s" % at.call(m0, 22, 58))
+	# Toilets: a sign instead of words; between two doors, the one you face.
+	var face := func(m, x: int, y: int, d: Vector2i) -> String:
+		return m.plaque_icon(m.plaque_at(x, y, m.room_at_tile(x, y), d))
+	expect(icon.call(m1, 34, 18) == "female" and icon.call(m1, 40, 16) == "female", "women's: %s %s" % [icon.call(m1, 34, 18), icon.call(m1, 40, 16)])
+	expect(face.call(m1, 37, 27, Vector2i(0, -1)) == "male", "men's (facing up)")
+	expect(face.call(m1, 37, 27, Vector2i(0, 1)) == "accessible", "the disabled toilet (facing down)")
+	expect(icon.call(m0, 41, 53) == "unisex", "the lodge's toilet: both signs: %s" % icon.call(m0, 41, 53))
+	expect(icon.call(m1, 42, 14) == "", "HR in words")
 
 
 ## Sealed packets: the same bytes as the server's (and back).

@@ -48,6 +48,8 @@ var room_light := {}  # id -> "switch" / "always" (missing = outdoors / none)
 var room_switch := {}  # id -> Vector2i: tile by the light switch
 var room_lit_by := {}  # id -> id of the room whose lamp lights it
 var room_department := {}  # id -> department whose desks are in it
+var room_gender := {}  # id -> "female" / "male" (bathrooms)
+var room_accessible := {}  # id -> true: a toilet for the disabled
 var legend := {}      # char -> {type, solid, color, access?, free_dir?}
 ## [{kind: "stairs"|"elevator", rect: Rect2i, id, to_floor, to: Vector2i}]
 var links: Array = []
@@ -103,6 +105,10 @@ func parse(bytes: PackedByteArray) -> void:
 			room_windows[rid] = true
 		if defs[key].get("light", "") != "":
 			room_light[rid] = defs[key]["light"]
+		if defs[key].get("gender", "") != "":
+			room_gender[rid] = defs[key]["gender"]
+		if defs[key].get("accessible", false):
+			room_accessible[rid] = true
 		if int(defs[key].get("department", 0)) != 0:
 			room_department[rid] = int(defs[key]["department"])
 		var sw = defs[key].get("switch", null)
@@ -212,10 +218,15 @@ func door_sides(tx: int, ty: int) -> Array:
 	return out
 
 
-## The plaque you can read standing at (tx, ty) in room `here`: the name of
-## the room behind a door right next to you; "" = none.
-func plaque_at(tx: int, ty: int, here: int) -> String:
-	for d: Vector2i in SIDES + [Vector2i(-1, -1), Vector2i(1, -1), Vector2i(-1, 1), Vector2i(1, 1)]:
+## The plaque you can read standing at (tx, ty) in room `here`: the room
+## behind a door right next to you (the one you face first); NO_ROOM = none.
+func plaque_at(tx: int, ty: int, here: int, facing := Vector2i.ZERO) -> int:
+	var around: Array[Vector2i] = []
+	if facing != Vector2i.ZERO:
+		around.append(facing)
+	around.append_array(SIDES)
+	around.append_array([Vector2i(-1, -1), Vector2i(1, -1), Vector2i(-1, 1), Vector2i(1, 1)])
+	for d: Vector2i in around:
 		var x := tx + d.x
 		var y := ty + d.y
 		if not is_plaque_door(x, y):
@@ -225,8 +236,18 @@ func plaque_at(tx: int, ty: int, here: int) -> String:
 			continue
 		for s in sides:
 			if s[0] != here and has_plaque(s[0]):
-				return room_name(s[0])
-	return ""
+				return s[0]
+	return NO_ROOM
+
+
+## A toilet's plaque is just a sign: "female" / "male" / "accessible" /
+## "unisex" (both); "" = the room's name in words.
+func plaque_icon(rid: int) -> String:
+	if room_types.get(rid, "") not in ["bathroom", "stall"]:
+		return ""
+	if room_accessible.has(rid):
+		return "accessible"
+	return room_gender.get(rid, "unisex")
 
 
 ## Link covering a tile, or {} if none.

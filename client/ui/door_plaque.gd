@@ -1,5 +1,6 @@
-## A door plaque read up close (E by a door): the name of the room behind it,
-## big in the middle of the screen. Goes away with E / Esc or on walking off.
+## A door plaque read up close (E by a door): the name of the room behind it
+## (toilets: just the sign), big in the middle of the screen. Goes away with
+## E / Esc or on walking off.
 extends Control
 
 const Ink = preload("res://ui/ink_ui.gd")
@@ -7,9 +8,11 @@ const Ink = preload("res://ui/ink_ui.gd")
 const PLATE := Color("#d9c27a")
 const PLATE_LO := Color("#a88f4a")
 
-var text := ""
+var room := 0
+var _icon := ""
 var _plate := PanelContainer.new()
 var _label := Label.new()
+var _sign := Control.new()
 
 
 func _ready() -> void:
@@ -32,21 +35,35 @@ func _ready() -> void:
 	add_child(_plate)
 	Ink.style_label(_label, 40, Ink.TEXT_INK)
 	_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_plate.add_child(_label)
+	var col := VBoxContainer.new()
+	col.alignment = BoxContainer.ALIGNMENT_CENTER
+	_plate.add_child(col)
+	col.add_child(_label)
+	_sign.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	_sign.draw.connect(_draw_sign)
+	col.add_child(_sign)
 	_plate.draw.connect(_screws)
 	get_viewport().size_changed.connect(_place)
 
 
-func open(room_name: String) -> void:
-	text = room_name
+## `icon`: "female" / "male" / "accessible" / "unisex" = a sign instead of
+## the name.
+func open(rid: int, room_name: String, icon := "") -> void:
+	room = rid
+	_icon = icon
 	_label.text = room_name
+	_label.visible = icon == ""
+	_sign.visible = icon != ""
+	_sign.custom_minimum_size = Vector2(190 if icon == "unisex" else 100, 130)
+	_plate.custom_minimum_size = Vector2(360 if icon == "" else 0, 0)
+	_sign.queue_redraw()
 	visible = true
 	_place.call_deferred()
 
 
 func close() -> void:
 	visible = false
-	text = ""
+	room = 0
 
 
 func _place() -> void:
@@ -65,6 +82,45 @@ func _screws() -> void:
 		_plate.draw_arc(c, 4.0, 0, TAU, 12, Ink.INK, 1.2, true)
 		_plate.draw_line(c - Vector2(2.5, 2.5), c + Vector2(2.5, 2.5), Ink.INK, 1.0)
 	_plate.draw_rect(Rect2(Vector2(8, 8), s - Vector2(16, 16)), Color(PLATE_LO, 0.8), false, 1.5)
+
+
+func _draw_sign() -> void:
+	var s := _sign.size
+	match _icon:
+		"female": _woman(s.x / 2)
+		"male": _man(s.x / 2)
+		"accessible": _wheelchair(s.x / 2)
+		"unisex":
+			_man(s.x / 2 - 48)
+			_sign.draw_line(Vector2(s.x / 2, 8), Vector2(s.x / 2, s.y - 8), Ink.INK, 4.0)
+			_woman(s.x / 2 + 48)
+
+
+func _man(cx: float) -> void:
+	_sign.draw_circle(Vector2(cx, 16), 13, Ink.INK)
+	_sign.draw_rect(Rect2(cx - 15, 34, 30, 44), Ink.INK)
+	_sign.draw_rect(Rect2(cx - 25, 34, 7, 40), Ink.INK)  # arms
+	_sign.draw_rect(Rect2(cx + 18, 34, 7, 40), Ink.INK)
+	_sign.draw_rect(Rect2(cx - 15, 76, 13, 50), Ink.INK)
+	_sign.draw_rect(Rect2(cx + 2, 76, 13, 50), Ink.INK)
+
+
+func _woman(cx: float) -> void:
+	_sign.draw_circle(Vector2(cx, 16), 13, Ink.INK)
+	_sign.draw_colored_polygon(PackedVector2Array([Vector2(cx - 11, 34), Vector2(cx + 11, 34), Vector2(cx + 26, 92), Vector2(cx - 26, 92)]), Ink.INK)
+	_sign.draw_line(Vector2(cx - 14, 37), Vector2(cx - 27, 70), Ink.INK, 7.0)  # arms
+	_sign.draw_line(Vector2(cx + 14, 37), Vector2(cx + 27, 70), Ink.INK, 7.0)
+	_sign.draw_rect(Rect2(cx - 12, 90, 9, 36), Ink.INK)
+	_sign.draw_rect(Rect2(cx + 3, 90, 9, 36), Ink.INK)
+
+
+func _wheelchair(cx: float) -> void:
+	_sign.draw_circle(Vector2(cx - 6, 14), 12, Ink.INK)
+	_sign.draw_line(Vector2(cx - 10, 32), Vector2(cx - 10, 72), Ink.INK, 12.0)   # back
+	_sign.draw_line(Vector2(cx - 14, 70), Vector2(cx + 20, 70), Ink.INK, 10.0)   # seat
+	_sign.draw_line(Vector2(cx + 18, 70), Vector2(cx + 30, 104), Ink.INK, 10.0)  # shin
+	_sign.draw_line(Vector2(cx - 10, 48), Vector2(cx + 14, 48), Ink.INK, 8.0)    # arm
+	_sign.draw_arc(Vector2(cx - 6, 92), 30, deg_to_rad(-200), deg_to_rad(20), 24, Ink.INK, 7.0, true)
 
 
 func _unhandled_input(event: InputEvent) -> void:

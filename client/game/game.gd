@@ -117,8 +117,8 @@ var weather_layer := CanvasLayer.new()
 var dialog := DialogWindow.new()
 var roll_game := RollGame.new()  # rolling a cigarette (F with tobacco)
 var door_plaque := DoorPlaque.new()  # a door plaque read up close (E by a door)
-## The plaque E would read right now ("" = E does something else / nothing).
-var plaque_here := ""
+## The room whose plaque E would read right now (0 = E does something else).
+var plaque_here := 0
 var notices := Notices.new()      # cards in the corner (Notice)
 var log_history := LogHistory.new()  # H: the day's log
 var chat_box := ChatBox.new()     # Enter: typed chat
@@ -1102,8 +1102,9 @@ func _unhandled_input(event: InputEvent) -> void:
 func _read_plaque() -> void:
 	if door_plaque.visible:
 		door_plaque.close()
-	elif plaque_here != "":
-		door_plaque.open(plaque_here)
+	elif plaque_here != 0:
+		var m = building.get_floor(pred.floor)
+		door_plaque.open(plaque_here, m.room_name(plaque_here), m.plaque_icon(plaque_here))
 
 
 ## Pocket key: take it out, or put back what's in hands if that pocket is empty.
@@ -1129,7 +1130,7 @@ func _item_action(action: int, slot: int) -> void:
 ## gate that needs a pass.
 func _update_hint() -> void:
 	var text := ""
-	plaque_here = ""
+	plaque_here = 0
 	if me.status == Protocol.ACT_HELD:
 		hint_label.text = "Zatrzymano cię — chwilę stoisz w miejscu…"
 		hint_label.visible = true
@@ -1278,10 +1279,11 @@ func _update_hint() -> void:
 						text = "Bramka wymaga przepustki — porozmawiaj z portierem (portiernia)"
 					else:
 						text = "Wstęp tylko dla obsługi"
-	plaque_here = map.plaque_at(t.x, t.y, room_id) if e_free and map else ""
-	if plaque_here != "":
+	var facing: Vector2i = [Vector2i(0, 1), Vector2i(0, -1), Vector2i(-1, 0), Vector2i(1, 0)][me.facing]
+	plaque_here = map.plaque_at(t.x, t.y, room_id, facing) if e_free and map else 0
+	if plaque_here != 0:
 		text = "[E] Przeczytaj tabliczkę" if text == "" else text + "  ·  [E] tabliczka"
-	if door_plaque.visible and plaque_here != door_plaque.text:
+	if door_plaque.visible and plaque_here != door_plaque.room:
 		door_plaque.close()  # walked off
 	if text == "" and voice.whisper_to >= 0:
 		text = "[V] mów · [B] szept: %s" % nicks.get(voice.whisper_to, "?")
