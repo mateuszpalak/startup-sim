@@ -21,3 +21,11 @@ func run() -> void:
 	if not await until(func(): return not game().computers.is_empty(), 10.0, "the laptop on the desk"):
 		return
 	check(money() == 200_00, "the money kept (%d gr)" % money())
+	# At the desk again: the messenger has its channels (the laptop is ours).
+	await press_e()
+	if not await until(func(): return game().screen.visible, 5.0, "the computer screen"):
+		return
+	var screen = game().screen
+	if not await until(func(): return not screen.state.get("convs", []).is_empty(), 5.0, "the messenger channels"):
+		return
+	log_step("channels: %s" % [screen.state.convs.map(func(c): return c.title)])
