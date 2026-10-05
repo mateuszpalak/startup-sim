@@ -1,4 +1,4 @@
-## The reception's supplies (an employee, server at 11:58): a vitamin from
+## The reception's supplies (an employee, server at 11:56): a vitamin from
 ## the first-aid cabinet; the storeroom key - refused while the
 ## receptionist is at her desk, taken on her lunch break (12:00); a cola
 ## from the storeroom upstairs.
