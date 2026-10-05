@@ -367,6 +367,48 @@ fn punches_knock_out_a_knife_calls_the_police_and_earns_a_reprimand() {
 }
 
 #[test]
+fn the_lift_panel_wants_the_card_except_for_the_ground_floor() {
+    use crate::elevator::lines;
+    let mut s = server();
+    add_player(&mut s, 1);
+    // In the cabin of a lift standing on floor 4.
+    let i = s.elevators.iter().position(|e| e.floors().contains(&4)).unwrap();
+    s.elevators[i].floor = 4;
+    s.elevators[i].moving = None;
+    let r = s.elevators[i].cabins.iter().find(|(f, _)| *f == 4).unwrap().1;
+    let p = s.players.get_mut(&1).unwrap();
+    p.body = Body::at(4, Pos::tile_center(r.x, r.y));
+    p.body.access = 0; // no card yet
+    let body = p.body;
+    assert!(s.use_elevator(1, &body));
+    let panel = s.players[&1].lift_panel.clone().expect("the panel");
+    let Some(Packet::Dialog { options, items, .. }) = s.dialog_packet(1) else { panic!("no panel") };
+    let ground = panel.floors.iter().position(|&f| f == 0).unwrap();
+    let up = panel.floors.iter().position(|&f| f == 3).unwrap();
+    assert_eq!((items[ground], items[up]), (0, 1), "only the ground floor without the card");
+    assert_eq!(options.last().map(String::as_str), Some(super::doors::PANEL_CARD));
+    let card = (panel.floors.len() + 1) as u8;
+    // Floor 3 without the card: no.
+    s.press_lift_panel(1, &panel, up as u8);
+    assert!(s.says.iter().any(|l| l.text == lines::CARD_FIRST));
+    assert!(s.players[&1].lift_panel.is_some(), "the panel stays");
+    // No card to swipe.
+    s.press_lift_panel(1, &panel, card);
+    assert!(s.says.iter().any(|l| l.text == lines::NO_CARD_TO_SWIPE));
+    // With the card: swiped, then floor 3 works.
+    s.players.get_mut(&1).unwrap().body.access = crate::map::access::required("card").unwrap();
+    s.press_lift_panel(1, &panel, card);
+    let panel = s.players[&1].lift_panel.clone().unwrap();
+    assert!(panel.carded);
+    let Some(Packet::Dialog { items, .. }) = s.dialog_packet(1) else { panic!("no panel") };
+    assert!(items.iter().all(|&k| k == 0), "every button lit");
+    s.says.clear();
+    s.press_lift_panel(1, &panel, up as u8);
+    assert!(s.says.iter().any(|l| l.text.starts_with("Jedziemy na: Piętro 3")));
+    assert!(s.players[&1].lift_panel.is_none());
+}
+
+#[test]
 fn a_skid_mark_is_seen_by_the_next_one_and_scrubbed_with_the_brush() {
     use crate::needs::SpotKind;
     use crate::stains::lines;

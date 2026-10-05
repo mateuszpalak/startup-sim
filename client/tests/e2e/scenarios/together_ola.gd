@@ -33,9 +33,11 @@ func run() -> void:
 	if not await walk(4, 37, 42):  # into the cabin
 		return
 	await press_e()  # the panel of floor buttons
-	if not await until(func(): return game().dialog.visible, 5.0, "the floor panel"):
+	var panel = game().gadget
+	if not await until(func(): return panel.visible and panel.lift, 5.0, "the floor panel"):
 		return
-	game().dialog._choose(0)  # the first button: the ground floor
+	check(panel._locked.has(1), "floors up need the card first")
+	panel._pick(0)  # the first button: the ground floor (no card needed)
 	if not await hear("Jedziemy na: Parter"):
 		return
 	await until(func(): return floor_now() == 0, 20.0, "down on the ground floor")

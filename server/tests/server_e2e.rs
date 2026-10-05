@@ -1377,7 +1377,8 @@ fn elevator_is_called_waited_for_and_ridden() {
         _ => None,
     });
     let (id, options) = panel.expect("the floor panel");
-    assert_eq!(options, ["Parter", "Piętro 3", "Zostań"]);
+    assert_eq!(options, ["Parter", "Piętro 3", "Zostań", "Przyłóż kartę"]);
+    // (The ground floor needs no card.)
     ola.send(&Packet::DialogAnswer { token: ola.token, id, choice: 0 });
     assert!(wait_for(&ola, &[], wait, |p| matches!(p, Packet::Dialog { id: 0, .. }).then_some(())).is_some(), "panel closed");
     assert!(wait_for(&ola, &[], wait, said(|t| t.starts_with("Jedziemy na: Parter"))).is_some());

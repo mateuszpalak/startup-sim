@@ -8,12 +8,15 @@ use crate::stalls;
 use super::player::LiftPanel;
 use super::{Say, Server};
 
-/// What the panel in the cabin asks.
-pub const PANEL_TEXT: &str = "Które piętro?";
-/// The last button: close the panel, stay in the cabin.
+/// What the panel in the cabin asks (before / after the card).
+pub const PANEL_TEXT: &str = "Parter bez karty, inne piętra — przyłóż kartę do czytnika.";
+pub const PANEL_TEXT_CARDED: &str = "Karta przyjęta — które piętro?";
+/// After the floor buttons: close the panel (stay in the cabin), then the
+/// card reader.
 pub const PANEL_STAY: &str = "Zostań";
-/// Most floor buttons on the panel (a `Dialog` has up to 4 options).
-const PANEL_BUTTONS: usize = proto::MAX_OPTIONS - 1;
+pub const PANEL_CARD: &str = "Przyłóż kartę";
+/// Most floor buttons on the panel (two options are "stay" and the card).
+const PANEL_BUTTONS: usize = proto::MAX_DIALOG_OPTIONS - 2;
 
 impl Server {
     /// Elevator doors: closed (solid) unless the car stands there open.
@@ -45,7 +48,7 @@ impl Server {
             }
             let Some(p) = self.players.get_mut(&pid) else { return true };
             let id = p.next_dialog();
-            p.lift_panel = Some(LiftPanel { lift: i, floor: body.floor, id, floors });
+            p.lift_panel = Some(LiftPanel { lift: i, floor: body.floor, id, floors, carded: false });
             self.send_dialog(pid);
             return true;
         }
@@ -68,17 +71,44 @@ impl Server {
         true
     }
 
-    /// The open panel as a `Dialog` (npc 0): a button per floor, then "stay".
+    /// The open panel as a `Dialog` (npc 0): a button per floor, "stay",
+    /// the card reader; `items` per option: 1 = that floor's button waits
+    /// for the card (all but the ground floor, until it's been swiped).
     pub(super) fn lift_panel_packet(&self, panel: &LiftPanel) -> Packet {
         let mut options: Vec<String> = panel.floors.iter().map(|&f| self.building.floor_name(f).to_string()).collect();
-        options.push(PANEL_STAY.to_string());
-        Packet::Dialog { id: panel.id, npc: 0, text: PANEL_TEXT.to_string(), options, items: Vec::new() }
+        let mut items: Vec<u8> = panel.floors.iter().map(|&f| u8::from(f != 0 && !panel.carded)).collect();
+        options.extend([PANEL_STAY.to_string(), PANEL_CARD.to_string()]);
+        items.extend([0, 0]);
+        let text = if panel.carded { PANEL_TEXT_CARDED } else { PANEL_TEXT };
+        Packet::Dialog { id: panel.id, npc: 0, text: text.to_string(), options, items }
     }
 
     /// A button on the panel pressed (`DialogAnswer` to the panel's id).
     pub(super) fn press_lift_panel(&mut self, pid: u16, panel: &LiftPanel, choice: u8) {
+        let choice = usize::from(choice);
+        // The card to the reader: every button works now.
+        if choice == panel.floors.len() + 1 {
+            let card = crate::map::access::required("card").unwrap_or(0);
+            let Some(p) = self.players.get_mut(&pid) else { return };
+            if p.body.access & card == 0 {
+                self.says.push(Say::new(pid, elevator::lines::NO_CARD_TO_SWIPE));
+            } else {
+                if let Some(l) = p.lift_panel.as_mut() {
+                    l.carded = true;
+                }
+                self.sound(proto::sound::SWITCH, pid);
+                self.says.push(Say::new(pid, elevator::lines::CARD_OK));
+            }
+            self.send_dialog(pid);
+            return;
+        }
+        if panel.floors.get(choice).is_some_and(|&f| f != 0 && !panel.carded) {
+            self.says.push(Say::new(pid, elevator::lines::CARD_FIRST));
+            self.send_dialog(pid); // (answered: shown again)
+            return;
+        }
         self.close_lift_panel(pid);
-        let Some(&target) = panel.floors.get(usize::from(choice)) else { return }; // "stay"
+        let Some(&target) = panel.floors.get(choice) else { return }; // "stay"
         let Some(e) = self.elevators.get_mut(panel.lift) else { return };
         let line = match e.press_floor(panel.floor, target, self.tick) {
             Some(t) => format!("Jedziemy na: {}.", self.building.floor_name(t)),

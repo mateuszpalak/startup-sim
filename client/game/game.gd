@@ -426,7 +426,8 @@ func setup(p_net, p_building, welcome: Dictionary, p_nick: String, args: Diction
 	gadget.pick.connect(func(choice: int):
 			if net.is_playing():
 				net.send(Protocol.encode_dialog_answer(net.token, gadget.dialog_id, choice))
-			gadget.close())
+			if not gadget.lift:
+				gadget.close())  # (the lift's panel: the server closes it, or shows it again)
 	screen_layer.add_child(screen)
 	_show_floor(0)
 	set_zoom_level.call_deferred(float(args["zoom"]) if args.has("zoom") else Settings.zoom)
@@ -875,9 +876,12 @@ func _on_packet(p: Dictionary) -> void:
 		Protocol.T_COMPANY_OFFERS, Protocol.T_COMPANY_PEOPLE:
 			screen.on_company(p)
 		Protocol.T_DIALOG:
-			if p.id in [GadgetView.TV_DIALOG, GadgetView.BOOMBOX_DIALOG]:
-				gadget.open(p)  # the remote / the boombox, not a dialog
+			if p.id in [GadgetView.TV_DIALOG, GadgetView.BOOMBOX_DIALOG] or (p.npc == 0 and p.id != 0):
+				gadget.lift_floor = pred.floor
+				gadget.open(p)  # the remote / the boombox / the lift's panel, not a dialog
 			else:
+				if p.id == 0 and gadget.lift:
+					gadget.close()  # the lift's panel closed (by the server)
 				dialog.on_dialog(p)
 			if p.id in [0, Protocol.DIALOG_VOTE]:
 				vote_dialog.emit(p)  # the home screen shows the vote too

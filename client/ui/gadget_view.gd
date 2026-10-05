@@ -1,8 +1,10 @@
-## The TV remote and the boombox in the middle of the screen (the server's
-## channel / track question): a remote with round channel buttons, a small
-## display and the red power button; a silver boombox with speakers, the
-## cassette window and a key per track. A click (or 1-9, 0 = off) picks;
-## Esc puts it away.
+## The TV remote, the boombox and the lift's floor panel in the middle of
+## the screen (the server's question): a remote with round channel buttons,
+## a small display and the red power button; a silver boombox with
+## speakers, the cassette window and a key per track; the lift's steel
+## panel with a display, the card reader (red until a card is held to it)
+## and a round button per floor - only the ground floor's works without the
+## card. A click (or keys) picks; Esc puts it away.
 extends Control
 
 const Ink = preload("res://ui/ink_ui.gd")
@@ -13,6 +15,11 @@ signal pick(choice: int)
 const TV_DIALOG := 253
 const BOOMBOX_DIALOG := 254
 
+## The lift panel is a dialog from "npc" 0.
+var lift := false
+## The floor the lift stands at (set by the game).
+var lift_floor := 0
+
 ## What's on now (set by the game): TV channel / boombox track, 0 = off.
 var tv_channel := 0
 var track := 0
@@ -20,6 +27,7 @@ var dialog_id := 0
 var _options: Array = []
 var _body := PanelContainer.new()
 var _speakers: Array[Control] = []
+var _locked: Array = []  # lift: per option, 1 = waits for the card
 
 
 func _ready() -> void:
@@ -41,12 +49,16 @@ func _place() -> void:
 func open(p: Dictionary) -> void:
 	dialog_id = p.id
 	_options = p.options
+	lift = p.npc == 0
+	_locked = p.get("items", [])
 	for c in _body.get_children():
 		_body.remove_child(c)
 		c.queue_free()
 	_body.size = Vector2.ZERO  # (the remote is taller than the boombox)
 	_speakers.clear()
-	if dialog_id == TV_DIALOG:
+	if lift:
+		_lift_panel(str(p.get("text", "")))
+	elif dialog_id == TV_DIALOG:
 		_remote()
 	else:
 		_boombox()
@@ -57,6 +69,82 @@ func open(p: Dictionary) -> void:
 func close() -> void:
 	visible = false
 	dialog_id = 0
+	lift = false
+
+
+## A floor's button label: "Parter" -> "P", "Piętro 3" -> "3".
+static func floor_label(name: String) -> String:
+	if name.begins_with("Parter"):
+		return "P"
+	var digits := ""
+	for ch in name:
+		if ch >= "0" and ch <= "9":
+			digits += ch
+	return digits if digits != "" else name.left(1)
+
+
+func _lift_panel(text: String) -> void:
+	var floors := _options.size() - 2  # then "stay", then the card reader
+	var carded := not _locked.has(1)
+	_body.add_theme_stylebox_override("panel", _flat(Color("#b9bec6"), 14, 5, 20))
+	var col := VBoxContainer.new()
+	col.add_theme_constant_override("separation", 12)
+	_body.add_child(col)
+	# The display: where the car is.
+	var lcd := PanelContainer.new()
+	lcd.add_theme_stylebox_override("panel", _flat(Color("#1d1f24"), 6, 3, 8))
+	var here := _text("▲▼  %s" % ("P" if lift_floor == 0 else str(lift_floor)), 30, Color("#e8823a"))
+	here.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	lcd.add_child(here)
+	col.add_child(lcd)
+	# The card reader: a click (or K) holds the card to it.
+	var reader := Button.new()
+	reader.focus_mode = Control.FOCUS_NONE
+	reader.custom_minimum_size = Vector2(200, 64)
+	reader.tooltip_text = "Przyłóż kartę (K)"
+	reader.add_theme_stylebox_override("normal", _flat(Color("#2f3238"), 8, 3))
+	reader.add_theme_stylebox_override("hover", _flat(Color("#3b3f46"), 8, 3))
+	reader.add_theme_stylebox_override("pressed", _flat(Color("#25272c"), 8, 3))
+	reader.draw.connect(func():
+		var led := Color("#3ddc6a") if carded else Color("#e0453a")
+		reader.draw_circle(Vector2(24, 32), 9, Ink.INK)
+		reader.draw_circle(Vector2(24, 32), 7, led)
+		reader.draw_circle(Vector2(22, 30), 2, Color(1, 1, 1, 0.5))
+		var f := Ink.font()
+		var t := "Karta OK" if carded else "Przyłóż kartę"
+		reader.draw_string(f, Vector2(44, 28), t, HORIZONTAL_ALIGNMENT_LEFT, -1, 17, Color("#f4ead0"))
+		reader.draw_string(f, Vector2(44, 48), "czytnik (K)", HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color("#9aa0a8")))
+	reader.pressed.connect(func(): _pick(_options.size() - 1))
+	col.add_child(reader)
+	# Floor buttons, the top floor first.
+	var order: Array = range(floors)
+	var rank := func(i: int) -> int:
+		var l := floor_label(_options[i])
+		return -1 if l == "P" else int(l)
+	order.sort_custom(func(a, b): return rank.call(a) > rank.call(b))
+	for i in order:
+		var row := HBoxContainer.new()
+		row.add_theme_constant_override("separation", 12)
+		row.alignment = BoxContainer.ALIGNMENT_CENTER
+		var locked: bool = i < _locked.size() and _locked[i] == 1
+		var b := _key(floor_label(_options[i]), Color("#6e737b") if locked else Color("#3b3f46"), Vector2(56, 56), 28, i, 24)
+		if not locked:
+			var ring := _flat(Color("#3b3f46"), 28, 3)
+			ring.border_color = Color("#e8b85a")
+			ring.set_border_width_all(4)
+			b.add_theme_stylebox_override("normal", ring)
+		row.add_child(b)
+		var name := _text(str(_options[i]) + ("  (karta)" if locked else ""), 17, Color("#2a2d33") if not locked else Color("#5d6168"))
+		name.custom_minimum_size = Vector2(130, 0)
+		row.add_child(name)
+		col.add_child(row)
+	var stay := _key("◀ ▶   Zostań", Color("#4d5159"), Vector2(200, 40), 8, floors, 17)
+	col.add_child(stay)
+	var hint := _text(text, 13, Color("#3a3d45"))
+	hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	hint.custom_minimum_size = Vector2(200, 0)
+	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	col.add_child(hint)
 
 
 static func _flat(color: Color, radius: int, border := 4, margin := 0) -> StyleBoxFlat:
@@ -201,6 +289,9 @@ func _pick(i: int) -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if not visible or not (event is InputEventKey and event.pressed and not event.echo):
 		return
+	if lift:
+		_lift_key(event)
+		return
 	if event.keycode == KEY_ESCAPE:
 		close()
 	elif event.keycode == KEY_0:
@@ -209,4 +300,27 @@ func _unhandled_input(event: InputEvent) -> void:
 		_pick(event.keycode - KEY_1)
 	else:
 		return
+	get_viewport().set_input_as_handled()
+
+
+## The lift: P / 0 = the ground floor, a digit = that floor, K = the card,
+## Esc = stay.
+func _lift_key(event: InputEventKey) -> void:
+	var floors := _options.size() - 2
+	var want := ""
+	match event.keycode:
+		KEY_ESCAPE:
+			_pick(floors)
+		KEY_K:
+			_pick(_options.size() - 1)
+		KEY_P, KEY_0:
+			want = "P"
+		_:
+			if event.keycode >= KEY_1 and event.keycode <= KEY_9:
+				want = str(event.keycode - KEY_0)
+			else:
+				return
+	for i in floors:
+		if want != "" and floor_label(_options[i]) == want:
+			_pick(i)
 	get_viewport().set_input_as_handled()
