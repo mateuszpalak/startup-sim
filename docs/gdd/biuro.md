@@ -132,6 +132,13 @@ kubek w ręce przez 90 s, widoczny dla innych → „Kawa wypita.”
   Gdy szafka jest pusta, a brudne kubki stoją po biurze — trzeba pozmywać.
   Sprzątaczka zebrane kubki wkłada do zmywarki i ją włącza; kubki gracza,
   który wyszedł z gry, wracają do szafki.
+- **Ekspres** (E — panel na środku ekranu, z rysunkiem ekspresu): „Zaparz
+  kawę” (czysty kubek w rękach), „Dolej wody”, „Wyrzuć fusy”. Zbiornik wody
+  starcza na 8 kaw, szuflada mieści fusy z 8 — pusty zbiornik albo pełna
+  szuflada zatrzymują ekspres. Fusy lądują w rękach — do **kosza w kuchni**
+  (E — okno jak inne pojemniki: wrzuć, co niepotrzebne, albo pogrzeb w nim;
+  kubków i firmowych rzeczy się nie wyrzuca). Sprzątaczka na obchodzie dolewa
+  wody, wysypuje fusy i opróżnia kosz; kosz pustoszeje też rano.
 - **Lodówka** (E — okno): przechowanie jedzenia i napojów (do 10 rzeczy, z
   podpisem właściciela — każdy może wziąć każdą), **mleko do kawy** („Dolej do
   kawy” → kawa z mlekiem, trochę mniej stresu; karton mleka ze sklepu

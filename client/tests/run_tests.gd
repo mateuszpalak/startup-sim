@@ -63,6 +63,7 @@ func test_protocol(path: String) -> void:
 		"lunch_order": Protocol.encode_lunch_order(0x01020304, 29),
 		"company_action": Protocol.encode_company_action(0x01020304, Protocol.CO_SET_PLACES, 1, 2, ""),
 		"container_action": Protocol.encode_container_action(0x01020304, Protocol.CONTAINER_FRIDGE, Protocol.CONTAINER_TAKE, 1, 18),
+		"coffee_action": Protocol.encode_coffee_action(0x01020304, 1, Protocol.COFFEE_WATER),
 		"skip_wait": Protocol.encode_skip_wait(0x01020304),
 		"action": Protocol.encode_action(0x01020304, Protocol.ACTION_ATTACK),
 		"hr_action": Protocol.encode_hr_action(0x01020304, Protocol.HR_REQUEST, 9),
@@ -128,6 +129,9 @@ func test_protocol(path: String) -> void:
 		and hr.salary == 10200 and hr.pay_rate == 6071 and hr.start_day == 2 and hr.today == 7 and hr.reprimands == 1
 		and hr.leave_days == 2 and hr.worked == 3 and hr.annexes.size() == 2 and hr.annexes[1].text == "Aneks nr 1"
 		and hr.requests == [{"id": 1, "day": 9, "status": 1}, {"id": 2, "day": 8, "status": 3}], "decode hr_info %s" % hr)
+	var cm := Protocol.decode(golden["coffee_machine"].hex_decode())
+	expect(cm.get("type") == Protocol.T_COFFEE_MACHINE and cm.machine == 1 and cm.water == 5 and cm.grounds == 3
+		and cm.max == 8 and cm.busy == 2, "decode coffee machine %s" % cm)
 	var fr := Protocol.decode(golden["container"].hex_decode())
 	expect(fr.get("type") == Protocol.T_CONTAINER and fr.which == Protocol.CONTAINER_FRIDGE and fr.capacity == 12
 		and fr.slots.size() == 2 and fr.slots[0].kind == 11 and fr.slots[0].label == "Kanapka z szynką (Ola)"

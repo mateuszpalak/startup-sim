@@ -23,6 +23,8 @@ pub const DISHWASHER_CAP: u8 = 8;
 /// A dishwasher cycle (game minutes).
 pub const WASH_MINUTES: u32 = 30;
 pub const FRIDGE_SLOTS: usize = 10;
+/// The kitchen bin holds this many things (the oldest go first).
+pub const TRASH_SLOTS: usize = 12;
 pub const MILK_MAX: u8 = 20;
 pub const MILK_PER_CARTON: u8 = 10;
 /// Free drinks put in the fridge every morning.
@@ -51,6 +53,10 @@ pub struct Kitchen {
     pub juice: u8,
     /// Knives in the cupboard.
     pub knives: u8,
+    /// The trash bin and what's been thrown in (emptied by the cleaner and
+    /// every morning).
+    pub bin: Option<Tile>,
+    pub trash: Vec<Item>,
 }
 
 impl Kitchen {
@@ -81,6 +87,8 @@ impl Kitchen {
                     water: FREE_WATER,
                     juice: FREE_JUICE,
                     knives: KNIVES,
+                    bin: find("trash_bin"),
+                    trash: Vec::new(),
                 });
             }
         }
@@ -133,6 +141,15 @@ impl Kitchen {
         self.water = FREE_WATER;
         self.juice = FREE_JUICE;
         self.knives = KNIVES;
+        self.trash.clear();
+    }
+
+    /// Something thrown in the bin (full: the oldest thing goes).
+    pub fn throw_away(&mut self, item: Item) {
+        if self.trash.len() >= TRASH_SLOTS {
+            self.trash.remove(0);
+        }
+        self.trash.push(item);
     }
 }
 

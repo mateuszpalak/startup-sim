@@ -349,6 +349,8 @@ pub fn golden_samples() -> Vec<(&'static str, Packet)> {
                 },
             },
         ),
+        ("coffee_machine", Packet::CoffeeMachine { machine: 1, water: 5, grounds: 3, max: 8, busy: 2 }),
+        ("coffee_action", Packet::CoffeeAction { token: 0x01020304, machine: 1, action: coffee_action::WATER }),
         ("media", Packet::Media { screens: vec![(1, 35, 14, 4, 12_345)], music: vec![(2, 12_000, 1, 10_496, 3_200, 7)] }),
         (
             "hr_info",

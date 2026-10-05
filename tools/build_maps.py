@@ -77,6 +77,8 @@ LEGEND = {
     "f": {"type": "fridge", "solid": True, "color": "#e8eef2"},
     "w": {"type": "wardrobe", "solid": True, "color": "#8a6a4a"},
     "o": {"type": "bin", "solid": True, "color": "#5a5f66"},
+    # The kitchen's trash bin (E: throw away / rummage - not a hiding place).
+    "&": {"type": "trash_bin", "solid": True, "color": "#4f6b52"},
     # Commuting: the street in front of the building, the tram line and a
     # bike rack by the entrance.
     "r": {"type": "street", "solid": False, "color": "#55585e"},
@@ -433,6 +435,7 @@ def floor4():
     f.put(19, 15, 19, 15, "i")                           # sink
     f.put(19, 16, 20, 16, "J")
     f.put(21, 16, 22, 16, "c")                           # cupboard (mugs, knives)
+    f.put(22, 12, 22, 12, "&")                           # trash bin
     f.put(20, 8, 22, 9, "T")                             # a small table
     f.put(31, 8, 33, 9, "Q")                             # sofas
     f.put(37, 8, 39, 9, "Q")

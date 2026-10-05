@@ -31,6 +31,7 @@ mod board;
 mod breath;
 mod chat;
 mod cleaning;
+mod coffee_panel;
 mod company;
 mod computers;
 mod containers;
@@ -537,6 +538,7 @@ impl Server {
         self.tick_media();
         self.tick_kitchen();
         self.tick_containers();
+        self.tick_coffee_panels();
         self.tick_meetings();
         self.tick_lunch();
         self.tick_company();

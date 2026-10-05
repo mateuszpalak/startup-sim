@@ -1,7 +1,10 @@
-//! Coffee machines: press E next to one (with free hands) -> it brews for a
-//! few seconds -> a coffee (`inventory::kind::COFFEE`) lands in your hands;
-//! drink it (use) or it goes cold after a while. One person per machine at a
-//! time. What coffee *does* (energy...) comes with the stats (GDD 9a step 5).
+//! Coffee machines: E next to one opens its panel; "brew" with a mug in hands
+//! -> a few seconds -> a coffee (`inventory::kind::COFFEE`) lands in your
+//! hands; drink it (use) or it goes cold after a while. One person per
+//! machine at a time. Each coffee takes water from the tank and leaves
+//! grounds in the drawer: an empty tank or a full drawer stops it until
+//! somebody tops the water up / empties the grounds (or the cleaner does,
+//! on her round).
 
 use crate::building::Building;
 use crate::map::Tile;
@@ -13,6 +16,9 @@ pub const BREW_TICKS: u32 = 60;
 pub const DRINK_TICKS: u32 = 1800;
 /// How close you must stand to use a machine (feet to machine tile centre).
 pub const USE_RADIUS: i32 = TILE_UNITS * 3 / 2;
+/// Coffees a full tank makes; coffees' grounds the drawer holds.
+pub const WATER_CUPS: u8 = 8;
+pub const GROUNDS_CUPS: u8 = 8;
 
 pub mod lines {
     pub const BREWING: &str = "Parzę kawę…";
@@ -22,6 +28,12 @@ pub mod lines {
     pub const DRUNK: &str = "Pycha! Kawa wypita — został pusty kubek.";
     pub const COLD: &str = "Kawa wystygła… Wylewam, został pusty kubek.";
     pub const WAITING: &str = "Kawa czeka przy ekspresie — ręce były zajęte.";
+    pub const NO_WATER: &str = "Brak wody w zbiorniku — trzeba dolać.";
+    pub const GROUNDS_FULL: &str = "Pojemnik na fusy pełny — trzeba go opróżnić.";
+    pub const WATER_ADDED: &str = "Dolewam wody do zbiornika. Pełny!";
+    pub const WATER_FULL: &str = "Zbiornik jest pełny.";
+    pub const GROUNDS_OUT: &str = "Fusy wysypane — teraz do kosza z nimi.";
+    pub const NO_GROUNDS: &str = "Pojemnik na fusy jest pusty.";
 }
 
 /// Player's brewing state (server-side, per player).
@@ -49,6 +61,18 @@ pub struct Machine {
     /// Somebody peed in it: this many more coffees come out "special"
     /// (until the cleaner's round rinses it).
     pub tainted: u8,
+    /// Coffees left in the tank; coffees' grounds in the drawer.
+    pub water: u8,
+    pub grounds: u8,
+}
+
+impl Machine {
+    /// The cleaner's round: rinsed, water topped up, grounds out.
+    pub fn service(&mut self) {
+        self.tainted = 0;
+        self.water = WATER_CUPS;
+        self.grounds = 0;
+    }
 }
 
 /// What happened, for the server to announce (self speech bubbles).
@@ -57,6 +81,8 @@ pub enum Outcome {
     Started,
     Busy,
     HandsFull,
+    NoWater,
+    GroundsFull,
 }
 
 pub fn find_machines(b: &Building) -> Vec<Machine> {
@@ -65,7 +91,7 @@ pub fn find_machines(b: &Building) -> Vec<Machine> {
         for y in 0..m.height {
             for x in 0..m.width {
                 if m.tile_type(x, y) == Some("coffee_machine") {
-                    out.push(Machine { floor: f, tile: Tile { x, y }, busy_until: 0, tainted: 0 });
+                    out.push(Machine { floor: f, tile: Tile { x, y }, busy_until: 0, tainted: 0, water: WATER_CUPS, grounds: 0 });
                 }
             }
         }
@@ -87,10 +113,19 @@ pub fn use_machine(machines: &mut [Machine], i: usize, cup: &mut Cup, hands_free
     if !hands_free || !matches!(cup, Cup::None) {
         return Outcome::HandsFull;
     }
-    if machines[i].busy_until > tick {
+    let m = &mut machines[i];
+    if m.busy_until > tick {
         return Outcome::Busy;
     }
-    machines[i].busy_until = tick + BREW_TICKS;
+    if m.water == 0 {
+        return Outcome::NoWater;
+    }
+    if m.grounds >= GROUNDS_CUPS {
+        return Outcome::GroundsFull;
+    }
+    m.water -= 1;
+    m.grounds += 1;
+    m.busy_until = tick + BREW_TICKS;
     *cup = Cup::Brewing { machine: i, until: tick + BREW_TICKS };
     Outcome::Started
 }
@@ -147,6 +182,24 @@ mod tests {
         assert_eq!(machine_in_reach(&m, &front), Some(1));
         assert_eq!(machine_in_reach(&m, &Body::at(4, Pos::tile_center(t.x, t.y + 3))), None);
         assert_eq!(machine_in_reach(&m, &Body::at(0, front.pos)), None, "other floor");
+    }
+
+    #[test]
+    fn no_coffee_without_water_or_with_the_grounds_drawer_full() {
+        let (_, mut m) = setup();
+        let mut cup = Cup::None;
+        let mut tick = 0;
+        for _ in 0..WATER_CUPS {
+            assert_eq!(use_machine(&mut m, 0, &mut cup, true, tick), Outcome::Started);
+            tick += BREW_TICKS;
+            assert!(tick_cup(&mut cup, tick).is_some());
+        }
+        assert_eq!((m[0].water, m[0].grounds), (0, GROUNDS_CUPS));
+        assert_eq!(use_machine(&mut m, 0, &mut cup, true, tick), Outcome::NoWater);
+        m[0].water = WATER_CUPS;
+        assert_eq!(use_machine(&mut m, 0, &mut cup, true, tick), Outcome::GroundsFull);
+        m[0].service();
+        assert_eq!(use_machine(&mut m, 0, &mut cup, true, tick), Outcome::Started);
     }
 
     #[test]

@@ -57,6 +57,7 @@ const BAR_KEY := 52
 const WHISKY := 53
 const COGNAC := 54
 const VODKA := 55
+const GROUNDS := 56
 
 const NAMES := {GUEST_PASS: "Przepustka gościa", EMPLOYEE_CARD: "Karta pracownika", LAPTOP: "Laptop", COFFEE: "Kawa", FRUIT: "Owoc",
 	SANDWICH_CHEESE: "Kanapka z serem", SANDWICH_HAM: "Kanapka z szynką", WRAP: "Wrap wege", BURGER: "Hamburger",
@@ -67,7 +68,8 @@ const NAMES := {GUEST_PASS: "Przepustka gościa", EMPLOYEE_CARD: "Karta pracowni
 	SALAD: "Sałatka z kurczakiem", KEBAB: "Kebab", EMPTY_CUP: "Brudny kubek", CUP: "Kubek", MILK: "Mleko (karton)",
 	LATTE: "Kawa z mlekiem", MALPKA: "Małpka", BREATHALYSER: "Alkomat", KNIFE: "Nóż kuchenny", REMOTE: "Pilot do telewizora", BOOMBOX: "Boombox", TOBACCO: "Tytoń do skręcania", ROLLED: "Skręt", STORE_KEY: "Klucz do magazynku",
 	COLA: "Coca-Cola", STORE_COOKIES: "Ciastka z magazynu", PAINKILLER: "Apap", CHARCOAL: "Węgiel aktywny", VITAMIN: "Witamina C",
-	PLASTER: "Plaster", BAR_KEY: "Mały kluczyk", WHISKY: "Whisky", COGNAC: "Koniak", VODKA: "Wódka"}
+	PLASTER: "Plaster", BAR_KEY: "Mały kluczyk", WHISKY: "Whisky", COGNAC: "Koniak", VODKA: "Wódka",
+	GROUNDS: "Fusy z kawy"}
 const SMALL := [GUEST_PASS, EMPLOYEE_CARD, FRUIT, SANDWICH_CHEESE, SANDWICH_HAM, WRAP, BUN, BAR, CHIPS, WATER,
 	ENERGY_DRINK, JUICE, BEER, CIGARETTES, UMBRELLA, DONUT, COOKIE, CHEESECAKE, MILK, MALPKA, BREATHALYSER, KNIFE, REMOTE, TOBACCO, ROLLED, STORE_KEY,
 	COLA, STORE_COOKIES, PAINKILLER, CHARCOAL, VITAMIN, PLASTER, BAR_KEY, WHISKY, COGNAC, VODKA]
@@ -234,6 +236,12 @@ static func draw(c: CanvasItem, kind: int, o: Vector2, s: float) -> void:
 			bottle.call(Color("#7a3a1a"), Color("#e8c46a"), Color("#c9a24a"))
 		VODKA:
 			bottle.call(Color("#dfe8ee"), Color("#f4f6f8"), Color("#c0392b"))
+		GROUNDS:  # a wet puck of used coffee
+			poly.call([Vector2(3, 8), Vector2(13, 8), Vector2(12.2, 12.6), Vector2(3.8, 12.6)], Color("#4a3426"))
+			circ.call(8, 8, 5, Color("#5e4130"))
+			dot.call(6.4, 7.4, 0.8, Color("#2e2018"))
+			dot.call(9.4, 8.8, 0.7, Color("#2e2018"))
+			dot.call(8.6, 6.6, 0.6, Color("#2e2018"))
 		TOBACCO:  # a pouch with a leaf
 			rr.call(2.2, 4, 11.6, 9.6, Color("#3f6b3a"), 1.6)
 			ln.call(2.6, 7, 13.4, 7, Color("#2c4a28"), 0.6)

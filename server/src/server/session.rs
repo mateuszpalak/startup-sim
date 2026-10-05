@@ -132,6 +132,7 @@ impl Server {
             Packet::DialogAnswer { id: dialog, choice, .. } => self.handle_dialog_answer(id, dialog, choice),
             Packet::LunchOrder { dish, .. } => self.handle_lunch_order(id, dish),
             Packet::ContainerAction { which, action, arg, kind, .. } => self.handle_container_action(id, which, action, arg, kind),
+            Packet::CoffeeAction { machine, action, .. } => self.handle_coffee_action(id, machine, action),
             Packet::SkipWait { .. } => self.handle_skip_wait(id),
             Packet::Action { action, .. } => self.handle_action(id, action),
             Packet::HrAction { action, arg, .. } => self.handle_hr_action(id, action, arg),
@@ -445,6 +446,7 @@ fn session_token(packet: &Packet) -> Option<u32> {
         | Packet::Action { token, .. }
         | Packet::HrAction { token, .. }
         | Packet::Roll { token, .. }
+        | Packet::CoffeeAction { token, .. }
         | Packet::ChatSay { token, .. }
         | Packet::Voice { token, .. }
         | Packet::TaskAction { token, .. }

@@ -550,7 +550,7 @@ każdy wybrał dojazd. W trakcie głosowania `SkipWait` to głos za. Stan w
 
 Okno pojemnika (E przy nim; potem po każdej zmianie i co 1 s, dopóki jest
 otwarte i gracz stoi przy nim): `which u8` (1 lodówka, 2 szafka kuchenna, 3
-zmywarka, 4 apteczka, 5 magazynek, 6 barek), `capacity u8` (ile slotów
+zmywarka, 4 apteczka, 5 magazynek, 6 barek, 7 kosz w kuchni), `capacity u8` (ile slotów
 narysować), n u8 (≤ 24) × {`kind u8`, `count u8`, `label` str16 (≤ 64 B) —
 np. „Kanapka z szynką (Ola)”}, `milk u8` (porcje mleka w lodówce, inaczej 0),
 `minutes u8` (zmywarka: ile jeszcze myje, 0 = stoi).
@@ -558,6 +558,11 @@ np. „Kanapka z szynką (Ola)”}, `milk u8` (porcje mleka w lodówce, inaczej 
 Sloty: lodówka — schowane rzeczy, potem firmowa woda i sok (`count` może być
 0); szafka — czyste kubki, noże; zmywarka — brudne kubki, czyste kubki;
 apteczka / magazynek / barek — ich zapasy.
+
+Kosz w kuchni (7): wyrzucone rzeczy (do 12, najstarsze wypadają); wrzucić da
+się prawie wszystko poza kubkami i firmowymi rzeczami (laptop, karta,
+klucze, pilot, boombox, alkomat, nóż); wyjąć też („grzebanie w koszu”).
+Opróżnia go sprzątaczka i poranek.
 
 `ContainerAction`: token u32, `which u8`, `action u8`, `arg u8`, `kind u8`:
 0 zamknij okno, 1 weź slot `arg` (tylko jeśli wciąż jest tam `kind`), 2 włóż
@@ -567,6 +572,19 @@ zmywarki brudny kubek, do apteczki / magazynku / barku ich rzeczy), 3 dolej
 mleka do kawy w rękach (lodówka), 4 włącz zmywarkę, 5 rozładuj zmywarkę do
 szafki. Tylko z otwartym oknem i stojąc przy pojemniku; odpowiedzi jako
 `Say`.
+
+### 63 `CoffeeMachine` (S→C), 64 `CoffeeAction` (C→S)
+
+Panel ekspresu (E przy nim; potem po każdej zmianie i co 1 s, dopóki jest
+otwarty i gracz stoi przy ekspresie): `machine u8` (indeks ekspresu), `water
+u8` (na ile kaw starczy wody), `grounds u8` (fusy z ilu kaw w szufladzie),
+`max u8` (pojemność obu, 8), `busy u8` (ile sekund jeszcze parzy, 0 = wolny).
+
+`CoffeeAction`: token u32, `machine u8`, `action u8`: 0 zamknij panel, 1
+zaparz (czysty kubek w rękach; bez wody albo z pełną szufladą — odmowa jako
+`Say`), 2 dolej wody (do pełna), 3 wyrzuć fusy (wolne ręce — przedmiot 56
+„Fusy z kawy” do rąk, potem do kosza). Sprzątaczka na obchodzie dolewa wody
+i wysypuje fusy.
 
 ### 41 `Lights` (S→C)
 

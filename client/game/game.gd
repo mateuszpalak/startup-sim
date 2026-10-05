@@ -32,6 +32,7 @@ const ElevatorDoorView = preload("res://game/elevator_door_view.gd")
 const RideMask = preload("res://game/ride_mask.gd")
 const ShelfWindow = preload("res://ui/shelf_window.gd")
 const ContainerWindow = preload("res://ui/container_window.gd")
+const CoffeeWindow = preload("res://ui/coffee_window.gd")
 const VehicleView = preload("res://game/vehicle_view.gd")
 const WeatherFx = preload("res://ui/weather_fx.gd")
 const DialogWindow = preload("res://ui/dialog_window.gd")
@@ -134,6 +135,9 @@ var _shelf_at := Vector2.ZERO     # where the shelf window was opened (walk away
 var container := ContainerWindow.new()
 var _container_at := Vector2.ZERO
 var _container_closed_ms := -10000
+var coffee := CoffeeWindow.new()  # the coffee machine's panel
+var _coffee_at := Vector2.ZERO
+var _coffee_closed_ms := -10000
 var depts := {}          # id -> department (after the contract)
 var appearances := {}    # id -> appearance dict (from PlayerInfo)
 var own_appearance := {}
@@ -356,6 +360,14 @@ func setup(p_net, p_building, welcome: Dictionary, p_nick: String, args: Diction
 	container.action.connect(func(which: int, act: int, arg: int, kind: int):
 			if net.is_playing():
 				net.send(Protocol.encode_container_action(net.token, which, act, arg, kind)))
+	status_layer.add_child(coffee)
+	coffee.action.connect(func(machine: int, act: int):
+			if net.is_playing():
+				net.send(Protocol.encode_coffee_action(net.token, machine, act)))
+	coffee.closed.connect(func():
+			_coffee_closed_ms = Time.get_ticks_msec()
+			if net.is_playing():
+				net.send(Protocol.encode_coffee_action(net.token, coffee.state.get("machine", 0), Protocol.COFFEE_CLOSE)))
 	container.closed.connect(func():
 			_container_closed_ms = Time.get_ticks_msec()
 			if net.is_playing():
@@ -730,6 +742,8 @@ func _process(delta: float) -> void:
 		shelf_window.close()  # walked away from the shelf
 	if container.visible and have_state and Movement.to_px(pred.pos).distance_to(_container_at) > 20.0:
 		container.close()  # walked away
+	if coffee.visible and have_state and Movement.to_px(pred.pos).distance_to(_coffee_at) > 20.0:
+		coffee.close()
 	if have_state:
 		_update_stall_doors()
 		_update_ride()
@@ -777,6 +791,7 @@ func _on_packet(p: Dictionary) -> void:
 			hud.update_slots(inventory)
 			me.set_held(inventory[0].kind if not inventory.is_empty() else 0)
 			container.set_inventory(inventory)
+			coffee.set_held(inventory[0].kind if not inventory.is_empty() else 0)
 		Protocol.T_DOORS:
 			var dm = building.get_floor(p.floor)
 			if dm:
@@ -785,6 +800,11 @@ func _on_packet(p: Dictionary) -> void:
 		Protocol.T_SHELF:
 			shelf_window.show_shelf(p)
 			_shelf_at = Movement.to_px(pred.pos)
+		Protocol.T_COFFEE_MACHINE:
+			if coffee.visible or Time.get_ticks_msec() - _coffee_closed_ms >= 800:
+				if not coffee.visible:
+					_coffee_at = Movement.to_px(pred.pos)
+				coffee.show_machine(p)
 		Protocol.T_CONTAINER:
 			# (A refresh already on its way when the window was closed: ignored.)
 			if container.visible or Time.get_ticks_msec() - _container_closed_ms >= 800:
@@ -1053,7 +1073,7 @@ func _reconcile(server_body: Dictionary, ack: int) -> void:
 
 ## Something in the game takes Esc itself (a window is open).
 func window_open() -> bool:
-	return screen.visible or shelf_window.visible or container.visible or dialog.visible or roll_game.visible \
+	return screen.visible or coffee.visible or shelf_window.visible or container.visible or dialog.visible or roll_game.visible \
 		or chat_box.visible or log_history.visible
 
 
@@ -1526,7 +1546,7 @@ const STUCK_HINTS := {Protocol.ACT_VOMITING: "Wymiotujesz…", Protocol.ACT_PASS
 	Protocol.ACT_KNOCKED_OUT: "Znokautowany… gwiazdki krążą (chwilę potrwa)", Protocol.ACT_PEEING: "Sikasz…",
 	Protocol.ACT_POOPING: "Kucasz… (natura wzywa)"}
 const SPOT_HINTS := {"shelf": "[E] Zobacz półkę", "medicine_cabinet": "[E] Apteczka", "key_hook": "[E] Klucz do magazynku",
-	"liquor_cabinet": "[E] Barek", "plant": "[E] Przeszukaj doniczkę", "bin": "[E] Przeszukaj kosz", "sofa": "[E] Usiądź na sofie", "toilet": "[E] Skorzystaj z toalety", "urinal": "[E] Pisuar",
+	"liquor_cabinet": "[E] Barek", "plant": "[E] Przeszukaj doniczkę", "bin": "[E] Przeszukaj kosz", "trash_bin": "[E] Kosz na śmieci", "sofa": "[E] Usiądź na sofie", "toilet": "[E] Skorzystaj z toalety", "urinal": "[E] Pisuar",
 	"ashtray": "[E] Zapal", "fruit_bowl": "[E] Weź owoc", "sink": "[E] Umyj ręce", "sanitizer": "[E] Zdezynfekuj ręce"}
 
 

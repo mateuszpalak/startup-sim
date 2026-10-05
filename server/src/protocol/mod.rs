@@ -117,6 +117,8 @@ pub mod ty {
     pub const CHAT_SAY: u8 = 60;
     pub const NOTICE: u8 = 61;
     pub const OWN_PROFILE: u8 = 62;
+    pub const COFFEE_MACHINE: u8 = 63;
+    pub const COFFEE_ACTION: u8 = 64;
 }
 
 /// `ItemAction::action`.
@@ -508,6 +510,14 @@ pub struct ContainerSlot {
     pub label: String,
 }
 
+/// `CoffeeAction::action`.
+pub mod coffee_action {
+    pub const CLOSE: u8 = 0;
+    pub const BREW: u8 = 1;
+    pub const WATER: u8 = 2;
+    pub const EMPTY_GROUNDS: u8 = 3;
+}
+
 /// Containers (`Container::which`) and what can be done in their window
 /// (`ContainerAction::action`).
 pub mod container {
@@ -517,6 +527,8 @@ pub mod container {
     pub const CABINET: u8 = 4;
     pub const STOREROOM: u8 = 5;
     pub const BAR: u8 = 6;
+    /// The kitchen's trash bin.
+    pub const BIN: u8 = 7;
 
     pub const CLOSE: u8 = 0;
     pub const TAKE: u8 = 1;
@@ -976,6 +988,24 @@ pub enum Packet {
     /// server keeps it - sent to that player only, after logging back in.
     OwnProfile {
         profile: Profile,
+    },
+    /// The coffee machine's panel (E at it; then on every change and once a
+    /// second while open): which machine, coffees of water left, coffees'
+    /// grounds in the drawer, how many each holds, seconds until the coffee
+    /// being made is ready (0 = free).
+    CoffeeMachine {
+        machine: u8,
+        water: u8,
+        grounds: u8,
+        max: u8,
+        busy: u8,
+    },
+    /// A button on the panel (`coffee_action`): close, brew, top the water
+    /// up, empty the grounds.
+    CoffeeAction {
+        token: u32,
+        machine: u8,
+        action: u8,
     },
     /// Rolled a cigarette (the minigame, tobacco in hands): how well, 0..100.
     Roll {

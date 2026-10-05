@@ -16,6 +16,7 @@ enum Thing {
     Cupboard,
     Dishwasher,
     Fridge,
+    Bin,
 }
 
 fn dist2(t: Tile, body: &Body) -> i32 {
@@ -29,7 +30,13 @@ impl Server {
     pub(super) fn use_kitchen(&mut self, pid: u16, body: &Body) -> bool {
         let Some(k) = &self.kitchen else { return false };
         let mut best: Option<(i32, Thing)> = None;
-        for (t, thing) in [(k.cupboard, Thing::Cupboard), (k.dishwasher, Thing::Dishwasher), (k.fridge, Thing::Fridge)] {
+        let things = [
+            (Some(k.cupboard), Thing::Cupboard),
+            (Some(k.dishwasher), Thing::Dishwasher),
+            (Some(k.fridge), Thing::Fridge),
+            (k.bin, Thing::Bin),
+        ];
+        for (t, thing) in things.into_iter().filter_map(|(t, th)| t.map(|t| (t, th))) {
             if k.near(t, body) {
                 let d = dist2(t, body);
                 if best.is_none_or(|(bd, _)| d < bd) {
@@ -49,6 +56,7 @@ impl Server {
             Thing::Cupboard => self.use_cupboard(pid),
             Thing::Dishwasher => self.use_dishwasher(pid),
             Thing::Fridge => self.open_container(pid, container::FRIDGE),
+            Thing::Bin => self.open_container(pid, container::BIN),
         }
         true
     }

@@ -78,6 +78,8 @@ pub mod kind {
     pub const WHISKY: u8 = 53;
     pub const COGNAC: u8 = 54;
     pub const VODKA: u8 = 55;
+    /// Used coffee grounds out of the machine (into the kitchen bin).
+    pub const GROUNDS: u8 = 56;
 }
 
 pub const POCKETS: usize = 3;
@@ -121,6 +123,7 @@ pub fn display_name(k: u8) -> &'static str {
         kind::WHISKY => "Whisky",
         kind::COGNAC => "Koniak",
         kind::VODKA => "Wódka",
+        kind::GROUNDS => "Fusy z kawy",
         k => crate::shop::product(k).map_or("?", |p| p.name),
     }
 }

@@ -581,7 +581,7 @@ func _tile_object(x: int, y: int) -> void:
 
 const PROP_TYPES := ["desk", "counter", "shelf", "sofa", "table", "plant", "rack", "bench", "ashtray", "toilet", "sink",
 	"car", "coffee_machine", "kitchen_counter", "fruit_bowl", "partition", "sanitizer", "bike_rack",
-	"cupboard", "dishwasher", "kitchen_sink", "fridge", "urinal", "wardrobe", "bin", "armchair", "tv", "medicine_cabinet", "key_hook", "liquor_cabinet"]
+	"cupboard", "dishwasher", "kitchen_sink", "fridge", "urinal", "wardrobe", "bin", "trash_bin", "armchair", "tv", "medicine_cabinet", "key_hook", "liquor_cabinet"]
 
 
 ## Connected tiles of the same furniture char = one object.
@@ -657,6 +657,7 @@ func _prop(t: String, tr: Rect2i, index: int) -> void:
 		"urinal": _urinal(tr, r)
 		"wardrobe": _wardrobe(r)
 		"bin": _bin(r)
+		"trash_bin": _trash_bin(r)
 	if turn != 0.0:
 		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 
@@ -1029,6 +1030,16 @@ func _wardrobe(r: Rect2) -> void:
 
 
 ## A waste bin: a grey drum with a lid.
+## The kitchen bin: a green pedal bin with its lid.
+func _trash_bin(r: Rect2) -> void:
+	var c := r.get_center()
+	_disc(c + Vector2(0.8, 1.0), 6.0, Color(0, 0, 0, 0.2), false)
+	_disc(c, 5.8, Color("#4f6b52"))
+	draw_circle(c, 4.2, Color("#62836a"))
+	draw_line(c + Vector2(-2.6, -1.2), c + Vector2(2.6, -1.2), INK, 0.9)
+	draw_rect(Rect2(c + Vector2(-1.2, 5.2), Vector2(2.4, 1.4)), INK)
+
+
 func _bin(r: Rect2) -> void:
 	var c := r.get_center()
 	_disc(c + Vector2(0.8, 1.0), 5.2, Color(0, 0, 0, 0.2), false)

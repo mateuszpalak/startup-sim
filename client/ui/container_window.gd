@@ -17,7 +17,7 @@ signal closed
 const TITLES := {
 	Protocol.CONTAINER_FRIDGE: "Lodówka", Protocol.CONTAINER_CUPBOARD: "Szafka kuchenna",
 	Protocol.CONTAINER_DISHWASHER: "Zmywarka", Protocol.CONTAINER_CABINET: "Apteczka",
-	Protocol.CONTAINER_STOREROOM: "Magazynek", Protocol.CONTAINER_BAR: "Barek"}
+	Protocol.CONTAINER_STOREROOM: "Magazynek", Protocol.CONTAINER_BAR: "Barek", Protocol.CONTAINER_BIN: "Kosz na śmieci"}
 const SLOT := Vector2(72, 72)
 const COLUMNS := 6
 
@@ -109,6 +109,8 @@ func _info_text() -> String:
 			return "Mleko do kawy: %d porcji · firmowa woda i sok co rano nowe" % state.milk
 		Protocol.CONTAINER_CUPBOARD:
 			return "Czyste kubki i noże — odkłada się tu czyste"
+		Protocol.CONTAINER_BIN:
+			return "Wyrzuć, co niepotrzebne (fusy, resztki…) · opróżniany przy sprzątaniu"
 		Protocol.CONTAINER_DISHWASHER:
 			if state.minutes > 0:
 				return "Myje… jeszcze %d min" % state.minutes
@@ -204,7 +206,7 @@ func _draw_slot(box: Control, kind: int, count: int, from: String, index: int) -
 		var cap := "ręce" if index == 0 else str(index)
 		box.draw_string_outline(f, Vector2(6, box.size.y - 6), cap, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, 4, Ink.INK)
 		box.draw_string(f, Vector2(6, box.size.y - 6), cap, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Ink.GOLD)
-	elif kind != 0 and (count != 1 or which != Protocol.CONTAINER_FRIDGE):
+	elif kind != 0 and (count != 1 or which not in [Protocol.CONTAINER_FRIDGE, Protocol.CONTAINER_BIN]):
 		var n := "×%d" % count
 		var at := Vector2(box.size.x - 8 - f.get_string_size(n, HORIZONTAL_ALIGNMENT_LEFT, -1, 16).x, box.size.y - 6)
 		box.draw_string_outline(f, at, n, HORIZONTAL_ALIGNMENT_LEFT, -1, 16, 4, Ink.INK)
