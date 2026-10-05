@@ -141,7 +141,8 @@ kubek w ręce przez 90 s, widoczny dla innych → „Kawa wypita.”
   oszczędzanie baterii, raporty awarii, przybliżenie kamery, głośności,
   mikrofon; przewijane w niskim oknie; efekt tuszu jest zawsze włączony;
   zapisywane w
-  `user://settings.cfg`), Autorzy, Wyjdź.
+  `user://settings.cfg`), O grze (wersja gry, autorzy), Wyjdź; w rogu
+  zainstalowana wersja (także na dole menu pod Esc).
   Z tworzenia postaci — „Wróć do menu”.
 - **Menu gry pod Esc** (gdy nie jest otwarte żadne okno): Wróć do gry,
   Ustawienia, Wyjdź do menu (rozłącza), Wyjdź z gry. Gra na serwerze toczy się

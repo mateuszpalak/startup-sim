@@ -1,10 +1,11 @@
 ## The title screen: the game's name over an evening city with the office
 ## building, drifting clouds and windows lighting up; Graj / Ustawienia /
-## Autorzy / Wyjdź.
+## O grze (wersja, autorzy) / Wyjdź; the installed version in the corner.
 extends Control
 
 const Ink = preload("res://ui/ink_ui.gd")
 const SettingsPanel = preload("res://ui/settings_panel.gd")
+const Updates = preload("res://net/updates.gd")
 
 signal play
 signal quit
@@ -12,7 +13,7 @@ signal quit
 var _menu := VBoxContainer.new()
 var _card := PanelContainer.new()
 var _settings := SettingsPanel.new()
-var _credits := VBoxContainer.new()
+var _about := VBoxContainer.new()
 var _t := 0.0
 # The backdrop in layers drawn once (again on resize): the sky, three groups
 # of stars (twinkling = fading the group), five clouds (drifting = moving
@@ -70,7 +71,7 @@ func _ready() -> void:
 	_menu.add_theme_constant_override("separation", 12)
 	box.add_child(_menu)
 	for entry in [["Graj", func(): play.emit(), true], ["Ustawienia", func(): _show(_settings), false],
-			["Autorzy", func(): _show(_credits), false], ["Wyjdź", func(): quit.emit(), false]]:
+			["O grze", func(): _show(_about), false], ["Wyjdź", func(): quit.emit(), false]]:
 		var b := Ink.button(entry[0], entry[2])
 		b.custom_minimum_size = Vector2(320, 48)
 		b.add_theme_font_size_override("font_size", 26)
@@ -79,24 +80,35 @@ func _ready() -> void:
 	_settings.visible = false
 	_settings.back.connect(func(): _show(_menu))
 	box.add_child(_settings)
-	_credits.visible = false
-	_credits.add_theme_constant_override("separation", 8)
-	_credits.add_child(Ink.label("Autorzy", 28, Ink.TEXT_INK))
+	_about.visible = false
+	_about.add_theme_constant_override("separation", 8)
+	_about.add_child(Ink.label("O grze", 28, Ink.TEXT_INK))
+	_about.add_child(Ink.label("Wersja %s" % Updates.current(), 20, Ink.TEXT_INK))
 	for line in ["Startup Sim — prototyp gry o pracy w startupie IT.", "Serwer: Rust · klient: Godot 4 · własny protokół UDP.",
 			"Czcionka: Patrick Hand (Patrick Wagesreiter), licencja SIL OFL.", "Grafika i kod narysowane w kodzie — bez gotowych assetów.",
 			"Kod źródłowy (licencja AGPL-3.0): github.com/mateuszpalak/startup-sim"]:
 		var l := Ink.label(line, 18, Ink.TEXT_INK, true)
 		l.custom_minimum_size = Vector2(520, 0)
-		_credits.add_child(l)
+		_about.add_child(l)
 	var back := Ink.button("Wróć")
 	back.pressed.connect(func(): _show(_menu))
-	_credits.add_child(back)
-	box.add_child(_credits)
+	_about.add_child(back)
+	box.add_child(_about)
+	# The installed version, bottom right.
+	var version := Ink.label("wersja %s" % Updates.current(), 16, Ink.PAPER_HI)
+	version.add_theme_constant_override("outline_size", 6)
+	version.add_theme_color_override("font_outline_color", Ink.INK)
+	version.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	version.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT)
+	version.position -= Vector2(16, 12)
+	version.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+	version.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	add_child(version)
 	_center_card.call_deferred()
 
 
 func _show(what: Control) -> void:
-	for c in [_menu, _settings, _credits]:
+	for c in [_menu, _settings, _about]:
 		c.visible = c == what
 	_card.reset_size()
 	_center_card.call_deferred()
