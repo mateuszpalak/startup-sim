@@ -694,6 +694,7 @@ static func decode(bytes: PackedByteArray) -> Dictionary:
 			for i in n:
 				convs.append({"conv": r.u16(), "unread": r.u8(), "title": r.str16(MAX_NICK_BYTES + 8)})
 			p.convs = convs
+			p.owner_nick = r.str16(MAX_NICK_BYTES)
 		T_DOORS:
 			p.floor = r.u8()
 			var n := r.u8()

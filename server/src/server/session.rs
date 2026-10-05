@@ -265,6 +265,9 @@ impl Server {
         self.by_addr.insert(addr, id);
         self.by_token.insert(token, id);
         let restored = !guest && self.restore(id);
+        if !guest && !restored {
+            self.save_soon = true; // a new character: saved right away
+        }
         if self.cfg.start_employed && !restored {
             self.start_employed(id);
         } else if skip && self.cfg.start_access & access::CARD != 0 {

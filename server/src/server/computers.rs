@@ -111,7 +111,17 @@ impl Server {
             }
             _ => Vec::new(),
         };
-        Some(Packet::Computer { handle: h, owner: c.owner(), locked: c.locked, convs })
+        // Logged out: the save remembers whose it is (or its label does).
+        let owner_nick = match self.players.get(&c.owner()) {
+            Some(o) => o.nick.clone(),
+            None => self
+                .offline
+                .laptop_owner
+                .get(&h)
+                .cloned()
+                .unwrap_or_else(|| c.item.label.strip_prefix("Laptop: ").unwrap_or("").to_string()),
+        };
+        Some(Packet::Computer { handle: h, owner: c.owner(), locked: c.locked, convs, owner_nick })
     }
 
     pub(super) fn send_computer(&mut self, pid: u16) {

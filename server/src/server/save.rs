@@ -218,12 +218,9 @@ impl Server {
 
     pub(super) fn save_now(&mut self) {
         self.save_soon = false;
-        let online: Vec<Character> = self
-            .players
-            .values()
-            .filter(|p| !p.guest && (!matches!(p.stage, Stage::Portal(_)) || p.day > 1 || p.money != 0))
-            .map(|p| self.capture(p))
-            .collect();
+        // Every account's character, still on the job portal too (logging
+        // in again goes straight to it, not to the creation screen).
+        let online: Vec<Character> = self.players.values().filter(|p| !p.guest).map(|p| self.capture(p)).collect();
         for c in online {
             self.offline.characters.insert(c.nick.clone(), c);
         }

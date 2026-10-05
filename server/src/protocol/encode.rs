@@ -254,7 +254,7 @@ impl Packet {
                 w.u8(*action);
                 w.u8(*slot);
             }
-            Packet::Computer { handle, owner, locked, convs } => {
+            Packet::Computer { handle, owner, locked, convs, owner_nick } => {
                 w.u16(*handle);
                 w.u16(*owner);
                 w.u8(*locked as u8);
@@ -264,6 +264,7 @@ impl Packet {
                     w.u8(c.unread);
                     w.str16(&c.title, MAX_NICK_BYTES + 8);
                 }
+                w.str16(owner_nick, MAX_NICK_BYTES);
             }
             Packet::ComputerAction { token, action, conv, arg, text } => {
                 w.u32(*token);

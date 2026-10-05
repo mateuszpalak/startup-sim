@@ -735,6 +735,8 @@ pub enum Packet {
         owner: u16,
         locked: bool,
         convs: Vec<ConvEntry>,
+        /// The owner's nick (also when they aren't in the game).
+        owner_nick: String,
     },
     ComputerAction {
         token: u32,

@@ -145,7 +145,7 @@ func on_computer(p: Dictionary) -> void:
 	if p.owner != mailbox.owner:
 		# Another account (computer): its own mail and board.
 		mailbox.reset(p.owner)
-		kanban.reset(name_of.call(p.owner))
+		kanban.reset(_owner_name(p))
 	state = p
 	var ids: Array = p.convs.map(func(c): return c.conv)
 	if not ids.is_empty() and not ids.has(current):
@@ -172,6 +172,13 @@ func on_chat(p: Dictionary) -> void:
 	chats[key] = list
 	if p.conv == current:
 		_render_messages()
+
+
+## The account's owner by nick - from the server, also when they're not
+## in the game (a laptop left on the desk).
+func _owner_name(st: Dictionary) -> String:
+	var n: String = st.get("owner_nick", "")
+	return n if n != "" else name_of.call(st.get("owner", 0))
 
 
 ## Server's AT_COMPUTER status bit (every snapshot).
@@ -679,7 +686,7 @@ func _draw_lock(c: Control) -> void:
 func _render() -> void:
 	if state.is_empty():
 		return
-	var owner_name: String = name_of.call(state.owner)
+	var owner_name := _owner_name(state)
 	var mine: bool = state.owner == my_id
 	_title.text = "Konto: %s" % owner_name
 	_as_owner.text = "" if mine else "Uwaga: działasz jako %s!" % owner_name
@@ -1193,7 +1200,7 @@ func _render_lunch() -> void:
 		Protocol.LUNCH_CLOSED:
 			_lunch_status.text = "Zamówienia przyjmujemy od 10:00 do 15:00."
 		_:
-			_lunch_status.text = "Wybierz danie — płaci konto właściciela komputera (%s)." % name_of.call(state.get("owner", 0))
+			_lunch_status.text = "Wybierz danie — płaci konto właściciela komputera (%s)." % _owner_name(state)
 	for c in _lunch_list.get_children():
 		c.queue_free()
 	for d in lunch.dishes:
