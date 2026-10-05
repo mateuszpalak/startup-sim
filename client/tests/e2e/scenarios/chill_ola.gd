@@ -18,10 +18,10 @@ func run() -> void:
 		return
 	await item(Protocol.ITEM_TAKE_OUT, items().find(Item.REMOTE) - 1)
 	await item(Protocol.ITEM_USE)
-	var dialog = game().dialog
-	if not await until(func(): return dialog.visible and dialog._title_text() == "Telewizor", 5.0, "the channels"):
+	var gadget = game().gadget
+	if not await until(func(): return gadget.visible and gadget.dialog_id == gadget.TV_DIALOG, 5.0, "the remote's channels"):
 		return
-	dialog._choose(3)  # Mecz
+	gadget._pick(3)  # Mecz
 	if not await hear("Przełączam na: Mecz"):
 		return
 	await until(func(): return not game().tvs.is_empty() and game().tvs.values()[0][0].channel == 4, 5.0, "the match on")
@@ -32,9 +32,9 @@ func run() -> void:
 	if not await until(func(): return holding(Item.BOOMBOX), 5.0, "the boombox"):
 		return
 	await item(Protocol.ITEM_USE)
-	if not await until(func(): return dialog.visible and dialog._title_text() == "Boombox", 5.0, "the tracks"):
+	if not await until(func(): return gadget.visible and gadget.dialog_id == gadget.BOOMBOX_DIALOG, 5.0, "the boombox's tracks"):
 		return
-	dialog._choose(0)  # disco polo
+	gadget._pick(0)  # disco polo
 	await until(func(): return game().boombox_music.get("track", 0) == 1, 5.0, "music on")
 	log_step("TV and music on")
 	await wait(6.0)  # Kuba checks

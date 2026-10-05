@@ -160,10 +160,16 @@ pełnym ekranie — zastąpiona stylem inspirowanym Don't Starve:
   ekwipunek postaci (ręce, kieszenie). Rzecz przeciąga się myszką (albo
   klika) z pojemnika do ekwipunku i z powrotem; odłożyć da się to, co pasuje
   do miejsca. Odejście albo Esc zamyka okno.
-- **Tab — menu akcji**: lista tego, co da się zrobić tu i teraz, z
-  klawiszami (E przy rzeczy obok, F / Q z tym, co w rękach, kieszenie, G / X
-  przy osobie obok, L w kabinie, R, czat, dziennik); wybór numerem albo
-  kliknięciem.
+- **Tab — menu akcji**: kafelki z tym, co da się zrobić tu i teraz — obrazek
+  (rzecz w rękach / w kieszeni albo ikona: ręka, kieszeń, podaj, pięść,
+  kłódka, diabełek, czat, dziennik), numer i klawisz (E przy rzeczy obok, F /
+  Q z tym, co w rękach, kieszenie, G / X przy osobie obok, L w kabinie, R,
+  czat, dziennik); wybór numerem albo kliknięciem.
+- **Pilot i boombox** na środku ekranu (F z nimi w rękach): pilot z
+  wyświetlaczem („Teraz: Mecz”), okrągłymi przyciskami kanałów i czerwonym
+  przyciskiem wyłączania; srebrny boombox z głośnikami, okienkiem kasety z
+  bieżącym utworem i klawiszem na każdy utwór oraz „Stop”. Klik albo 1–9
+  (0 wyłącza), Esc odkłada.
 - **Pomiń czekanie = głosowanie** wszystkich grających (większość, 30 s):
   przechodzi → wszyscy do domu z wypłatą i czas leci do rana. Rano zegar
   zwalnia — każdy wybiera dojazd (wcześniej po pominięciu wyjście z domu

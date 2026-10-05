@@ -8,7 +8,7 @@
 |---|---|
 | **WASD** / strzałki | chodzenie |
 | **kółko myszy**, **+ / -** | przybliż / oddal kamerę |
-| **Tab** | menu akcji: co da się zrobić tu i teraz (wybór numerem) |
+| **Tab** | menu akcji: kafelki z tym, co da się zrobić tu i teraz (wybór numerem albo kliknięciem) |
 | **Esc** | menu gry (ustawienia, wyjście do menu / z gry); przy komputerze — wstań |
 | **F3** | overlay debug (ping, FPS, pokój) |
 
@@ -48,7 +48,7 @@
 | **1–3** | wyjmij / schowaj przedmiot z kieszeni |
 | **Q** | upuść |
 | **G** | podaj osobie obok |
-| **F** | użyj: wypij kawę, zjedz / wypij coś ze sklepu, pokaż kartę, pilot (kanał w telewizorze), boombox (muzyka), skręć papierosa z tytoniu; Zarząd: alkomat przy kimś (powyżej 0,2 ‰ można wystawić naganę, 3 nagany = zwolnienie) |
+| **F** | użyj: wypij kawę, zjedz / wypij coś ze sklepu, pokaż kartę, pilot (na ekranie pilot — wybierz kanał), boombox (na ekranie boombox — wybierz utwór), skręć papierosa z tytoniu; Zarząd: alkomat przy kimś (powyżej 0,2 ‰ można wystawić naganę, 3 nagany = zwolnienie) |
 
 ## Rozmowa
 

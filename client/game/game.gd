@@ -36,6 +36,7 @@ const CoffeeWindow = preload("res://ui/coffee_window.gd")
 const VehicleView = preload("res://game/vehicle_view.gd")
 const WeatherFx = preload("res://ui/weather_fx.gd")
 const DialogWindow = preload("res://ui/dialog_window.gd")
+const GadgetView = preload("res://ui/gadget_view.gd")
 const TrayView = preload("res://game/tray_view.gd")
 const PuddleView = preload("res://game/puddle_view.gd")
 const SmokeView = preload("res://game/smoke_view.gd")
@@ -118,6 +119,7 @@ var label_layer := CanvasLayer.new()
 var smoke_layer := CanvasLayer.new()
 var weather_layer := CanvasLayer.new()
 var dialog := DialogWindow.new()
+var gadget := GadgetView.new()  # the TV remote / the boombox
 var roll_game := RollGame.new()  # rolling a cigarette (F with tobacco)
 ## A vote (or 0: close) - for the home screen, which covers the game.
 signal vote_dialog(p: Dictionary)
@@ -415,6 +417,11 @@ func setup(p_net, p_building, welcome: Dictionary, p_nick: String, args: Diction
 	dialog.answer.connect(func(id: int, choice: int):
 			if net.is_playing():
 				net.send(Protocol.encode_dialog_answer(net.token, id, choice)))
+	status_layer.add_child(gadget)
+	gadget.pick.connect(func(choice: int):
+			if net.is_playing():
+				net.send(Protocol.encode_dialog_answer(net.token, gadget.dialog_id, choice))
+			gadget.close())
 	screen_layer.add_child(screen)
 	_show_floor(0)
 	set_zoom_level.call_deferred(float(args["zoom"]) if args.has("zoom") else Settings.zoom)
@@ -677,6 +684,15 @@ func _on_media(p: Dictionary) -> void:
 		view.weather = Protocol.WEATHER_NAMES.get(weather, "")
 		view.show_channel(s.channel, (est_tick - s.started) / float(tick_hz))
 	boombox_music = p.music[0] if not p.music.is_empty() else {}
+	gadget.track = boombox_music.get("track", 0)
+	gadget.tv_channel = 0
+	var me_px := Movement.to_px(pred.pos)
+	var best := INF
+	for s in p.screens:  # the TV nearest to us on our floor
+		var d := me_px.distance_to(Vector2(s.x * 16, s.y * 16))
+		if s.floor == pred.floor and d < best:
+			best = d
+			gadget.tv_channel = s.channel
 	if boombox_music.is_empty():
 		boombox.stop()
 		return
@@ -850,7 +866,10 @@ func _on_packet(p: Dictionary) -> void:
 		Protocol.T_COMPANY_OFFERS, Protocol.T_COMPANY_PEOPLE:
 			screen.on_company(p)
 		Protocol.T_DIALOG:
-			dialog.on_dialog(p)
+			if p.id in [GadgetView.TV_DIALOG, GadgetView.BOOMBOX_DIALOG]:
+				gadget.open(p)  # the remote / the boombox, not a dialog
+			else:
+				dialog.on_dialog(p)
 			if p.id in [0, Protocol.DIALOG_VOTE]:
 				vote_dialog.emit(p)  # the home screen shows the vote too
 		Protocol.T_CHAT:
@@ -1073,7 +1092,7 @@ func _reconcile(server_body: Dictionary, ack: int) -> void:
 
 ## Something in the game takes Esc itself (a window is open).
 func window_open() -> bool:
-	return screen.visible or coffee.visible or shelf_window.visible or container.visible or dialog.visible or roll_game.visible \
+	return screen.visible or coffee.visible or gadget.visible or shelf_window.visible or container.visible or dialog.visible or roll_game.visible \
 		or chat_box.visible or log_history.visible
 
 
@@ -1150,26 +1169,27 @@ func _unhandled_input(event: InputEvent) -> void:
 ## Tab: the actions that make sense here and now, with their keys.
 func _actions_here() -> Array:
 	var out := []
-	var add := func(key: String, text: String, run: Callable) -> void: out.append({"key": key, "text": text, "run": run})
+	var add := func(key: String, text: String, run: Callable, icon: Variant = "") -> void:
+		out.append({"key": key, "text": text, "run": run, "icon": icon})
 	var hint: String = hint_label.text if hint_label.visible else ""
 	if hint.begins_with("[E] "):
 		var what := hint.substr(4).get_slice("  ·  ", 0)
-		add.call("E", what, _menu_interact)
+		add.call("E", what, _menu_interact, "hand")
 	var held: int = me.held
 	if held != 0:
 		var name := ItemArt.item_name(held).to_lower()
 		if held == ItemArt.TOBACCO:
-			add.call("F", "Skręć papierosa", func(): roll_game.start())
+			add.call("F", "Skręć papierosa", func(): roll_game.start(), "roll")
 		else:
-			add.call("F", "Użyj: %s" % name, func(): _item_action(Protocol.ITEM_USE, 0))
-		add.call("Q", "Upuść: %s" % name, func(): _item_action(Protocol.ITEM_DROP, 0))
+			add.call("F", "Użyj: %s" % name, func(): _item_action(Protocol.ITEM_USE, 0), held)
+		add.call("Q", "Upuść: %s" % name, func(): _item_action(Protocol.ITEM_DROP, 0), held)
 	for i in range(1, mini(inventory.size(), 4)):
 		var k: int = inventory[i].kind
 		if k != 0:
 			var pocket := i - 1
-			add.call(str(i), "Wyjmij z kieszeni: %s" % ItemArt.item_name(k).to_lower(), func(): _pocket_key(pocket))
+			add.call(str(i), "Wyjmij z kieszeni: %s" % ItemArt.item_name(k).to_lower(), func(): _pocket_key(pocket), k)
 	if held in ItemArt.SMALL:
-		add.call("1–3", "Schowaj do kieszeni", func(): _item_action(Protocol.ITEM_PUT_AWAY, 0))
+		add.call("1–3", "Schowaj do kieszeni", func(): _item_action(Protocol.ITEM_PUT_AWAY, 0), "pocket")
 	# Someone right next to you: give, hit.
 	var me_px := Movement.to_px(pred.pos)
 	var near := ""
@@ -1179,16 +1199,16 @@ func _actions_here() -> Array:
 			break
 	if near != "":
 		if held != 0:
-			add.call("G", "Podaj: %s" % near, func(): _item_action(Protocol.ITEM_GIVE, 0))
+			add.call("G", "Podaj: %s" % near, func(): _item_action(Protocol.ITEM_GIVE, 0), "give")
 		var knife: bool = held == ItemArt.KNIFE
-		add.call("X", ("Dźgnij: %s" if knife else "Uderz: %s") % near, _send_action.bind(Protocol.ACTION_ATTACK))
+		add.call("X", ("Dźgnij: %s" if knife else "Uderz: %s") % near, _send_action.bind(Protocol.ACTION_ATTACK), ItemArt.KNIFE if knife else "hit")
 	var m = building.get_floor(pred.floor)
 	if m and m.room_types.get(room_id, "") == "stall":
-		add.call("L", "Zamknij / otwórz kabinę", _send_door_action)
+		add.call("L", "Zamknij / otwórz kabinę", _send_door_action, "lock")
 	if room_id != 0:
-		add.call("R", "Psoty…", _send_action.bind(Protocol.ACTION_MENU))
-	add.call("Enter", "Napisz na czacie", func(): chat_box.open())
-	add.call("H", "Dziennik dnia", func(): log_history.toggle())
+		add.call("R", "Psoty…", _send_action.bind(Protocol.ACTION_MENU), "mischief")
+	add.call("Enter", "Napisz na czacie", func(): chat_box.open(), "chat")
+	add.call("H", "Dziennik dnia", func(): log_history.toggle(), "log")
 	return out
 
 
