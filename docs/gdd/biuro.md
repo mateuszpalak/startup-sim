@@ -126,8 +126,9 @@ kubek w ręce przez 90 s, widoczny dla innych → „Kawa wypita.”
   w rękach — najpierw E przy szafce. Wypita (albo wystygła) kawa = brudny
   kubek. Czysty kubek można odłożyć do szafki; brudny:
   - umyć w zlewie (kuchennym albo w łazience) — od razu czysty w rękach;
-  - włożyć do zmywarki (do 8); E z pustymi rękami włącza ją (30 min gry),
-    potem trzeba ją rozładować (E) — czyste kubki wracają do szafki.
+  - włożyć do zmywarki (do 8; E z brudnym kubkiem albo w jej oknie); w oknie
+    „Włącz” (30 min gry), potem „Rozładuj do szafki” — albo wyjąć czysty
+    kubek od razu.
   Gdy szafka jest pusta, a brudne kubki stoją po biurze — trzeba pozmywać.
   Sprzątaczka zebrane kubki wkłada do zmywarki i ją włącza; kubki gracza,
   który wyszedł z gry, wracają do szafki.

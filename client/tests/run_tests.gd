@@ -62,7 +62,7 @@ func test_protocol(path: String) -> void:
 		"dialog_answer": Protocol.encode_dialog_answer(0x01020304, 3, 1),
 		"lunch_order": Protocol.encode_lunch_order(0x01020304, 29),
 		"company_action": Protocol.encode_company_action(0x01020304, Protocol.CO_SET_PLACES, 1, 2, ""),
-		"fridge_action": Protocol.encode_fridge_action(0x01020304, Protocol.FRIDGE_PUT, 0),
+		"container_action": Protocol.encode_container_action(0x01020304, Protocol.CONTAINER_FRIDGE, Protocol.CONTAINER_TAKE, 1, 18),
 		"skip_wait": Protocol.encode_skip_wait(0x01020304),
 		"action": Protocol.encode_action(0x01020304, Protocol.ACTION_ATTACK),
 		"hr_action": Protocol.encode_hr_action(0x01020304, Protocol.HR_REQUEST, 9),
@@ -128,9 +128,10 @@ func test_protocol(path: String) -> void:
 		and hr.salary == 10200 and hr.pay_rate == 6071 and hr.start_day == 2 and hr.today == 7 and hr.reprimands == 1
 		and hr.leave_days == 2 and hr.worked == 3 and hr.annexes.size() == 2 and hr.annexes[1].text == "Aneks nr 1"
 		and hr.requests == [{"id": 1, "day": 9, "status": 1}, {"id": 2, "day": 8, "status": 3}], "decode hr_info %s" % hr)
-	var fr := Protocol.decode(golden["fridge"].hex_decode())
-	expect(fr.get("type") == Protocol.T_FRIDGE and fr.items.size() == 1 and fr.items[0].kind == 11
-		and fr.items[0].label == "Kanapka z szynką (Ola)" and fr.milk == 7 and fr.water == 4 and fr.juice == 2, "decode fridge %s" % fr)
+	var fr := Protocol.decode(golden["container"].hex_decode())
+	expect(fr.get("type") == Protocol.T_CONTAINER and fr.which == Protocol.CONTAINER_FRIDGE and fr.capacity == 12
+		and fr.slots.size() == 2 and fr.slots[0].kind == 11 and fr.slots[0].label == "Kanapka z szynką (Ola)"
+		and fr.slots[1].count == 4 and fr.milk == 7 and fr.minutes == 0, "decode container %s" % fr)
 	var li := Protocol.decode(golden["lights"].hex_decode())
 	expect(li.get("type") == Protocol.T_LIGHTS and li.floor == 1 and li.rooms == [5, 12], "decode lights %s" % li)
 	var sm := Protocol.decode(golden["smoke"].hex_decode())

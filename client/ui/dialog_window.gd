@@ -128,17 +128,10 @@ func _item_slot(kind: int, i: int, text: String) -> Control:
 
 
 ## Ids (server): 1..199 board talks, 200..249 the breathalyser, 250 the R
-## menu, 251 the kitchen cupboard.
+## menu (containers have their own window).
 func _title(p: Dictionary) -> String:
 	if p.id == 250:
 		return "Co zrobić?"
-	if p.id == 251:
-		return "Szafka w kuchni"
-	if p.id == 255:
-		for t in ["Apteczka", "Barek"]:
-			if str(p.text).begins_with(t):
-				return t
-		return "Magazynek"
 	if p.id == 249:
 		return "Głosowanie"
 	if p.id == 253:
@@ -175,6 +168,6 @@ func _unhandled_input(event: InputEvent) -> void:
 		if event.keycode >= KEY_1 and event.keycode <= KEY_9:
 			_choose(event.keycode - KEY_1)
 			get_viewport().set_input_as_handled()
-		elif event.keycode == KEY_ESCAPE and dialog_id in [250, 251, 253, 254, 255]:
+		elif event.keycode == KEY_ESCAPE and dialog_id in [250, 253, 254]:
 			_choose(_opts.get_child_count() - 1)  # the last option: never mind / close
 			get_viewport().set_input_as_handled()

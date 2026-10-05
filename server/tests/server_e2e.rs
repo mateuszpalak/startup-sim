@@ -758,7 +758,8 @@ fn the_light_switch_turns_the_room_lamp_on_and_off_for_everybody() {
 fn kitchenette_mugs_dishwasher_and_fridge() {
     use game::coffee::lines as coffee_lines;
     use game::inventory::kind as item_kind;
-    use game::kitchen::{action as fa, lines as kl};
+    use game::kitchen::lines as kl;
+    use proto::container as ct;
     use proto::item_action as act;
     let (addr, _) = start_server_cfg(access::CARD, true, true);
     let b = building();
@@ -774,7 +775,8 @@ fn kitchenette_mugs_dishwasher_and_fridge() {
         })
         .is_some()
     };
-    let fridge = |c: &Client, a: u8| c.send(&Packet::FridgeAction { token: c.token, action: a, arg: 0 });
+    let window =
+        |c: &Client, which: u8, a: u8, arg: u8, kind: u8| c.send(&Packet::ContainerAction { token: c.token, which, action: a, arg, kind });
     action(&ola, act::DROP); // the laptop stays at the desk
     std::thread::sleep(Duration::from_millis(100));
     // No mug, no coffee.
@@ -796,7 +798,11 @@ fn kitchenette_mugs_dishwasher_and_fridge() {
     let at = ola.walk_to(&b, at, (4, DISHWASHER), &[]);
     let at = ola.press_e(&b, at);
     assert!(ola.wait_for_line(&kl::loaded(1), Duration::from_millis(800)).is_some());
-    let at = ola.press_e(&b, at);
+    let at = ola.press_e(&b, at); // empty hands: the dishwasher's window
+    let opened =
+        wait_for(&ola, &[], Duration::from_millis(800), |p| matches!(p, Packet::Container { which: ct::DISHWASHER, .. }).then_some(()));
+    assert!(opened.is_some());
+    window(&ola, ct::DISHWASHER, ct::START, 0, 0);
     assert!(ola.wait_for_line(kl::DW_STARTED, Duration::from_millis(800)).is_some());
     // Another coffee, with milk from the fridge; a free water.
     let at = ola.walk_to(&b, at, (4, CUPBOARD), &[]);
@@ -809,16 +815,23 @@ fn kitchenette_mugs_dishwasher_and_fridge() {
     let at = ola.walk_to(&b, at, (4, FRIDGE), &[]);
     while ola.recv().is_some() {}
     ola.press_e(&b, at);
+    let count = |slots: &[proto::ContainerSlot], k: u8| slots.iter().find(|s| s.kind == k).map_or(0, |s| s.count);
     let opened = wait_for(&ola, &[], Duration::from_millis(800), |p| match p {
-        Packet::Fridge { milk, water, juice, .. } => Some((*milk, *water, *juice)),
+        Packet::Container { which: ct::FRIDGE, milk, slots, .. } => Some((
+            *milk,
+            count(slots, item_kind::WATER),
+            count(slots, item_kind::JUICE),
+            slots.iter().position(|s| s.kind == item_kind::WATER),
+        )),
         _ => None,
     });
-    assert_eq!(opened, Some((5, 4, 2)));
-    fridge(&ola, fa::MILK);
+    let Some((milk, water, juice, Some(water_at))) = opened else { panic!("the fridge: {opened:?}") };
+    assert_eq!((milk, water, juice), (5, 4, 2));
+    window(&ola, ct::FRIDGE, ct::MILK, 0, 0);
     assert!(hands(&ola, item_kind::LATTE), "coffee with milk");
-    fridge(&ola, fa::TAKE_WATER);
+    window(&ola, ct::FRIDGE, ct::TAKE, water_at as u8, item_kind::WATER);
     let after = wait_for(&ola, &[], Duration::from_millis(800), |p| match p {
-        Packet::Fridge { milk: 4, water: 3, .. } => Some(()),
+        Packet::Container { which: ct::FRIDGE, milk: 4, slots, .. } if count(slots, item_kind::WATER) == 3 => Some(()),
         _ => None,
     });
     assert!(after.is_some());
@@ -1022,17 +1035,21 @@ fn access_card_can_be_dropped_picked_up_and_handed_over() {
 }
 
 /// Wait (pinging `keep` too) for a packet matching `f`.
-/// A server dialog `id` opened (the cupboard, the contract): answer `choice`.
+/// A server dialog `id` opened (the contract): answer `choice`.
 fn answer_dialog(c: &Client, id: u8, choice: u8) {
     let open = wait_for(c, &[], Duration::from_secs(2), |p| matches!(p, Packet::Dialog { id: d, .. } if *d == id).then_some(()));
     assert!(open.is_some(), "dialog {id} opens");
     c.send(&Packet::DialogAnswer { token: c.token, id, choice });
 }
 
-/// E at the cupboard opened its window (mugs, knives): take option `choice`
-/// (0 = a mug).
-fn cupboard_take(c: &Client, choice: u8) {
-    answer_dialog(c, game::mischief::CUPBOARD_ID, choice);
+/// E at the cupboard opened its window (mugs, knives): take slot `slot`
+/// (0 = a mug, 1 = a knife).
+fn cupboard_take(c: &Client, slot: u8) {
+    use proto::container as ct;
+    let open = wait_for(c, &[], Duration::from_secs(2), |p| matches!(p, Packet::Container { which: ct::CUPBOARD, .. }).then_some(()));
+    assert!(open.is_some(), "the cupboard opens");
+    let kind = if slot == 0 { game::inventory::kind::CUP } else { game::inventory::kind::KNIFE };
+    c.send(&Packet::ContainerAction { token: c.token, which: ct::CUPBOARD, action: ct::TAKE, arg: slot, kind });
 }
 
 fn wait_for<T>(me: &Client, keep: &[&Client], wait: Duration, mut f: impl FnMut(&Packet) -> Option<T>) -> Option<T> {

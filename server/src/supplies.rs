@@ -5,8 +5,6 @@
 
 use crate::inventory::kind;
 
-/// Dialog id of a cabinet / the storeroom shelves (the last free one).
-pub const DIALOG: u8 = 255;
 /// Every morning: this many of each medicine, of cola and of cookies.
 pub const MEDICINES: [(u8, &str); 4] = [
     (kind::PAINKILLER, "Apap — na ból głowy i kaca"),
@@ -75,12 +73,6 @@ pub fn roll_name(quality: u8) -> &'static str {
 }
 
 pub mod lines {
-    pub const CABINET: &str = "Apteczka: co bierzesz?";
-    pub const STOREROOM: &str = "Magazynek: zapasy firmy (ciii…).";
-    pub const CLOSE: &str = "Nic, dziękuję";
-    pub fn item(name: &str, left: u8) -> String {
-        format!("{name} ({left})")
-    }
     pub const EMPTY: &str = "Pusto — trzeba poczekać do jutra.";
     pub const HANDS_FULL: &str = "Najpierw muszę coś odłożyć.";
     pub const KEY_NO: &str = "Klucz do magazynku? A po co Panu/Pani? Nie ma mowy.";
@@ -97,7 +89,6 @@ pub mod lines {
     pub const COLA: &str = "Zimna cola z magazynu. Smakuje lepiej, bo za darmo.";
     pub const COOKIES: &str = "Ciastka z magazynu. Kradzione nie tuczy.";
     pub const KEY: &str = "Klucz do magazynku na piętrze (piwnica, a jednak na piętrze).";
-    pub const BAR: &str = "Barek: co nalewamy?";
     pub const BAR_LOCKED: &str = "Barek zamknięty na kluczyk. Ciekawe, gdzie go schowali…";
     pub const BAR_KEY: &str = "Mały kluczyk. Pasuje do barku w sali spotkań?";
     pub const FOUND_KEY: &str = "O! Mały kluczyk… Do czego on może być?";

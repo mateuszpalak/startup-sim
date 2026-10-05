@@ -96,8 +96,8 @@ pub mod ty {
     pub const COMPANY_ACTION: u8 = 39;
     pub const SMOKE: u8 = 40;
     pub const LIGHTS: u8 = 41;
-    pub const FRIDGE: u8 = 42;
-    pub const FRIDGE_ACTION: u8 = 43;
+    pub const CONTAINER: u8 = 42;
+    pub const CONTAINER_ACTION: u8 = 43;
     pub const SKIP_WAIT: u8 = 44;
     pub const SOUND: u8 = 45;
     pub const TASK_ACTION: u8 = 46;
@@ -500,6 +500,37 @@ pub mod kind {
     pub const PUDDLE: u8 = 6;
 }
 
+/// One slot of a container window.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ContainerSlot {
+    pub kind: u8,
+    pub count: u8,
+    pub label: String,
+}
+
+/// Containers (`Container::which`) and what can be done in their window
+/// (`ContainerAction::action`).
+pub mod container {
+    pub const FRIDGE: u8 = 1;
+    pub const CUPBOARD: u8 = 2;
+    pub const DISHWASHER: u8 = 3;
+    pub const CABINET: u8 = 4;
+    pub const STOREROOM: u8 = 5;
+    pub const BAR: u8 = 6;
+
+    pub const CLOSE: u8 = 0;
+    pub const TAKE: u8 = 1;
+    pub const PUT: u8 = 2;
+    /// The fridge: milk into the coffee in hands.
+    pub const MILK: u8 = 3;
+    /// The dishwasher: start it / clean mugs back to the cupboard.
+    pub const START: u8 = 4;
+    pub const UNLOAD: u8 = 5;
+
+    pub const MAX_SLOTS: usize = 24;
+    pub const MAX_LABEL: usize = 64;
+}
+
 /// One conversation in the messenger sidebar.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ConvEntry {
@@ -895,19 +926,28 @@ pub enum Packet {
         floor: u8,
         rooms: Vec<u16>,
     },
-    /// The fridge (E at it, and after every change while open): what's
-    /// stored (item kind, label), portions of milk, free water and juice.
-    Fridge {
-        items: Vec<(u8, String)>,
+    /// A container opened with E (`container::which`: the fridge, the
+    /// cupboard, the dishwasher, the cabinet, the storeroom, the bar) and
+    /// after every change while open: its slots (item kind, how many,
+    /// label), `capacity` (slots drawn), milk portions (the fridge) and the
+    /// dishwasher's minutes left (0 = not running).
+    Container {
+        which: u8,
+        capacity: u8,
+        slots: Vec<ContainerSlot>,
         milk: u8,
-        water: u8,
-        juice: u8,
+        minutes: u8,
     },
-    /// Take / put / pour milk (`kitchen::action`), `arg` = stored item index.
-    FridgeAction {
+    /// A move in the container window (`container::action`): take slot
+    /// `arg` (of `kind`, so a changed slot isn't taken by mistake), put
+    /// inventory slot `arg` (0 = hands, 1.. = pockets) in, pour milk, start
+    /// / unload the dishwasher, close.
+    ContainerAction {
         token: u32,
+        which: u8,
         action: u8,
         arg: u8,
+        kind: u8,
     },
     /// At home: "skip the waiting" (to the morning / departure; once
     /// everybody at home asked).

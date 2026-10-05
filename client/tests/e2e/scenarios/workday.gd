@@ -29,9 +29,9 @@ func run() -> void:
 	if not await walk(4, 21, 15):  # the cupboard with mugs
 		return
 	await press_e()
-	if not await until(func(): return game().dialog.visible, 5.0, "the cupboard open"):
+	if not await until(func(): return game().container.visible and game().container.which == Protocol.CONTAINER_CUPBOARD, 5.0, "the cupboard open"):
 		return
-	game().dialog._choose(0)  # Weź kubek
+	game().container.take(0)  # a mug
 	if not await until(func(): return holding(Item.CUP), 5.0, "a mug from the cupboard"):
 		return
 	if not await walk(4, 20, 12):  # the coffee machine

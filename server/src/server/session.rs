@@ -131,7 +131,7 @@ impl Server {
             Packet::CalendarBook { start, topic, .. } => self.handle_calendar_book(id, u32::from(start), topic),
             Packet::DialogAnswer { id: dialog, choice, .. } => self.handle_dialog_answer(id, dialog, choice),
             Packet::LunchOrder { dish, .. } => self.handle_lunch_order(id, dish),
-            Packet::FridgeAction { action, arg, .. } => self.handle_fridge_action(id, action, arg),
+            Packet::ContainerAction { which, action, arg, kind, .. } => self.handle_container_action(id, which, action, arg, kind),
             Packet::SkipWait { .. } => self.handle_skip_wait(id),
             Packet::Action { action, .. } => self.handle_action(id, action),
             Packet::HrAction { action, arg, .. } => self.handle_hr_action(id, action, arg),
@@ -440,7 +440,7 @@ fn session_token(packet: &Packet) -> Option<u32> {
         | Packet::CalendarBook { token, .. }
         | Packet::DialogAnswer { token, .. }
         | Packet::LunchOrder { token, .. }
-        | Packet::FridgeAction { token, .. }
+        | Packet::ContainerAction { token, .. }
         | Packet::SkipWait { token }
         | Packet::Action { token, .. }
         | Packet::HrAction { token, .. }

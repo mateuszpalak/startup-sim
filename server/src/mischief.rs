@@ -28,7 +28,6 @@ pub const CHAIN_SMOKES: u8 = 5;
 pub const CHAIN_GAP_TICKS: u32 = 30 * 20;
 /// Dialog ids of the R menu and the cupboard (after the reprimand's 200..250).
 pub const MENU_ID: u8 = 250;
-pub const CUPBOARD_ID: u8 = 251;
 
 pub mod lines {
     pub const MENU: &str = "Co by tu zmalować?";

@@ -15,11 +15,11 @@ func run() -> void:
 	if not await walk(4, 21, 15):  # in front of the kitchen cupboard
 		return
 	await press_e()
-	var dialog = game().dialog
-	if not await until(func(): return dialog.visible, 5.0, "the cupboard open"):
+	var cupboard = game().container
+	if not await until(func(): return cupboard.visible and cupboard.which == Protocol.CONTAINER_CUPBOARD, 5.0, "the cupboard open"):
 		return
-	check(dialog._text.text.contains("noże kuchenne"), "knives inside: %s" % dialog._text.text)
-	dialog._choose(1)  # Weź nóż
+	check(cupboard._count(Item.KNIFE) > 0, "knives inside: %s" % [cupboard.state.slots])
+	cupboard.take(1)  # a knife
 	if not await until(func(): return carrying(Item.KNIFE), 5.0, "a knife"):
 		return
 	log_step("took a knife")
@@ -48,6 +48,7 @@ func run() -> void:
 		return
 
 	# The R menu: what could be done here (closed with the last option).
+	var dialog = game().dialog
 	game().net.send(Protocol.encode_action(game().net.token, Protocol.ACTION_MENU))
 	if not await until(func(): return dialog.visible and dialog._title_text() == "Co zrobić?", 5.0, "the R menu"):
 		return

@@ -54,8 +54,8 @@ const T_COMPANY_PEOPLE := 38
 const T_COMPANY_ACTION := 39
 const T_SMOKE := 40
 const T_LIGHTS := 41
-const T_FRIDGE := 42
-const T_FRIDGE_ACTION := 43
+const T_CONTAINER := 42
+const T_CONTAINER_ACTION := 43
 const T_SKIP_WAIT := 44
 const T_SOUND := 45
 const T_TASK_ACTION := 46
@@ -102,12 +102,20 @@ const SOUND_FILES := {1: "coffee", 2: "till", 3: "gate_alarm", 4: "ding", 5: "lo
 	20: "punch", 21: "stab", 22: "pee", 23: "poop"}
 const SOUND_BURP := 18
 const SOUND_STAB := 21
-# FridgeAction.action (server/src/kitchen.rs)
-const FRIDGE_TAKE := 1
-const FRIDGE_PUT := 2
-const FRIDGE_WATER := 3
-const FRIDGE_JUICE := 4
-const FRIDGE_MILK := 5
+# Container.which / ContainerAction.action (server/src/protocol, mod container)
+const CONTAINER_FRIDGE := 1
+const CONTAINER_CUPBOARD := 2
+const CONTAINER_DISHWASHER := 3
+const CONTAINER_CABINET := 4
+const CONTAINER_STOREROOM := 5
+const CONTAINER_BAR := 6
+const CONTAINER_CLOSE := 0
+const CONTAINER_TAKE := 1
+const CONTAINER_PUT := 2
+const CONTAINER_MILK := 3
+const CONTAINER_START := 4
+const CONTAINER_UNLOAD := 5
+const MAX_CONTAINER_SLOTS := 24
 # CompanyAction.action (server/src/company.rs)
 const CO_FOUND := 1
 const CO_RENAME := 2
@@ -499,11 +507,15 @@ static func encode_skip_wait(token: int) -> PackedByteArray:
 	return b.data_array
 
 
-static func encode_fridge_action(token: int, action: int, arg: int) -> PackedByteArray:
-	var b := _writer(T_FRIDGE_ACTION)
+## A move in a container window: take slot `arg` (of `kind`), put
+## inventory slot `arg` in (0 = hands), milk, start / unload, close.
+static func encode_container_action(token: int, which: int, action: int, arg := 0, kind := 0) -> PackedByteArray:
+	var b := _writer(T_CONTAINER_ACTION)
 	b.put_u32(token)
+	b.put_u8(which)
 	b.put_u8(action)
 	b.put_u8(arg)
+	b.put_u8(kind)
 	return b.data_array
 
 
@@ -851,17 +863,18 @@ static func decode(bytes: PackedByteArray) -> Dictionary:
 			for i in n:
 				sounds.append([r.u8(), r.i32(), r.i32()])
 			p.sounds = sounds
-		T_FRIDGE:
+		T_CONTAINER:
+			p.which = r.u8()
+			p.capacity = r.u8()
 			var n := r.u8()
-			if n > 16:
+			if n > MAX_CONTAINER_SLOTS:
 				return {}
-			var items := []
+			var slots := []
 			for i in n:
-				items.append({"kind": r.u8(), "label": r.str16(64)})
-			p.items = items
+				slots.append({"kind": r.u8(), "count": r.u8(), "label": r.str16(64)})
+			p.slots = slots
 			p.milk = r.u8()
-			p.water = r.u8()
-			p.juice = r.u8()
+			p.minutes = r.u8()
 		T_LIGHTS:
 			p.floor = r.u8()
 			var n := r.u8()

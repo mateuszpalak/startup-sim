@@ -31,7 +31,7 @@ func _process(_delta: float) -> void:
 		a.prune_loops({})
 		return
 	# A window (fridge, shelf, dialog, computer) opens: a paper swish.
-	for w in [game.fridge_window, game.shelf_window, game.dialog, game.screen]:
+	for w in [game.container, game.shelf_window, game.dialog, game.screen]:
 		if w.visible and not _open.get(w, false):
 			a.play("ui_open", -8.0, 0.1)
 		_open[w] = w.visible

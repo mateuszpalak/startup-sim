@@ -33,6 +33,7 @@ mod chat;
 mod cleaning;
 mod company;
 mod computers;
+mod containers;
 mod contract;
 mod day;
 mod doors;
@@ -535,6 +536,7 @@ impl Server {
         self.tick_to_portal();
         self.tick_media();
         self.tick_kitchen();
+        self.tick_containers();
         self.tick_meetings();
         self.tick_lunch();
         self.tick_company();

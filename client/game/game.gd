@@ -31,7 +31,7 @@ const StallDoorView = preload("res://game/stall_door_view.gd")
 const ElevatorDoorView = preload("res://game/elevator_door_view.gd")
 const RideMask = preload("res://game/ride_mask.gd")
 const ShelfWindow = preload("res://ui/shelf_window.gd")
-const FridgeWindow = preload("res://ui/fridge_window.gd")
+const ContainerWindow = preload("res://ui/container_window.gd")
 const VehicleView = preload("res://game/vehicle_view.gd")
 const WeatherFx = preload("res://ui/weather_fx.gd")
 const DialogWindow = preload("res://ui/dialog_window.gd")
@@ -131,8 +131,9 @@ var log_history := LogHistory.new()  # H: the day's log
 var chat_box := ChatBox.new()     # Enter: typed chat
 var shelf_window := ShelfWindow.new()
 var _shelf_at := Vector2.ZERO     # where the shelf window was opened (walk away = close)
-var fridge_window := FridgeWindow.new()
-var _fridge_at := Vector2.ZERO
+var container := ContainerWindow.new()
+var _container_at := Vector2.ZERO
+var _container_closed_ms := -10000
 var depts := {}          # id -> department (after the contract)
 var appearances := {}    # id -> appearance dict (from PlayerInfo)
 var own_appearance := {}
@@ -351,10 +352,14 @@ func setup(p_net, p_building, welcome: Dictionary, p_nick: String, args: Diction
 	weather_layer.add_child(weather_fx)
 	weather_fx.lightning.connect(func(): sounds.on_lightning(weather_fx.outdoors))
 	status_layer.add_child(shelf_window)
-	status_layer.add_child(fridge_window)
-	fridge_window.action.connect(func(act: int, arg: int):
+	status_layer.add_child(container)
+	container.action.connect(func(which: int, act: int, arg: int, kind: int):
 			if net.is_playing():
-				net.send(Protocol.encode_fridge_action(net.token, act, arg)))
+				net.send(Protocol.encode_container_action(net.token, which, act, arg, kind)))
+	container.closed.connect(func():
+			_container_closed_ms = Time.get_ticks_msec()
+			if net.is_playing():
+				net.send(Protocol.encode_container_action(net.token, container.which, Protocol.CONTAINER_CLOSE)))
 	shelf_window.take.connect(func(shelf: int, kind: int):
 			if net.is_playing():
 				net.send(Protocol.encode_shop_take(net.token, shelf, kind)))
@@ -723,8 +728,8 @@ func _process(delta: float) -> void:
 			floor_items.erase(id)
 	if shelf_window.visible and have_state and Movement.to_px(pred.pos).distance_to(_shelf_at) > 20.0:
 		shelf_window.close()  # walked away from the shelf
-	if fridge_window.visible and have_state and Movement.to_px(pred.pos).distance_to(_fridge_at) > 20.0:
-		fridge_window.close()
+	if container.visible and have_state and Movement.to_px(pred.pos).distance_to(_container_at) > 20.0:
+		container.close()  # walked away
 	if have_state:
 		_update_stall_doors()
 		_update_ride()
@@ -771,7 +776,7 @@ func _on_packet(p: Dictionary) -> void:
 			inventory = p.slots
 			hud.update_slots(inventory)
 			me.set_held(inventory[0].kind if not inventory.is_empty() else 0)
-			fridge_window.set_held(inventory[0].kind if not inventory.is_empty() else 0)
+			container.set_inventory(inventory)
 		Protocol.T_DOORS:
 			var dm = building.get_floor(p.floor)
 			if dm:
@@ -780,10 +785,13 @@ func _on_packet(p: Dictionary) -> void:
 		Protocol.T_SHELF:
 			shelf_window.show_shelf(p)
 			_shelf_at = Movement.to_px(pred.pos)
-		Protocol.T_FRIDGE:
-			if not fridge_window.visible:
-				_fridge_at = Movement.to_px(pred.pos)
-			fridge_window.show_fridge(p)
+		Protocol.T_CONTAINER:
+			# (A refresh already on its way when the window was closed: ignored.)
+			if container.visible or Time.get_ticks_msec() - _container_closed_ms >= 800:
+				if not container.visible:
+					_container_at = Movement.to_px(pred.pos)
+					container.set_inventory(inventory)
+				container.show_container(p)
 		Protocol.T_SMOKE:
 			smoke_view.on_smoke(p)
 		Protocol.T_LIGHTS:
@@ -1045,7 +1053,7 @@ func _reconcile(server_body: Dictionary, ack: int) -> void:
 
 ## Something in the game takes Esc itself (a window is open).
 func window_open() -> bool:
-	return screen.visible or shelf_window.visible or fridge_window.visible or dialog.visible or roll_game.visible \
+	return screen.visible or shelf_window.visible or container.visible or dialog.visible or roll_game.visible \
 		or chat_box.visible or log_history.visible
 
 
