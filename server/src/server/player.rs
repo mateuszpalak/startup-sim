@@ -83,8 +83,11 @@ pub(super) struct LiftPanel {
     pub(super) lift: usize,
     pub(super) floor: u8,
     pub(super) id: u8,
-    /// The buttons, in option order (the last option is "stay").
+    /// The buttons, in option order (then "stay", then the card reader).
     pub(super) floors: Vec<u8>,
+    /// A card held to the reader: every floor's button works (the ground
+    /// floor's always does).
+    pub(super) carded: bool,
 }
 
 pub(super) struct Player {

@@ -224,9 +224,13 @@ kabinie) — szczegóły w 10.18.
   strzałka jazdy.
 - Jazda: ~3 s na piętro (z parteru na 3 mija zablokowane 1 i 2, więc jedzie
   ~9 s, na 4 ~12 s); po przyjeździe drzwi otwarte ~4 s (nie zamkną się na kimś w
-  drzwiach). **E w kabinie** otwiera **panel pięter** (okno jak w rozmowie):
-  przycisk na każde piętro, na którym winda staje, bez bieżącego, i „Zostań”;
-  wybór przyciskiem albo klawiszami 1–9. Po wyborze drzwi zamykają się po 1 s
+  drzwiach). **E w kabinie** otwiera **panel windy** na środku ekranu:
+  stalowa płytka z wyświetlaczem piętra, czytnikiem kart i okrągłym
+  przyciskiem na każde piętro, na którym winda staje (bez bieżącego), oraz
+  „Zostań”. **Na parter karta niepotrzebna**; inne piętra trzeba najpierw
+  odblokować, przykładając kartę do czytnika (klik w czytnik albo **K**;
+  dioda z czerwonej robi się zielona). Bez karty zostaje tylko parter.
+  Klawisze: **P** / **0** parter, cyfra — piętro, **Esc** — zostań. Po wyborze drzwi zamykają się po 1 s
   i jadą wszyscy w kabinie. Panel znika sam, gdy winda ruszy (ktoś inny
   wybrał) albo gdy wyjdziesz z kabiny.
 - **Maksymalnie 6 osób**: z większą liczbą winda nie ruszy — drzwi zostają

@@ -34,6 +34,9 @@ pub mod lines {
     pub const RIDING: &str = "Jedziemy…";
     pub const OVERLOAD: &str = "Przeciążenie! Maksymalnie 6 osób — ktoś musi wysiąść.";
     pub const NO_CARD: &str = "Winda tylko z kartą — przepustkę da portier.";
+    pub const CARD_FIRST: &str = "Najpierw karta do czytnika — bez niej tylko parter.";
+    pub const CARD_OK: &str = "Pik! Karta przyjęta.";
+    pub const NO_CARD_TO_SWIPE: &str = "Nie mam karty… Bez niej tylko na parter.";
 }
 
 #[derive(Debug, Clone)]

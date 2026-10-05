@@ -345,11 +345,16 @@ opcji (0 = żaden; okno rysuje je jak ekwipunek), inaczej k = 0; ponawiane co
 `DialogAnswer`: token u32, id u8, choice u8 — odpowiedzi na nieaktualne `id`
 są ignorowane. Odpowiedzi NPC idą jako `Say`.
 
-`npc` 0 = **panel pięter w windzie** (E w kabinie stojącej windy): `text`
-„Które piętro?”, opcje to nazwy pięter, na których winda staje (bez bieżącego,
-zablokowane piętra 1 i 2 pomija), ostatnia „Zostań”. `DialogAnswer` wciska
-przycisk („Jedziemy na: …” jako `Say`); serwer zamyka panel (`id` 0) po
-odpowiedzi, gdy winda ruszy albo gdy gracz wyjdzie z kabiny.
+`npc` 0 = **panel pięter w windzie** (E w kabinie stojącej windy): opcje to
+nazwy pięter, na których winda staje (bez bieżącego, zablokowane piętra 1 i 2
+pomija), potem „Zostań”, na końcu „Przyłóż kartę” (czytnik). `items` — po
+jednym na opcję: 1 = przycisk piętra czeka na kartę (każde poza parterem,
+dopóki karta nie została przyłożona), inaczej 0. `text` mówi, czy karta już
+przyjęta. `DialogAnswer` z czytnikiem: z dostępem karty panel wraca z samymi
+zerami w `items` (to samo `id`), bez — `Say` „Nie mam karty…”; zablokowane
+piętro — `Say` i panel jeszcze raz; piętro dozwolone — jazda („Jedziemy na:
+…”), serwer zamyka panel (`id` 0); też gdy winda ruszy albo gracz wyjdzie z
+kabiny. Klient rysuje go jako panel windy na środku ekranu.
 
 ### 35 `LunchMenu` (S→C), 36 `LunchOrder` (C→S)
 
