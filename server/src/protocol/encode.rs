@@ -56,6 +56,8 @@ impl Packet {
             Packet::ChatSay { .. } => ty::CHAT_SAY,
             Packet::Notice { .. } => ty::NOTICE,
             Packet::OwnProfile { .. } => ty::OWN_PROFILE,
+            Packet::CoffeeMachine { .. } => ty::COFFEE_MACHINE,
+            Packet::CoffeeAction { .. } => ty::COFFEE_ACTION,
             Packet::Sound { .. } => ty::SOUND,
             Packet::TaskAction { .. } => ty::TASK_ACTION,
             Packet::TaskBoard { .. } => ty::TASK_BOARD,
@@ -479,6 +481,18 @@ impl Packet {
             Packet::ChatSay { token, text } => {
                 w.u32(*token);
                 w.str16(text, MAX_SAY_BYTES);
+            }
+            Packet::CoffeeMachine { machine, water, grounds, max, busy } => {
+                w.u8(*machine);
+                w.u8(*water);
+                w.u8(*grounds);
+                w.u8(*max);
+                w.u8(*busy);
+            }
+            Packet::CoffeeAction { token, machine, action } => {
+                w.u32(*token);
+                w.u8(*machine);
+                w.u8(*action);
             }
             Packet::OwnProfile { profile } => {
                 w.u8(profile.gender);

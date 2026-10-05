@@ -37,6 +37,9 @@ func run() -> void:
 	if not await walk(4, 20, 12):  # the coffee machine
 		return
 	await press_e()
+	if not await until(func(): return game().coffee.visible, 5.0, "the coffee machine's panel"):
+		return
+	game().coffee._press(Protocol.COFFEE_BREW)
 	if not await hear("Kawa gotowa", 8.0):
 		return
 	await until(func(): return holding(Item.COFFEE), 5.0, "the coffee in hands")

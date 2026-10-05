@@ -191,6 +191,8 @@ pub(super) struct Player {
     pub(super) talk: Option<Talk>,
     /// The container window open (`protocol::container`).
     pub(super) container: Option<u8>,
+    /// The coffee machine's panel open (machine index).
+    pub(super) coffee_panel: Option<usize>,
     /// In a lift cabin, choosing the floor.
     pub(super) lift_panel: Option<LiftPanel>,
     pub(super) next_dialog_id: u8,
@@ -284,6 +286,7 @@ impl Player {
             last_raise_day: None,
             talk: None,
             container: None,
+            coffee_panel: None,
             lift_panel: None,
             next_dialog_id: 0,
             rest: None,

@@ -403,6 +403,8 @@ impl Packet {
                 Packet::OwnProfile { profile: Profile { gender, age, city, email, appearance } }
             }
             ty::ROLL => Packet::Roll { token: r.u32()?, quality: r.u8()? },
+            ty::COFFEE_MACHINE => Packet::CoffeeMachine { machine: r.u8()?, water: r.u8()?, grounds: r.u8()?, max: r.u8()?, busy: r.u8()? },
+            ty::COFFEE_ACTION => Packet::CoffeeAction { token: r.u32()?, machine: r.u8()?, action: r.u8()? },
             ty::MEDIA => {
                 let n = r.u8()? as usize;
                 if n > MAX_MEDIA {

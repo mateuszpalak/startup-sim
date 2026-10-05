@@ -246,6 +246,16 @@
       "name": "own_profile"
     },
     {
+      "debug": "CoffeeMachine { machine: 1, water: 5, grounds: 3, max: 8, busy: 2 }",
+      "hex": "54532f3f0105030802",
+      "name": "coffee_machine"
+    },
+    {
+      "debug": "CoffeeAction { token: 16909060, machine: 1, action: 2 }",
+      "hex": "54532f40040302010102",
+      "name": "coffee_action"
+    },
+    {
       "debug": "Media { screens: [(1, 35, 14, 4, 12345)], music: [(2, 12000, 1, 10496, 3200, 7)] }",
       "hex": "54532f3a0101230e04393000000102e02e00000100290000800c00000700",
       "name": "media"

@@ -367,6 +367,58 @@ fn punches_knock_out_a_knife_calls_the_police_and_earns_a_reprimand() {
 }
 
 #[test]
+fn the_coffee_machine_needs_water_and_its_grounds_go_to_the_bin() {
+    use crate::coffee::{self, lines};
+    use crate::protocol::coffee_action as act;
+    let mut s = server();
+    add_player(&mut s, 1);
+    let m = s.machines.iter().position(|m| m.floor == 4).unwrap();
+    let t = s.machines[m].tile;
+    stand_next_to(&mut s, 1, 4, t);
+    s.open_coffee_panel(1, m);
+    s.give_new(1, item_kind::CUP);
+    let said = |s: &mut Server, line: &str| {
+        let yes = s.says.iter().any(|l| l.text == line);
+        s.says.clear();
+        yes
+    };
+    s.machines[m].water = 0;
+    s.handle_coffee_action(1, m as u8, act::BREW);
+    assert!(said(&mut s, lines::NO_WATER));
+    s.handle_coffee_action(1, m as u8, act::WATER);
+    assert!(said(&mut s, lines::WATER_ADDED));
+    assert_eq!(s.machines[m].water, coffee::WATER_CUPS);
+    s.machines[m].grounds = coffee::GROUNDS_CUPS;
+    s.handle_coffee_action(1, m as u8, act::BREW);
+    assert!(said(&mut s, lines::GROUNDS_FULL));
+    // The grounds out: hands are full (the mug) - put it away first.
+    s.handle_coffee_action(1, m as u8, act::EMPTY_GROUNDS);
+    assert!(said(&mut s, lines::HANDS_FULL));
+    s.players.get_mut(&1).unwrap().inventory.take_hands();
+    s.handle_coffee_action(1, m as u8, act::EMPTY_GROUNDS);
+    assert!(said(&mut s, lines::GROUNDS_OUT));
+    assert_eq!((s.machines[m].grounds, s.players[&1].inventory.held_kind()), (0, item_kind::GROUNDS));
+    // Into the kitchen bin; a mug doesn't go there; rummaging gets it back.
+    let k = s.kitchen.as_ref().unwrap();
+    let (floor, bin) = (k.floor, k.bin.expect("a bin in the kitchen"));
+    stand_next_to(&mut s, 1, floor, bin);
+    s.open_container(1, container::BIN);
+    s.handle_container_action(1, container::BIN, container::PUT, 0, 0);
+    assert_eq!(s.kitchen.as_ref().unwrap().trash.len(), 1);
+    assert!(s.players[&1].inventory.hands_free());
+    s.give_new(1, item_kind::EMPTY_CUP);
+    s.handle_container_action(1, container::BIN, container::PUT, 0, 0);
+    assert!(said(&mut s, super::containers::say::MUG_NOT_TRASH));
+    s.players.get_mut(&1).unwrap().inventory.take_hands();
+    s.handle_container_action(1, container::BIN, container::TAKE, 0, item_kind::GROUNDS);
+    assert_eq!(s.players[&1].inventory.held_kind(), item_kind::GROUNDS);
+    // The cleaner's round: water topped up, grounds out, the bin empty.
+    s.machines[m].water = 0;
+    s.machines[m].service();
+    assert_eq!((s.machines[m].water, s.machines[m].grounds), (coffee::WATER_CUPS, 0));
+}
+
+#[test]
 fn things_go_in_and_out_of_containers_by_their_slots() {
     let mut s = server();
     add_player(&mut s, 1);

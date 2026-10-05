@@ -75,6 +75,13 @@ const T_ROLL := 59
 const T_CHAT_SAY := 60
 const T_NOTICE := 61
 const T_OWN_PROFILE := 62  # our own character, as the server keeps it (after logging back in)
+const T_COFFEE_MACHINE := 63  # the coffee machine's panel
+const T_COFFEE_ACTION := 64
+# CoffeeAction.action (server/src/protocol, mod coffee_action)
+const COFFEE_CLOSE := 0
+const COFFEE_BREW := 1
+const COFFEE_WATER := 2
+const COFFEE_EMPTY_GROUNDS := 3
 const MAX_VOICE_BYTES := 800
 # TaskAction.action / MailAction.action (server/src/protocol/mod.rs)
 const TA_SYNC := 0
@@ -109,6 +116,7 @@ const CONTAINER_DISHWASHER := 3
 const CONTAINER_CABINET := 4
 const CONTAINER_STOREROOM := 5
 const CONTAINER_BAR := 6
+const CONTAINER_BIN := 7
 const CONTAINER_CLOSE := 0
 const CONTAINER_TAKE := 1
 const CONTAINER_PUT := 2
@@ -507,6 +515,14 @@ static func encode_skip_wait(token: int) -> PackedByteArray:
 	return b.data_array
 
 
+static func encode_coffee_action(token: int, machine: int, action: int) -> PackedByteArray:
+	var b := _writer(T_COFFEE_ACTION)
+	b.put_u32(token)
+	b.put_u8(machine)
+	b.put_u8(action)
+	return b.data_array
+
+
 ## A move in a container window: take slot `arg` (of `kind`), put
 ## inventory slot `arg` in (0 = hands), milk, start / unload, close.
 static func encode_container_action(token: int, which: int, action: int, arg := 0, kind := 0) -> PackedByteArray:
@@ -733,6 +749,12 @@ static func decode(bytes: PackedByteArray) -> Dictionary:
 		T_NOTICE:
 			p.icon = r.u8()
 			p.text = r.str16(MAX_TEXT_BYTES)
+		T_COFFEE_MACHINE:
+			p.machine = r.u8()
+			p.water = r.u8()
+			p.grounds = r.u8()
+			p.max = r.u8()
+			p.busy = r.u8()
 		T_OWN_PROFILE:
 			var g := r.u8()
 			var age := r.u8()

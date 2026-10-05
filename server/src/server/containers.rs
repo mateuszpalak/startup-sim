@@ -1,5 +1,6 @@
 //! Containers opened with E - the fridge, the kitchen cupboard, the
-//! dishwasher, the first-aid cabinet, the storeroom shelves and the bar: one
+//! dishwasher, the trash bin, the first-aid cabinet, the storeroom shelves
+//! and the bar: one
 //! window with their slots next to the player's things; dragging (or a
 //! click) takes things out and puts them in.
 
@@ -22,12 +23,33 @@ pub(super) mod say {
     pub const PUT_BACK: &str = "Odkładam z powrotem.";
     pub const ONLY_DIRTY: &str = "Do zmywarki tylko brudne kubki.";
     pub const FREE_DRINK: &str = "Firmowe, za darmo. Dzięki, szefie!";
+    pub const THROWN: &str = "Do kosza!";
+    pub const NOT_TRASH: &str = "Tego się nie wyrzuca — to firmowe.";
+    pub const MUG_NOT_TRASH: &str = "Kubków się nie wyrzuca — do zmywarki albo zlewu.";
+    pub const FROM_TRASH: &str = "Grzebię w koszu… Fuj, ale mam.";
+}
+
+/// Office things that don't go in the bin (and mugs - they're counted).
+fn not_trash(kind: u8) -> bool {
+    matches!(
+        kind,
+        item_kind::LAPTOP
+            | item_kind::EMPLOYEE_CARD
+            | item_kind::GUEST_PASS
+            | item_kind::STORE_KEY
+            | item_kind::BAR_KEY
+            | item_kind::REMOTE
+            | item_kind::BOOMBOX
+            | item_kind::BREATHALYSER
+            | item_kind::KNIFE
+    )
 }
 
 /// Where a slot's things are kept.
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum Source {
     Stored(usize),
+    Trash(usize),
     Water,
     Juice,
     Mugs,
@@ -58,6 +80,7 @@ impl Server {
     pub(super) fn open_container(&mut self, pid: u16, which: u8) {
         let noise = match which {
             c::FRIDGE => Some(sound::FRIDGE),
+            c::BIN => Some(sound::DROP),
             c::CUPBOARD | c::CABINET | c::BAR => Some(sound::CUPBOARD),
             _ => None,
         };
@@ -75,13 +98,14 @@ impl Server {
         let Some(p) = self.players.get(&pid).filter(|p| p.in_building()) else { return false };
         let body = &p.body;
         match which {
-            c::FRIDGE | c::CUPBOARD | c::DISHWASHER => self.kitchen.as_ref().is_some_and(|k| {
+            c::FRIDGE | c::CUPBOARD | c::DISHWASHER | c::BIN => self.kitchen.as_ref().is_some_and(|k| {
                 let t = match which {
-                    c::FRIDGE => k.fridge,
-                    c::CUPBOARD => k.cupboard,
-                    _ => k.dishwasher,
+                    c::FRIDGE => Some(k.fridge),
+                    c::CUPBOARD => Some(k.cupboard),
+                    c::DISHWASHER => Some(k.dishwasher),
+                    _ => k.bin,
                 };
-                k.near(t, body)
+                t.is_some_and(|t| k.near(t, body))
             }),
             c::CABINET => near(self.supplies.cabinet, body),
             c::BAR => near(self.supplies.liquor, body) && p.inventory.has(item_kind::BAR_KEY),
@@ -110,6 +134,9 @@ impl Server {
                         slot(item_kind::KNIFE, k.knives, "Nóż kuchenny", Source::Knives),
                     ]
                 }
+                c::BIN => {
+                    return k.trash.iter().enumerate().map(|(i, it)| slot(it.kind, 1, &it.label, Source::Trash(i))).collect();
+                }
                 c::DISHWASHER => {
                     return vec![
                         slot(item_kind::EMPTY_CUP, k.dirty, "Brudne kubki", Source::Dirty),
@@ -124,7 +151,11 @@ impl Server {
 
     fn container_packet(&self, which: u8) -> Packet {
         let slots = self.container_slots(which);
-        let capacity = if which == c::FRIDGE { kitchen::FRIDGE_SLOTS + 2 } else { slots.len() };
+        let capacity = match which {
+            c::FRIDGE => kitchen::FRIDGE_SLOTS + 2,
+            c::BIN => kitchen::TRASH_SLOTS,
+            _ => slots.len(),
+        };
         let k = self.kitchen.as_ref();
         let milk = if which == c::FRIDGE { k.map_or(0, |k| k.milk) } else { 0 };
         let now = self.clock.total_minutes();
@@ -198,6 +229,11 @@ impl Server {
                 let name = inventory::display_name(item.kind).to_lowercase();
                 self.give(pid, item);
                 return Some(format!("Wyjmuję z lodówki: {name}."));
+            }
+            Source::Trash(j) => {
+                let item = k?.trash.remove(j);
+                self.give(pid, item);
+                return Some(say::FROM_TRASH.into());
             }
             Source::Water | Source::Juice => {
                 let k = k?;
@@ -279,6 +315,19 @@ impl Server {
                 Some(line)
             }
             c::DISHWASHER => Some(say::ONLY_DIRTY.into()),
+            c::BIN => {
+                if matches!(kind, item_kind::CUP | item_kind::EMPTY_CUP | item_kind::COFFEE | item_kind::LATTE) {
+                    return Some(say::MUG_NOT_TRASH.into());
+                }
+                if not_trash(kind) {
+                    return Some(say::NOT_TRASH.into());
+                }
+                let mut item = self.take_from(pid, slot)?;
+                item.owner = 0;
+                self.kitchen.as_mut()?.throw_away(item);
+                self.sound(sound::DROP, pid);
+                Some(say::THROWN.into())
+            }
             _ if stock_list(which).iter().any(|&(k, _)| k == kind) && !tainted => {
                 self.take_from(pid, slot);
                 *self.supplies.stock.0.entry(kind).or_insert(0) += 1;

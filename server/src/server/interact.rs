@@ -100,33 +100,10 @@ impl Server {
         true
     }
 
-    /// E at a coffee machine; `false` = none in reach. Coffee goes into a
-    /// clean mug from the cupboard, held in your hands.
+    /// E at a coffee machine: its panel; `false` = none in reach.
     fn use_coffee_machine(&mut self, pid: u16, body: &Body) -> bool {
         let Some(i) = coffee::machine_in_reach(&self.machines, body) else { return false };
-        let Some(p) = self.players.get_mut(&pid) else { return true };
-        let line = match p.inventory.held_kind() {
-            item_kind::CUP => match coffee::use_machine(&mut self.machines, i, &mut p.cup, true, self.tick) {
-                coffee::Outcome::Started => {
-                    p.inventory.take_hands(); // the mug goes under the spout
-                    refresh(p);
-                    coffee::lines::BREWING
-                }
-                coffee::Outcome::Busy => coffee::lines::BUSY,
-                coffee::Outcome::HandsFull => coffee::lines::HANDS_FULL,
-            },
-            item_kind::EMPTY_CUP => crate::kitchen::lines::DIRTY_MUG,
-            _ if self.kitchen.is_some() => crate::kitchen::lines::NEED_MUG,
-            _ => match coffee::use_machine(&mut self.machines, i, &mut p.cup, p.inventory.hands_free(), self.tick) {
-                coffee::Outcome::Started => coffee::lines::BREWING,
-                coffee::Outcome::Busy => coffee::lines::BUSY,
-                coffee::Outcome::HandsFull => coffee::lines::HANDS_FULL,
-            },
-        };
-        if line == coffee::lines::BREWING {
-            self.sound(crate::protocol::sound::COFFEE, pid);
-        }
-        self.says.push(Say::new(pid, line));
+        self.open_coffee_panel(pid, i);
         true
     }
 
