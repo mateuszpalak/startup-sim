@@ -913,3 +913,52 @@ fn back_to_work_from_home_rested_and_fed() {
     assert!(matches!(s.players[&1].stage, Stage::Home { arrive_at: Some(_) }), "on the way");
     assert_eq!(*n, crate::needs::Needs::default(), "a night at home: all fresh");
 }
+
+/// Log out: the save keeps the character; log back in as a new session.
+fn relog(s: &mut Server, id: u16, new_id: u16) {
+    let p = s.players.remove(&id).unwrap();
+    let c = s.capture(&p);
+    s.offline.characters.insert(p.nick.clone(), c);
+    add_player(s, new_id);
+    let q = s.players.get_mut(&new_id).unwrap();
+    q.nick = p.nick.clone();
+    q.stage = Stage::Portal(Box::default());
+    q.profile = crate::protocol::Profile::default(); // the client's stand-in
+    assert!(s.restore(new_id));
+}
+
+#[test]
+fn hired_and_still_at_home_keeps_the_job_after_logging_out() {
+    let mut s = server();
+    on_portal(&mut s, 1);
+    s.players.get_mut(&1).unwrap().profile.email = "ola@poczta.pl".into();
+    let places = s.places(1);
+    s.hire(1, 1);
+    assert_eq!(s.places(1), places - 1);
+    relog(&mut s, 1, 2);
+    let p = &s.players[&2];
+    assert_eq!(p.profile.email, "ola@poczta.pl", "the real profile, not the stand-in");
+    assert_eq!(p.position, Some(1), "still hired");
+    assert!(matches!(&p.stage, Stage::Portal(d) if d.hired.is_some()), "can go to the office");
+    assert!(inbox_subjects(&s, 2).contains(&"Zaproszenie na dzień próbny".to_string()), "the invitation again");
+    assert_eq!(s.places(1), places - 1, "the place stays theirs, no more taken");
+}
+
+#[test]
+fn on_the_trial_day_comes_back_into_the_building_with_the_pass() {
+    use crate::protocol::portal_action;
+    let mut s = server();
+    s.clock.ds = 9 * 60 * crate::clock::DS_PER_MIN;
+    on_portal(&mut s, 1);
+    s.hire(1, 1);
+    s.handle_portal_action(1, portal_action::GO_TO_OFFICE, 0);
+    assert!(matches!(s.players[&1].stage, Stage::Working));
+    let pass = s.mint_item(item_kind::GUEST_PASS, "");
+    s.players.get_mut(&1).unwrap().inventory.pockets[0] = Some(pass);
+    let dept = s.players[&1].department;
+    relog(&mut s, 1, 2);
+    let p = &s.players[&2];
+    assert!(matches!(p.stage, Stage::Working), "back in the building");
+    assert!(!p.contract && p.position == Some(1) && p.department == dept, "the trial day goes on");
+    assert!(p.inventory.has(item_kind::GUEST_PASS), "with the porter's pass");
+}

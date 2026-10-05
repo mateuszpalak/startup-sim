@@ -74,6 +74,7 @@ const T_MEDIA := 58
 const T_ROLL := 59
 const T_CHAT_SAY := 60
 const T_NOTICE := 61
+const T_OWN_PROFILE := 62  # our own character, as the server keeps it (after logging back in)
 const MAX_VOICE_BYTES := 800
 # TaskAction.action / MailAction.action (server/src/protocol/mod.rs)
 const TA_SYNC := 0
@@ -719,6 +720,11 @@ static func decode(bytes: PackedByteArray) -> Dictionary:
 		T_NOTICE:
 			p.icon = r.u8()
 			p.text = r.str16(MAX_TEXT_BYTES)
+		T_OWN_PROFILE:
+			var g := r.u8()
+			var age := r.u8()
+			var look := {"skin": r.u8(), "hair_style": r.u8(), "hair_color": r.u8(), "shirt": r.u8(), "pants": r.u8()}
+			p.profile = {"gender": g, "age": age, "appearance": look, "city": r.str16(MAX_CITY_BYTES), "email": r.str16(MAX_EMAIL_BYTES)}
 		T_MEDIA:
 			var screens := []
 			var n := r.u8()

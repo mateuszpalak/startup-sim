@@ -83,6 +83,8 @@ func _fit() -> void:
 func set_profile(p_nick: String, p_profile: Dictionary) -> void:
 	nick = p_nick
 	profile = p_profile
+	for w in ["browser", "mail"]:  # the form and the mail show it
+		_render(w)
 
 
 func reset() -> void:

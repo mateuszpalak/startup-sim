@@ -37,20 +37,20 @@ impl Server {
         // Days as the employee sees them (their own day count): they start
         // at the office on their next day.
         self.company.hired_on.insert(pid, p.day + 1);
-        desk.hired = Some(o.department);
-        desk.mail(
-            &from,
-            "Zaproszenie na dzień próbny".into(),
-            format!(
-                "Gratulacje, {nick}!\n\nZapraszamy na dzień próbny na stanowisko {}: zgłoś się na portierni — portier \
-                 zaprowadzi Cię na recepcję, a w HR podpiszesz umowę i odbierzesz kartę.\n\nDo zobaczenia!",
-                o.title
-            ),
-            proto::portal_action::GO_TO_OFFICE,
-            0,
-        );
+        trial_invitation(desk, &from, &nick, o.department, &o.title);
         self.take_vacancy(offer);
         self.send_portal(pid, true);
+    }
+
+    /// Back after logging out on the way to the trial day (hired, still at
+    /// home): the invitation again - the place is still theirs.
+    pub(super) fn reinvite_to_trial(&mut self, pid: u16, offer: u8) {
+        let from = format!("{} — Rekrutacja", self.company.name);
+        let Some(o) = self.position(offer).cloned() else { return };
+        let Some(p) = self.players.get_mut(&pid) else { return };
+        let nick = p.nick.clone();
+        let Stage::Portal(desk) = &mut p.stage else { return };
+        trial_invitation(desk, &from, &nick, o.department, &o.title);
     }
 
     /// The founder says no (or the place is gone).
@@ -382,4 +382,20 @@ impl Server {
         self.give_new(id, item_kind::LAPTOP);
         self.open_hr_file(id);
     }
+}
+
+/// Hired: "come for the trial day" in the mail, with the "go to the office"
+/// button.
+fn trial_invitation(desk: &mut super::player::Desk, from: &str, nick: &str, department: u8, title: &str) {
+    desk.hired = Some(department);
+    desk.mail(
+        from,
+        "Zaproszenie na dzień próbny".into(),
+        format!(
+            "Gratulacje, {nick}!\n\nZapraszamy na dzień próbny na stanowisko {title}: zgłoś się na portierni — portier \
+             zaprowadzi Cię na recepcję, a w HR podpiszesz umowę i odbierzesz kartę.\n\nDo zobaczenia!"
+        ),
+        proto::portal_action::GO_TO_OFFICE,
+        0,
+    );
 }
