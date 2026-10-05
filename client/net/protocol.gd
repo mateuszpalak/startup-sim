@@ -238,6 +238,8 @@ const PUDDLE_POOP := 2
 # Action.action: R = the menu of mischief (a Dialog comes back), X = attack.
 const ACTION_MENU := 1
 const ACTION_ATTACK := 2
+const ACTION_SCRUB := 3  # the toilet brush minigame done
+const PUDDLE_STAIN := 4  # a skid mark on a toilet
 # Entity flags bit 6: walks slowly (exhausted / needs the toilet).
 const FLAG_SLOW := 0x40
 # Entity flags bit 7: low hygiene (smell cloud).

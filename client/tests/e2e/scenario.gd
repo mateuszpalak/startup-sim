@@ -21,6 +21,7 @@ var _last_pos := Vector2i.ZERO
 var _finished := false
 var says: Array[String] = []     # every line any NPC / player said near us
 var chats: Array[String] = []    # messenger messages seen ("nick: text")
+var notices: Array[String] = []  # notifications in the corner of the screen
 var last: Dictionary = {}        # latest packet of each type (Stats, Clock, Inventory, ...)
 
 
@@ -134,6 +135,8 @@ func _on_packet(p: Dictionary) -> void:
 	last[p.type] = p
 	if p.type == Protocol.T_SAY:
 		says.append(str(p.text))
+	elif p.type == Protocol.T_NOTICE:
+		notices.append(str(p.text))
 	elif p.type == Protocol.T_CHAT:
 		for m in p.messages:
 			var line := "%s: %s" % [m.nick, m.text]

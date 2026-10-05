@@ -32,6 +32,7 @@ impl Server {
         match action {
             proto::action::MENU => self.open_menu(id),
             proto::action::ATTACK => self.attack(id),
+            proto::action::SCRUB => self.scrub(id),
             _ => {}
         }
     }

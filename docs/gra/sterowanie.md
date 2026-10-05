@@ -31,7 +31,8 @@
   kliknij), żeby wyjąć albo włożyć;
 - **chill room** — sofa, misa z owocami, ekspres, telewizor i boombox;
 - **łazienka** — toaleta, umywalka, płyn antybakteryjny; **L** zamyka /
-  otwiera kabinę od środka;
+  otwiera kabinę od środka; przy sedesie ze smugą **E** — szczotka (szoruj
+  myszką);
 - **włącznik przy drzwiach** — zapal / zgaś światło;
 - **popielniczka** — zapal (**E** ponownie — wstań);
 - **przedmiot na podłodze** — podnieś;

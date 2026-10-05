@@ -34,6 +34,7 @@ OPTIONS:
   --weather <kind>      fixed weather: sun, clouds, rain, storm, fog (dev) [default: changing]
   --treats              a tray of sweets in the chill room right away (dev)
   --stale-fruit <pct>   chance that fruit from the bowl is stale      [default: 15]
+  --stain-chance <pct>  chance a toilet gets a skid mark after use    [default: 25]
   --cleaning-at <hh:mm> when the cleaner starts her round (exactly)   [default: random 15:00-16:00]
   --start-cigarettes    with --start-employed: a pack of cigarettes in the pocket (dev)
   --needs-speed <n>     needs (hunger, energy...) change n times faster (dev)
@@ -180,6 +181,7 @@ fn start(args: &Args) -> Result<Server, StartError> {
         time_scale: args.try_get("time-scale", 1)?,
         treats_now: args.flag("treats"),
         stale_fruit_percent: args.try_get("stale-fruit", game::treats::STALE_FRUIT_PERCENT)?,
+        stain_percent: args.try_get("stain-chance", game::stains::CHANCE_PERCENT)?,
         cleaning_at: time("cleaning-at", game::cleaning::ROUND_AT)?,
         cleaning_spread: if cleaning_fixed { 0 } else { game::cleaning::ROUND_SPREAD },
         weather,

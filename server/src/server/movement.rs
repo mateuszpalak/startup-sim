@@ -35,6 +35,8 @@ pub(super) struct Steps {
     accidents: Vec<(u8, Pos, u8)>,
     /// Five cigarettes one after another: sick.
     chain_smoked: Vec<u16>,
+    /// Got up from a toilet: (player, floor, where they sat).
+    toilet_done: Vec<(u16, u8, Pos)>,
     /// Came into the porter's hall from outside: (player, floor, room).
     entered: Vec<(u16, u8, u16, u16)>,
 }
@@ -144,6 +146,9 @@ impl Server {
         for (floor, pos, kind) in std::mem::take(&mut steps.accidents) {
             self.leave_puddle(floor, pos, kind);
         }
+        for (pid, floor, pos) in std::mem::take(&mut steps.toilet_done) {
+            self.maybe_stain(pid, floor, pos);
+        }
         for pid in std::mem::take(&mut steps.chain_smoked) {
             self.throw_up(pid, crate::mischief::lines::CHAIN_SMOKE_SICK, "chain smoking");
         }
@@ -213,6 +218,7 @@ fn left_bathroom(building: &Building, floor: u8, from: u16, to: u16) -> bool {
 /// warnings they raise are said aloud, accidents go to `accidents`.
 fn tick_needs(p: &mut Player, speed: u32, tick: u32, says: &mut Vec<Say>, sounds: &mut Vec<(u8, u8, Pos)>, steps: &mut Steps) {
     let was_toilet = matches!(p.rest, Some((Rest::Toilet | Rest::Urinal, _, _)));
+    let sat = p.rest.filter(|r| r.0 == Rest::Toilet).map(|(_, f, at)| (f, at));
     if let Some((_, floor, pos)) = p.rest {
         if (floor, pos) != (p.body.floor, p.body.pos) {
             p.rest = None;
@@ -255,6 +261,9 @@ fn tick_needs(p: &mut Player, speed: u32, tick: u32, says: &mut Vec<Say>, sounds
     p.rest = rest.map(|r| (r, p.body.floor, p.body.pos));
     if was_toilet && !matches!(p.rest, Some((Rest::Toilet | Rest::Urinal, _, _))) {
         sounds.push((proto::sound::FLUSH, p.body.floor, p.body.pos));
+    }
+    if let (Some((floor, at)), false) = (sat, matches!(p.rest, Some((Rest::Toilet, _, _)))) {
+        steps.toilet_done.push((p.id, floor, at));
     }
 }
 

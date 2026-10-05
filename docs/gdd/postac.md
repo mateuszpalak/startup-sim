@@ -54,6 +54,14 @@
 - **Niezamkniętą kabinę można otworzyć**: kto wejdzie w drzwi, widzi osobę w
   środku (i ona jego). Nie da się zamknąć drzwi, gdy ktoś w nich stoi.
 - Wyjście z kabiny albo z gry otwiera zamek automatycznie.
+- **Człowiek smuga**: po skorzystaniu z toalety jest ok. 25% szans, że na
+  sedesie zostanie smuga (widać ją na sedesie). Wie o tym tylko sprawca
+  („Ups… na sedesie została smuga”) — może ją umyć **szczotką** (E przy
+  sedesie → mini-gra: przytrzymaj przycisk myszy i szoruj smugi, aż będzie
+  czysto). Jeśli nie umyje, następna osoba w kabinie mówi „Znowu człowiek
+  smuga zaatakował!”, a całe biuro dostaje powiadomienie (bez nazwiska). Na
+  brudnym sedesie nikt nie usiądzie; umyć może każdy. Sprzątaczka smug nie
+  rusza — znikają dopiero na noc.
 
 ## 10.17 Higiena
 

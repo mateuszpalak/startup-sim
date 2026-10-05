@@ -21,6 +21,12 @@ impl Server {
             return Some(None);
         }
         let spot = needs::spot_in_reach(&self.spots, body)?.clone();
+        if spot.kind == SpotKind::Toilet {
+            if let Some(i) = self.stain_near(body) {
+                return Some(Some(self.dirty_toilet(pid, i)));
+            }
+        }
+        let p = self.players.get_mut(&pid)?;
         let (floor, pos) = (p.body.floor, p.body.pos);
         let line = match spot.kind {
             SpotKind::FruitBowl => {

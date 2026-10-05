@@ -35,6 +35,7 @@ GODOT=/ścieżka/do/godot python3 tests/e2e/run.py
 | `founder` | założyciel: firma z portalu, stanowisko w dziale Mobile, drugi gracz aplikuje, zatrudnienie |
 | `founder_back` | założyciel wychodzi z laptopem w rękach i wraca (ten sam serwer): przy stole zarządu kanały komunikatora i panel firmy |
 | `portal_back` | nowe konto wychodzi z portalu i od razu wraca: postać już zapisana — portal zamiast tworzenia postaci, własny e-mail |
+| `skidmark` | człowiek smuga: Ola zostawia smugę na sedesie (wie tylko ona), Kuba ją znajduje („Znowu człowiek smuga zaatakował!”, powiadomienie bez nazwiska u Oli) i myje szczotką |
 | `persistence` | laptop na biurku, restart serwera, ponowne logowanie: postać, karta i laptop na miejscu |
 | `resign` | jak onboarding, ale umowa w HR jest niższa niż na rozmowie — rezygnacja: z portierem do wyjścia, przepustka oddana, znów portal |
 | `office_apps` | komputer w biurze: Kadry (umowa, urlop na jutro), terminal, Internet w przeglądarce (bez okna: wyjście do przeglądarki gracza) |

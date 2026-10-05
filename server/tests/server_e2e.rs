@@ -99,6 +99,7 @@ fn start_server_at(
         weather: WEATHER.with(|w| w.get()),
         treats_now: true,
         stale_fruit_percent: game::treats::STALE_FRUIT_PERCENT,
+        stain_percent: 0,
         cleaning_at: CLEANING_AT.with(|c| c.get()),
         cleaning_spread: 0,
         start_cigarettes: false,
