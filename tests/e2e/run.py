@@ -30,8 +30,9 @@ CLIENT_TIMEOUT = 300  # seconds per client process (scenarios stop themselves at
 
 EMPLOYED = ["--start-employed", "--allow-guests", "--no-save"]
 
-# name -> phases; a phase: server args ("same" = keep / restart the save) and
-# clients (run in parallel): [scenario script, client args].
+# name -> phases; a phase: server args, "restart" (the same save) or "keep"
+# (the same server running), and clients (run in parallel): [scenario
+# script, client args, optional delay in s].
 SCENARIOS = {
     "workday": [
         {"server": EMPLOYED + ["--start-time", "10:00", "--time-scale", "20"],
@@ -82,6 +83,13 @@ SCENARIOS = {
          "clients": [["founder", ["--nick=Szef", "--autoconnect", "--found=Kosmiczne Pierogi"]],
                      ["founder_hire", ["--nick=Mobilny", "--autoconnect"], 1.5]]},
     ],
+    "founder_back": [
+        {"server": ["--save", "{tmp}/world.db"],
+         "clients": [["founder_day1", ["--login=Prezes:haslo-prezesa-1", "--register", "--autocreate",
+                                       "--found=Trwałe Pierogi"]]]},
+        {"server": "keep",  # after the old session timed out
+         "clients": [["founder_day2", ["--login=Prezes:haslo-prezesa-1"], 7.0]]},
+    ],
     "persistence": [
         {"server": ["--save", "{tmp}/world.db", "--start-employed"],
          "clients": [["persist_day1", ["--login=Trwala:haslo-trwalej-1", "--register", "--autocreate"]]]},
@@ -93,7 +101,7 @@ SCENARIOS = {
 
 # Rough run times (s), to split the scenarios evenly into shards.
 DURATION = {"resign": 90, "onboarding": 60, "workday": 41, "together": 33, "fight": 33, "drinking": 31,
-            "persistence": 23, "chat": 23, "storeroom": 29, "chill": 18, "founder": 15, "office_apps": 6}
+            "persistence": 23, "chat": 23, "storeroom": 29, "chill": 18, "founder_back": 35, "founder": 15, "office_apps": 6}
 
 
 def shard(names, k, n):
@@ -146,7 +154,9 @@ def scenario(name, phases, godot, binary, port, logs):
     results = []
     try:
         for i, phase in enumerate(phases):
-            if phase["server"] == "restart":
+            if phase["server"] == "keep":
+                pass  # the same server: log out and back in
+            elif phase["server"] == "restart":
                 server.stop()
                 server.start()
             else:

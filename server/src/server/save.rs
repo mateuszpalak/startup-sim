@@ -8,6 +8,7 @@
 use std::collections::HashMap;
 
 use crate::computer::Computer;
+use crate::inventory::kind as item_kind;
 use crate::persist::{self, Character, SavedComputer, SavedItem, SavedKitchen, SavedProfile, World};
 
 use super::player::{refresh, Player, Stage};
@@ -128,7 +129,8 @@ impl Server {
     }
 
     pub(super) fn capture(&self, p: &Player) -> Character {
-        let nick_of = |id: u16| self.nick_of(id);
+        // (Leaving: no longer among the players - their own things are theirs.)
+        let nick_of = |id: u16| if id == p.id { p.nick.clone() } else { self.nick_of(id) };
         let slot = |it: &Option<crate::inventory::Item>| it.as_ref().filter(|i| !i.unpaid).map(|i| SavedItem::from_item(i, nick_of));
         let mut inventory = vec![slot(&p.inventory.hands)];
         inventory.extend(p.inventory.pockets.iter().map(slot));
@@ -250,8 +252,15 @@ impl Server {
         let night = self.clock.is_night();
         let ids: Vec<u32> = (0..c.inventory.len()).map(|_| self.next_item_id()).collect();
         let owner_id = |n: &str| if n == nick { pid } else { self.players.values().find(|o| o.nick == n).map_or(0, |o| o.id) };
-        let items: Vec<Option<crate::inventory::Item>> =
-            c.inventory.iter().zip(&ids).map(|(it, &id)| it.as_ref().map(|i| i.to_item(id, owner_id(&i.owner)))).collect();
+        // A laptop / card saved without an owner (on logging out, before the
+        // fix) was their own.
+        let personal = |i: &SavedItem| i.owner.is_empty() && matches!(i.kind, item_kind::LAPTOP | item_kind::EMPLOYEE_CARD);
+        let items: Vec<Option<crate::inventory::Item>> = c
+            .inventory
+            .iter()
+            .zip(&ids)
+            .map(|(it, &id)| it.as_ref().map(|i| i.to_item(id, if personal(i) { pid } else { owner_id(&i.owner) })))
+            .collect();
         // Hired but no contract yet (the trial day): the job is still theirs.
         let trial = (!c.contract).then_some(c.position).flatten().filter(|&o| self.position(o).is_some());
         let Some(p) = self.players.get_mut(&pid) else { return false };
@@ -304,6 +313,11 @@ impl Server {
             if let Some(comp) = self.computers.iter_mut().find(|x| x.handle == h) {
                 comp.item.owner = pid;
             }
+        }
+        // ...and one put on a desk after it came back without an owner.
+        let label = format!("Laptop: {nick}");
+        for comp in self.computers.iter_mut().filter(|x| x.item.owner == 0 && x.item.label == label) {
+            comp.item.owner = pid;
         }
         if board_without {
             self.give_new(pid, crate::inventory::kind::BREATHALYSER);

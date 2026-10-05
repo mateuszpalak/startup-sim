@@ -962,3 +962,33 @@ fn on_the_trial_day_comes_back_into_the_building_with_the_pass() {
     assert!(!p.contract && p.position == Some(1) && p.department == dept, "the trial day goes on");
     assert!(p.inventory.has(item_kind::GUEST_PASS), "with the porter's pass");
 }
+
+#[test]
+fn the_laptop_carried_out_is_still_yours_after_logging_back_in() {
+    let mut s = server();
+    add_player(&mut s, 1);
+    s.employ(1);
+    s.players.get_mut(&1).unwrap().stage = Stage::Working;
+    let own = |s: &Server, id: u16, kind: u8| s.players[&id].inventory.items().any(|i| i.kind == kind && i.owner == id);
+    assert!(own(&s, 1, item_kind::LAPTOP) && own(&s, 1, item_kind::EMPLOYEE_CARD));
+    relog(&mut s, 1, 2);
+    assert!(own(&s, 2, item_kind::LAPTOP), "the laptop's account is still theirs (messenger, company panel)");
+    assert!(own(&s, 2, item_kind::EMPLOYEE_CARD));
+    // A save from before the fix (no owner on them): theirs again.
+    let p = s.players.remove(&2).unwrap();
+    let mut c = s.capture(&p);
+    c.inventory.iter_mut().flatten().for_each(|i| i.owner.clear());
+    s.offline.characters.insert(p.nick.clone(), c);
+    add_player(&mut s, 3);
+    s.players.get_mut(&3).unwrap().nick = p.nick.clone();
+    assert!(s.restore(3));
+    assert!(own(&s, 3, item_kind::LAPTOP) && own(&s, 3, item_kind::EMPLOYEE_CARD));
+    // Such a laptop already put on a desk: by its label, theirs again.
+    let p = s.players.get_mut(&3).unwrap();
+    let mut laptop = p.inventory.take_hands().unwrap();
+    assert_eq!(laptop.kind, item_kind::LAPTOP);
+    laptop.owner = 0;
+    s.computers.push(crate::computer::Computer { handle: 900, station: 0, item: laptop, locked: false, user: None });
+    relog(&mut s, 3, 4);
+    assert_eq!(s.computers.iter().find(|c| c.handle == 900).unwrap().owner(), 4);
+}
