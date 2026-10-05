@@ -5,6 +5,7 @@ extends Control
 
 const Ink = preload("res://ui/ink_ui.gd")
 const SettingsPanel = preload("res://ui/settings_panel.gd")
+const Updates = preload("res://net/updates.gd")
 
 signal to_menu
 signal quit
@@ -40,6 +41,9 @@ func _ready() -> void:
 		b.add_theme_font_size_override("font_size", 24)
 		b.pressed.connect(entry[1])
 		_menu.add_child(b)
+	var version := Ink.label("Startup Sim %s" % Updates.current(), 14, Ink.TEXT_MUTED)
+	version.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_menu.add_child(version)
 	_settings.visible = false
 	_settings.back.connect(func(): _show(_menu))
 	_settings.changed.connect(func(): settings_changed.emit())
