@@ -201,14 +201,14 @@
       "name": "lights"
     },
     {
-      "debug": "Fridge { items: [(11, \"Kanapka z szynką (Ola)\")], milk: 7, water: 4, juice: 2 }",
-      "hex": "54532f2a010b17004b616e61706b61207a20737a796e6bc48520284f6c6129070402",
-      "name": "fridge"
+      "debug": "Container { which: 1, capacity: 12, slots: [ContainerSlot { kind: 11, count: 1, label: \"Kanapka z szynką (Ola)\" }, ContainerSlot { kind: 18, count: 4, label: \"Woda (firmowa)\" }], milk: 7, minutes: 0 }",
+      "hex": "54532f2a010c020b0117004b616e61706b61207a20737a796e6bc48520284f6c612912040e00576f646120286669726d6f7761290700",
+      "name": "container"
     },
     {
-      "debug": "FridgeAction { token: 16909060, action: 2, arg: 0 }",
-      "hex": "54532f2b040302010200",
-      "name": "fridge_action"
+      "debug": "ContainerAction { token: 16909060, which: 1, action: 1, arg: 1, kind: 18 }",
+      "hex": "54532f2b0403020101010112",
+      "name": "container_action"
     },
     {
       "debug": "SkipWait { token: 16909060 }",

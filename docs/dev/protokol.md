@@ -546,14 +546,27 @@ do rana (albo do czyjegoś przyjazdu do pracy); rano się zatrzymuje, żeby
 każdy wybrał dojazd. W trakcie głosowania `SkipWait` to głos za. Stan w
 `Clock::skip` (0 nie, 1 głosowanie trwa, 2 czas pędzi).
 
-### 42 `Fridge` (S→C), 43 `FridgeAction` (C→S)
+### 42 `Container` (S→C), 43 `ContainerAction` (C→S)
 
-Lodówka w aneksie (E przy niej, i po każdej zmianie): n u8 (≤ 16) × {`kind
-u8`, `label` str16 — np. „Kanapka z szynką (Ola)”}, `milk u8` (porcje),
-`water u8`, `juice u8` (darmowe). `FridgeAction`: token u32, `action u8` (1
-weź `arg`-tą rzecz, 2 włóż to, co w rękach — karton mleka = +10 porcji, 3 weź
-wodę, 4 weź sok, 5 dolej mleka do kawy w rękach), `arg u8`. Tylko stojąc przy
-lodówce. Szafka z kubkami i zmywarka działają przez E (odpowiedzi jako `Say`).
+Okno pojemnika (E przy nim; potem po każdej zmianie i co 1 s, dopóki jest
+otwarte i gracz stoi przy nim): `which u8` (1 lodówka, 2 szafka kuchenna, 3
+zmywarka, 4 apteczka, 5 magazynek, 6 barek), `capacity u8` (ile slotów
+narysować), n u8 (≤ 24) × {`kind u8`, `count u8`, `label` str16 (≤ 64 B) —
+np. „Kanapka z szynką (Ola)”}, `milk u8` (porcje mleka w lodówce, inaczej 0),
+`minutes u8` (zmywarka: ile jeszcze myje, 0 = stoi).
+
+Sloty: lodówka — schowane rzeczy, potem firmowa woda i sok (`count` może być
+0); szafka — czyste kubki, noże; zmywarka — brudne kubki, czyste kubki;
+apteczka / magazynek / barek — ich zapasy.
+
+`ContainerAction`: token u32, `which u8`, `action u8`, `arg u8`, `kind u8`:
+0 zamknij okno, 1 weź slot `arg` (tylko jeśli wciąż jest tam `kind`), 2 włóż
+rzecz ze slotu ekwipunku `arg` (0 ręce, 1–3 kieszenie; do lodówki jedzenie i
+napoje — karton mleka = +10 porcji, do szafki czysty kubek i nóż, do
+zmywarki brudny kubek, do apteczki / magazynku / barku ich rzeczy), 3 dolej
+mleka do kawy w rękach (lodówka), 4 włącz zmywarkę, 5 rozładuj zmywarkę do
+szafki. Tylko z otwartym oknem i stojąc przy pojemniku; odpowiedzi jako
+`Say`.
 
 ### 41 `Lights` (S→C)
 

@@ -31,18 +31,6 @@ pub const FREE_JUICE: u8 = 2;
 /// Reach of the kitchen things (standing in front): 1.5 tiles.
 pub const REACH: i32 = TILE_UNITS * 3 / 2;
 
-/// `FridgeAction::action`.
-pub mod action {
-    /// Take stored item `arg` (index).
-    pub const TAKE: u8 = 1;
-    /// Put what's in the hands in (a milk carton tops the milk up).
-    pub const PUT: u8 = 2;
-    pub const TAKE_WATER: u8 = 3;
-    pub const TAKE_JUICE: u8 = 4;
-    /// Pour milk into the coffee in your hands.
-    pub const MILK: u8 = 5;
-}
-
 #[derive(Debug, Clone)]
 pub struct Kitchen {
     pub floor: u8,
@@ -155,17 +143,6 @@ pub fn fridge_worthy(k: u8) -> bool {
 
 pub mod lines {
     /// Looking into the cupboard (a dialog): what's inside.
-    pub fn cupboard(mugs: u8, knives: u8) -> String {
-        let knives = match knives {
-            0 => "noży brak (ktoś zabrał)".to_string(),
-            1 => "1 nóż kuchenny".to_string(),
-            n => format!("{n} noże kuchenne"),
-        };
-        format!("Szafka: kubki ({mugs}), {knives}, sztućce, okruszki.")
-    }
-    pub const TAKE_MUG: &str = "Weź kubek";
-    pub const TAKE_KNIFE: &str = "Weź nóż";
-    pub const CLOSE: &str = "Zamknij szafkę";
     pub const TOOK_KNIFE: &str = "Nóż kuchenny. Do chleba… oczywiście.";
     pub const PUT_KNIFE: &str = "Nóż z powrotem do szafki.";
     pub const NO_KNIVES: &str = "Noży nie ma — ktoś już zabrał.";
@@ -180,7 +157,7 @@ pub mod lines {
     pub fn loaded(n: u8) -> String {
         format!("Kubek w zmywarce ({n}/{}).", super::DISHWASHER_CAP)
     }
-    pub const DW_FULL: &str = "Zmywarka pełna — włącz ją (E z pustymi rękami).";
+    pub const DW_FULL: &str = "Zmywarka pełna — trzeba ją włączyć.";
     pub const DW_UNLOAD_FIRST: &str = "W zmywarce są czyste kubki — najpierw rozładuj.";
     pub const DW_STARTED: &str = "Zmywarka ruszyła. Pół godziny i gotowe.";
     pub fn dw_running(min: u32) -> String {

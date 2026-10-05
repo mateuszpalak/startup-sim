@@ -23,8 +23,11 @@
   przeglądarką, tablicą zadań działu, obiadami, komunikatorem, kalendarzem,
   Kadrami, terminalem i koszem);
 - **sklep na parterze** — przy półce lista towarów (**1–9** weź), przy kasie zapłać;
-- **aneks kuchenny** — szafka (kubek), ekspres (kawa do kubka), zlew (umyj
-  kubek), zmywarka (włóż / włącz / rozładuj), lodówka, szafka z nożem;
+- **aneks kuchenny** — szafka (kubki, nóż), ekspres (kawa do kubka), zlew
+  (umyj kubek), zmywarka (włóż / włącz / rozładuj), lodówka;
+- **pojemniki** (lodówka, szafka, zmywarka, apteczka, magazynek, barek) —
+  okno z zawartością obok Twojego ekwipunku: **przeciągnij myszką** (albo
+  kliknij), żeby wyjąć albo włożyć;
 - **chill room** — sofa, misa z owocami, ekspres, telewizor i boombox;
 - **łazienka** — toaleta, umywalka, płyn antybakteryjny; **L** zamyka /
   otwiera kabinę od środka;

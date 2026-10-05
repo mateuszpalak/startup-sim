@@ -156,8 +156,6 @@ pub(super) struct Player {
     pub(super) assault: Option<bool>,
     /// The R menu shown: what each option does.
     pub(super) deeds: Vec<super::actions::Deed>,
-    /// The cupboard dialog shown: its options (item kinds, 0 = close).
-    pub(super) cupboard: Vec<u8>,
     /// Last applied TaskAction / MailAction nonces (retries are ignored).
     pub(super) task_nonce: u16,
     pub(super) mail_nonce: u16,
@@ -185,14 +183,14 @@ pub(super) struct Player {
     pub(super) to_portal_at: Option<u32>,
     /// The HR file: annexes, leave days and requests.
     pub(super) hr: crate::hr::HrFile,
-    /// A cabinet / the storeroom shelves dialog shown: its options (kinds, 0 = close).
-    pub(super) supply_menu: Vec<u8>,
     /// Typed chat: not before this tick (flood guard).
     pub(super) next_chat: u32,
     /// World day of the last raise request (cooldown).
     pub(super) last_raise_day: Option<u32>,
     /// Talking to a board member: meeting index, NPC, dialog id, good answers.
     pub(super) talk: Option<Talk>,
+    /// The container window open (`protocol::container`).
+    pub(super) container: Option<u8>,
     /// In a lift cabin, choosing the floor.
     pub(super) lift_panel: Option<LiftPanel>,
     pub(super) next_dialog_id: u8,
@@ -268,7 +266,6 @@ impl Player {
             swing_until: 0,
             assault: None,
             deeds: Vec::new(),
-            cupboard: Vec::new(),
             task_nonce: 0,
             mail_nonce: 0,
             voice_allowance: 200,
@@ -283,10 +280,10 @@ impl Player {
             contract_shown: None,
             to_portal_at: None,
             hr: crate::hr::HrFile::default(),
-            supply_menu: Vec::new(),
             next_chat: 0,
             last_raise_day: None,
             talk: None,
+            container: None,
             lift_panel: None,
             next_dialog_id: 0,
             rest: None,

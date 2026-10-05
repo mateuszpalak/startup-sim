@@ -5,7 +5,7 @@ use crate::inventory::{self, kind as item_kind, Item};
 use crate::map::Tile;
 use crate::needs::{self, Rest};
 use crate::npc::Role;
-use crate::protocol::Packet;
+use crate::protocol::container;
 use crate::sim::{Body, Pos};
 use crate::supplies::{self, lines, Stock};
 
@@ -71,7 +71,7 @@ impl Supplies {
     }
 }
 
-fn near(at: Option<(u8, Tile)>, body: &Body) -> bool {
+pub(super) fn near(at: Option<(u8, Tile)>, body: &Body) -> bool {
     at.is_some_and(|(f, t)| f == body.floor && dist2(Pos::tile_center(t.x, t.y), body.pos) <= supplies::REACH * supplies::REACH)
 }
 
@@ -83,19 +83,16 @@ impl Server {
             self.use_hook(pid);
         } else if near(self.supplies.liquor, body) {
             if self.players.get(&pid).is_some_and(|p| p.inventory.has(item_kind::BAR_KEY)) {
-                let options = supplies::BAR.to_vec();
-                self.supply_dialog(pid, lines::BAR, &options);
+                self.open_container(pid, container::BAR);
             } else {
                 self.says.push(Say::new(pid, lines::BAR_LOCKED));
             }
         } else if near(self.supplies.cabinet, body) {
-            let options = supplies::MEDICINES.to_vec();
-            self.supply_dialog(pid, lines::CABINET, &options);
+            self.open_container(pid, container::CABINET);
         } else if self.supplies.storeroom == Some((body.floor, self.room_of(body.floor, body.pos)))
             && self.supplies.shelves.iter().any(|&s| near(Some(s), body))
         {
-            let options = supplies::STOREROOM.to_vec();
-            self.supply_dialog(pid, lines::STOREROOM, &options);
+            self.open_container(pid, container::STOREROOM);
         } else {
             return false;
         }
@@ -131,38 +128,6 @@ impl Server {
         self.give_new(pid, item_kind::STORE_KEY);
         self.says.push(Say::new(pid, lines::KEY_TAKEN));
         self.log(format!("* storeroom key taken by {}", self.nick_of_player(pid)));
-    }
-
-    fn supply_dialog(&mut self, pid: u16, text: &str, options: &[(u8, &str)]) {
-        let mut kinds: Vec<u8> = options.iter().map(|o| o.0).collect();
-        let mut labels: Vec<String> = options.iter().map(|(k, name)| lines::item(name, self.supplies.stock.left(*k))).collect();
-        kinds.push(0);
-        labels.push(lines::CLOSE.into());
-        let Some(p) = self.players.get_mut(&pid) else { return };
-        p.supply_menu = kinds.clone();
-        let addr = p.addr;
-        // Drawn like the inventory: what each option is.
-        self.send(addr, &Packet::Dialog { id: supplies::DIALOG, npc: pid, text: text.into(), options: labels, items: kinds });
-    }
-
-    /// The answer to a cabinet / the storeroom; false if not that dialog.
-    pub(super) fn answer_supplies(&mut self, pid: u16, dialog: u8, choice: u8) -> bool {
-        if dialog != supplies::DIALOG {
-            return false;
-        }
-        let Some(p) = self.players.get_mut(&pid) else { return true };
-        let menu = std::mem::take(&mut p.supply_menu);
-        let (addr, room) = (p.addr, p.inventory.has_room());
-        self.send(addr, &Packet::Dialog { id: 0, npc: pid, text: String::new(), options: Vec::new(), items: Vec::new() });
-        let Some(&kind) = menu.get(usize::from(choice)).filter(|&&k| k != 0) else { return true };
-        if !room {
-            self.says.push(Say::new(pid, lines::HANDS_FULL));
-        } else if self.supplies.stock.take(kind) {
-            self.give_new(pid, kind);
-        } else {
-            self.says.push(Say::new(pid, lines::EMPTY));
-        }
-        true
     }
 
     /// The minigame's result: one roll from the pack in hands.

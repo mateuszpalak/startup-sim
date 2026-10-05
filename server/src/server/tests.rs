@@ -11,7 +11,7 @@ use crate::board::{self, Meeting};
 use crate::building::{default_building_path, Building};
 use crate::inventory::kind as item_kind;
 use crate::npc::NPC_ID_BASE;
-use crate::protocol::{Packet, Profile};
+use crate::protocol::{container, Packet, Profile};
 use crate::recruitment::{default_recruitment_path, Recruitment};
 use crate::sim::{Body, Pos};
 
@@ -367,15 +367,75 @@ fn punches_knock_out_a_knife_calls_the_police_and_earns_a_reprimand() {
 }
 
 #[test]
+fn things_go_in_and_out_of_containers_by_their_slots() {
+    let mut s = server();
+    add_player(&mut s, 1);
+    let k = s.kitchen.as_ref().unwrap();
+    let (floor, fridge, cupboard, dishwasher) = (k.floor, k.fridge, k.cupboard, k.dishwasher);
+    let act = |s: &mut Server, which: u8, a: u8, arg: u8, kind: u8| s.handle_container_action(1, which, a, arg, kind);
+    // A sandwich from a pocket into the fridge, signed; out again.
+    stand_next_to(&mut s, 1, floor, fridge);
+    s.give_new(1, item_kind::SANDWICH_HAM);
+    s.open_container(1, container::FRIDGE);
+    act(&mut s, container::FRIDGE, container::PUT, 1, 0);
+    let stored = &s.kitchen.as_ref().unwrap().stored;
+    assert_eq!((stored.len(), stored[0].label.as_str()), (1, "Kanapka z szynką (p1)"));
+    assert!(!s.players[&1].inventory.has(item_kind::SANDWICH_HAM));
+    act(&mut s, container::FRIDGE, container::TAKE, 0, item_kind::WATER); // not what's there now
+    assert_eq!(s.kitchen.as_ref().unwrap().stored.len(), 1, "a changed slot isn't taken");
+    act(&mut s, container::FRIDGE, container::TAKE, 0, item_kind::SANDWICH_HAM);
+    assert!(s.players[&1].inventory.has(item_kind::SANDWICH_HAM));
+    // Not at the cupboard: its window does nothing.
+    let mugs = s.kitchen.as_ref().unwrap().mugs;
+    act(&mut s, container::CUPBOARD, container::TAKE, 0, item_kind::CUP);
+    assert_eq!(s.kitchen.as_ref().unwrap().mugs, mugs);
+    // The cupboard: a mug out and back; a sandwich doesn't go in.
+    stand_next_to(&mut s, 1, floor, cupboard);
+    s.open_container(1, container::CUPBOARD);
+    act(&mut s, container::CUPBOARD, container::TAKE, 0, item_kind::CUP);
+    assert_eq!(s.players[&1].inventory.held_kind(), item_kind::CUP);
+    act(&mut s, container::CUPBOARD, container::PUT, 0, 0);
+    assert!(s.players[&1].inventory.hands_free());
+    assert_eq!(s.kitchen.as_ref().unwrap().mugs, mugs);
+    s.says.clear();
+    act(&mut s, container::CUPBOARD, container::PUT, 1, 0);
+    assert!(s.says.iter().any(|l| l.text == super::containers::say::NOT_HERE));
+    // The dishwasher takes dirty mugs only; start, then unload to the cupboard.
+    stand_next_to(&mut s, 1, floor, dishwasher);
+    s.open_container(1, container::DISHWASHER);
+    s.give_new(1, item_kind::EMPTY_CUP);
+    act(&mut s, container::DISHWASHER, container::PUT, 0, 0);
+    assert_eq!(s.kitchen.as_ref().unwrap().dirty, 1);
+    act(&mut s, container::DISHWASHER, container::START, 0, 0);
+    assert!(s.kitchen.as_ref().unwrap().running_until.is_some());
+    let k = s.kitchen.as_mut().unwrap();
+    let done = k.running_until.unwrap();
+    k.tick(done);
+    act(&mut s, container::DISHWASHER, container::UNLOAD, 0, 0);
+    let k = s.kitchen.as_ref().unwrap();
+    assert_eq!((k.washed, k.dirty), (0, 0));
+    // The cabinet: a medicine back on its shelf, nothing else.
+    let (cf, cabinet) = s.supplies.cabinet.unwrap();
+    stand_next_to(&mut s, 1, cf, cabinet);
+    s.open_container(1, container::CABINET);
+    let left = s.supplies.stock.left(item_kind::VITAMIN);
+    act(&mut s, container::CABINET, container::TAKE, 2, item_kind::VITAMIN);
+    assert_eq!(s.supplies.stock.left(item_kind::VITAMIN), left - 1);
+    let at = s.players[&1].inventory.pockets.iter().position(|i| i.as_ref().is_some_and(|i| i.kind == item_kind::VITAMIN)).unwrap();
+    act(&mut s, container::CABINET, container::PUT, at as u8 + 1, 0);
+    assert_eq!(s.supplies.stock.left(item_kind::VITAMIN), left);
+}
+
+#[test]
 fn the_cupboard_shows_mugs_and_knives() {
     let mut s = server();
     add_player(&mut s, 1);
     let k = s.kitchen.as_ref().unwrap();
     let (floor, cupboard) = (k.floor, k.cupboard);
     stand_next_to(&mut s, 1, floor, cupboard);
-    s.open_cupboard(1);
-    assert_eq!(s.players[&1].cupboard, vec![item_kind::CUP, item_kind::KNIFE, 0]);
-    s.handle_dialog_answer(1, crate::mischief::CUPBOARD_ID, 1);
+    s.open_container(1, container::CUPBOARD);
+    assert_eq!(s.players[&1].container, Some(container::CUPBOARD));
+    s.handle_container_action(1, container::CUPBOARD, container::TAKE, 1, item_kind::KNIFE);
     assert!(s.players[&1].inventory.has(item_kind::KNIFE), "a knife in the pocket");
     assert_eq!(s.kitchen.as_ref().unwrap().knives, crate::kitchen::KNIVES - 1);
     // Back in the cupboard (from the hands).
@@ -657,7 +717,7 @@ fn the_storeroom_key_is_free_only_while_the_receptionist_is_away() {
     let body = s.players[&1].body;
     for _ in 0..supplies::STOREROOM_STOCK {
         s.use_supplies(1, &body);
-        s.answer_supplies(1, supplies::DIALOG, 0);
+        s.handle_container_action(1, container::STOREROOM, container::TAKE, 0, item_kind::COLA);
         let p = s.players.get_mut(&1).unwrap();
         let has = p.inventory.has(item_kind::COLA);
         assert!(has, "a cola");
@@ -665,7 +725,7 @@ fn the_storeroom_key_is_free_only_while_the_receptionist_is_away() {
     }
     s.says.clear();
     s.use_supplies(1, &body);
-    s.answer_supplies(1, supplies::DIALOG, 0);
+    s.handle_container_action(1, container::STOREROOM, container::TAKE, 0, item_kind::COLA);
     assert!(s.says.iter().any(|l| l.text == lines::EMPTY), "all gone for today");
     // Back at the hook: hang it up. The next morning: all full again.
     s.players.get_mut(&1).unwrap().inventory.take_out(0).ok();
@@ -692,8 +752,8 @@ fn medicines_help_and_a_rolled_cigarette_is_as_good_as_the_rolling() {
     let body = s.players[&1].body;
     s.players.get_mut(&1).unwrap().needs.health = 50 * crate::needs::SCALE;
     s.use_supplies(1, &body);
-    assert_eq!(s.players[&1].supply_menu[0], item_kind::PAINKILLER);
-    s.answer_supplies(1, supplies::DIALOG, 0);
+    assert_eq!(s.players[&1].container, Some(container::CABINET));
+    s.handle_container_action(1, container::CABINET, container::TAKE, 0, item_kind::PAINKILLER);
     let at = s.players[&1].inventory.pockets.iter().position(|i| i.as_ref().is_some_and(|i| i.kind == item_kind::PAINKILLER)).unwrap();
     s.players.get_mut(&1).unwrap().inventory.take_out(at).unwrap();
     s.use_held(1);
@@ -749,7 +809,7 @@ fn typed_chat_reaches_the_room_a_whisper_one_person_a_shout_the_floor() {
 
 #[test]
 fn the_liquor_cabinet_key_is_hidden_and_found_by_searching() {
-    use crate::supplies::{self, lines};
+    use crate::supplies::lines;
     let mut s = server();
     add_player(&mut s, 1);
     assert!(s.supplies.hiding.len() >= 5, "plants, bins, wardrobes: {}", s.supplies.hiding.len());
@@ -778,7 +838,7 @@ fn the_liquor_cabinet_key_is_hidden_and_found_by_searching() {
     stand_next_to(&mut s, 1, lf, lt);
     let body = s.players[&1].body;
     s.use_supplies(1, &body);
-    s.answer_supplies(1, supplies::DIALOG, 0);
+    s.handle_container_action(1, container::BAR, container::TAKE, 0, item_kind::WHISKY);
     let at = s.players[&1].inventory.pockets.iter().position(|i| i.as_ref().is_some_and(|i| i.kind == item_kind::WHISKY)).unwrap();
     s.players.get_mut(&1).unwrap().inventory.take_out(at).unwrap();
     s.use_held(1);

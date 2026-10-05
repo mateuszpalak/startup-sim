@@ -45,8 +45,8 @@ impl Packet {
             Packet::CompanyAction { .. } => ty::COMPANY_ACTION,
             Packet::Smoke { .. } => ty::SMOKE,
             Packet::Lights { .. } => ty::LIGHTS,
-            Packet::Fridge { .. } => ty::FRIDGE,
-            Packet::FridgeAction { .. } => ty::FRIDGE_ACTION,
+            Packet::Container { .. } => ty::CONTAINER,
+            Packet::ContainerAction { .. } => ty::CONTAINER_ACTION,
             Packet::SkipWait { .. } => ty::SKIP_WAIT,
             Packet::Action { .. } => ty::ACTION,
             Packet::HrAction { .. } => ty::HR_ACTION,
@@ -352,15 +352,24 @@ impl Packet {
                 w.u8(*skip);
                 w.u8(*leave as u8);
             }
-            Packet::Fridge { items, milk, water, juice } => {
-                w.u8(items.len().min(16) as u8);
-                for (k, label) in items.iter().take(16) {
-                    w.u8(*k);
-                    w.str16(label, 64);
+            Packet::Container { which, capacity, slots, milk, minutes } => {
+                w.u8(*which);
+                w.u8(*capacity);
+                w.u8(slots.len().min(container::MAX_SLOTS) as u8);
+                for s in slots.iter().take(container::MAX_SLOTS) {
+                    w.u8(s.kind);
+                    w.u8(s.count);
+                    w.str16(&s.label, container::MAX_LABEL);
                 }
                 w.u8(*milk);
-                w.u8(*water);
-                w.u8(*juice);
+                w.u8(*minutes);
+            }
+            Packet::ContainerAction { token, which, action, arg, kind } => {
+                w.u32(*token);
+                w.u8(*which);
+                w.u8(*action);
+                w.u8(*arg);
+                w.u8(*kind);
             }
             Packet::SkipWait { token } => w.u32(*token),
             Packet::Action { token, action } => {
@@ -528,11 +537,6 @@ impl Packet {
                     w.i32(*x);
                     w.i32(*y);
                 }
-            }
-            Packet::FridgeAction { token, action, arg } => {
-                w.u32(*token);
-                w.u8(*action);
-                w.u8(*arg);
             }
             Packet::Lights { floor, rooms } => {
                 w.u8(*floor);

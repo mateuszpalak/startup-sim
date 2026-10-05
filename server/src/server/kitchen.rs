@@ -1,10 +1,10 @@
-//! The kitchenette: the mug cupboard, the dishwasher and the fridge (E),
-//! the fridge window's actions, the dishwasher cycle and the morning restock.
+//! The kitchenette: the mug cupboard, the dishwasher and the fridge (E -
+//! their windows are in `containers`), the dishwasher cycle.
 
 use crate::inventory::{kind as item_kind, Item};
-use crate::kitchen::{self, action, lines};
+use crate::kitchen::{self, lines};
 use crate::map::Tile;
-use crate::protocol::Packet;
+use crate::protocol::container;
 use crate::sim::{Body, Pos};
 
 use super::player::refresh;
@@ -48,17 +48,14 @@ impl Server {
         match thing {
             Thing::Cupboard => self.use_cupboard(pid),
             Thing::Dishwasher => self.use_dishwasher(pid),
-            Thing::Fridge => {
-                self.send_fridge(pid);
-            }
+            Thing::Fridge => self.open_container(pid, container::FRIDGE),
         }
         true
     }
 
-    /// E at the cupboard: a mug / knife in hands goes back; with free
-    /// hands, a look inside (what to take).
+    /// E at the cupboard: a mug / knife in hands goes back; otherwise a
+    /// look inside (the window).
     fn use_cupboard(&mut self, pid: u16) {
-        self.sound(crate::protocol::sound::CUPBOARD, pid);
         let Some(p) = self.players.get_mut(&pid) else { return };
         let Some(k) = self.kitchen.as_mut() else { return };
         let line = match p.inventory.held_kind() {
@@ -70,155 +67,34 @@ impl Server {
             }
             item_kind::KNIFE => return self.put_knife_back(pid),
             item_kind::EMPTY_CUP => lines::DIRTY_NOT_HERE.to_string(),
-            _ if !p.inventory.hands_free() => lines::HANDS_FULL.to_string(),
-            _ => return self.open_cupboard(pid),
+            _ => return self.open_container(pid, container::CUPBOARD),
         };
+        self.sound(crate::protocol::sound::CUPBOARD, pid);
         self.says.push(Say::new(pid, line));
     }
 
+    /// E at the dishwasher: a dirty mug in hands goes in; otherwise its
+    /// window (load, start, unload).
     fn use_dishwasher(&mut self, pid: u16) {
-        let now = self.clock.total_minutes();
         let Some(p) = self.players.get_mut(&pid) else { return };
+        if p.inventory.held_kind() != item_kind::EMPTY_CUP {
+            return self.open_container(pid, container::DISHWASHER);
+        }
+        let now = self.clock.total_minutes();
         let Some(k) = self.kitchen.as_mut() else { return };
-        let line = if p.inventory.held_kind() == item_kind::EMPTY_CUP {
-            if k.washed > 0 {
-                lines::DW_UNLOAD_FIRST.to_string()
-            } else if let Some(t) = k.running_until {
-                lines::dw_running(t.saturating_sub(now).max(1))
-            } else if k.dirty >= kitchen::DISHWASHER_CAP {
-                lines::DW_FULL.to_string()
-            } else {
-                p.inventory.take_hands();
-                refresh(p);
-                k.dirty += 1;
-                lines::loaded(k.dirty)
-            }
-        } else if k.washed > 0 {
-            let n = k.washed;
-            k.washed = 0;
-            k.return_mugs(n);
-            lines::dw_unloaded(n)
+        let line = if k.washed > 0 {
+            lines::DW_UNLOAD_FIRST.to_string()
         } else if let Some(t) = k.running_until {
             lines::dw_running(t.saturating_sub(now).max(1))
-        } else if k.dirty > 0 {
-            k.running_until = Some(now + kitchen::WASH_MINUTES);
-            if let Some(p) = self.players.get(&pid) {
-                self.sounds.push((crate::protocol::sound::DISHWASHER, p.body.floor, p.body.pos));
-            }
-            lines::DW_STARTED.to_string()
+        } else if k.dirty >= kitchen::DISHWASHER_CAP {
+            lines::DW_FULL.to_string()
         } else {
-            lines::DW_EMPTY.to_string()
-        };
-        self.says.push(Say::new(pid, line));
-    }
-
-    fn fridge_packet(&self) -> Option<Packet> {
-        let k = self.kitchen.as_ref()?;
-        Some(Packet::Fridge {
-            items: k.stored.iter().map(|i| (i.kind, i.label.clone())).collect(),
-            milk: k.milk,
-            water: k.water,
-            juice: k.juice,
-        })
-    }
-
-    fn send_fridge(&mut self, pid: u16) {
-        self.sound(crate::protocol::sound::FRIDGE, pid);
-        if let Some(pk) = self.fridge_packet() {
-            self.send_to(pid, &pk);
-        }
-    }
-
-    /// A button in the fridge window (standing at the fridge).
-    pub(super) fn handle_fridge_action(&mut self, pid: u16, act: u8, arg: u8) {
-        let Some(body) = self.players.get(&pid).filter(|p| p.in_building()).map(|p| p.body) else { return };
-        if !self.kitchen.as_ref().is_some_and(|k| k.near(k.fridge, &body)) {
-            return;
-        }
-        let line = match act {
-            action::TAKE => self.fridge_take(pid, arg as usize),
-            action::PUT => self.fridge_put(pid),
-            action::TAKE_WATER | action::TAKE_JUICE => self.fridge_free_drink(pid, act),
-            action::MILK => self.fridge_milk(pid),
-            _ => None,
-        };
-        if let Some(line) = line {
-            self.says.push(Say::new(pid, line));
-        }
-        self.send_fridge(pid);
-    }
-
-    fn fridge_take(&mut self, pid: u16, i: usize) -> Option<String> {
-        let k = self.kitchen.as_mut()?;
-        let p = self.players.get_mut(&pid)?;
-        if i >= k.stored.len() {
-            return None;
-        }
-        if !p.inventory.has_room() {
-            return Some(lines::HANDS_FULL.into());
-        }
-        let item = k.stored.remove(i);
-        let name = crate::inventory::display_name(item.kind).to_lowercase();
-        self.give(pid, item);
-        Some(format!("Wyjmuję z lodówki: {name}."))
-    }
-
-    fn fridge_put(&mut self, pid: u16) -> Option<String> {
-        let k = self.kitchen.as_mut()?;
-        let p = self.players.get_mut(&pid)?;
-        let held = p.inventory.hands.as_ref()?;
-        if held.unpaid || !kitchen::fridge_worthy(held.kind) {
-            return Some(lines::NOT_FOR_FRIDGE.into());
-        }
-        if held.kind == item_kind::MILK {
             p.inventory.take_hands();
             refresh(p);
-            k.milk = (k.milk + kitchen::MILK_PER_CARTON).min(kitchen::MILK_MAX);
-            return Some(lines::carton(k.milk));
-        }
-        if k.stored.len() >= kitchen::FRIDGE_SLOTS {
-            return Some(lines::FRIDGE_FULL.into());
-        }
-        let nick = p.nick.clone();
-        let mut item: Item = p.inventory.take_hands()?;
-        refresh(p);
-        let name = crate::inventory::display_name(item.kind).to_string();
-        item.label = format!("{name} ({nick})");
-        k.stored.push(item);
-        Some(lines::stored(&name))
-    }
-
-    fn fridge_free_drink(&mut self, pid: u16, act: u8) -> Option<String> {
-        let k = self.kitchen.as_mut()?;
-        let p = self.players.get(&pid)?;
-        if !p.inventory.has_room() {
-            return Some(lines::HANDS_FULL.into());
-        }
-        let (left, kind) = if act == action::TAKE_WATER { (&mut k.water, item_kind::WATER) } else { (&mut k.juice, item_kind::JUICE) };
-        if *left == 0 {
-            return Some(lines::NONE_LEFT.into());
-        }
-        *left -= 1;
-        self.give_new(pid, kind);
-        Some("Firmowe, za darmo. Dzięki, szefie!".into())
-    }
-
-    fn fridge_milk(&mut self, pid: u16) -> Option<String> {
-        let k = self.kitchen.as_mut()?;
-        let p = self.players.get_mut(&pid)?;
-        if p.inventory.held_kind() != item_kind::COFFEE {
-            return Some(lines::MILK_NEEDS_COFFEE.into());
-        }
-        if k.milk == 0 {
-            return Some(lines::NO_MILK.into());
-        }
-        k.milk -= 1;
-        if let Some(cup) = p.inventory.hands.as_mut() {
-            cup.kind = item_kind::LATTE; // same mug, same coffee going cold
-            cup.label = "Z mlekiem".into();
-        }
-        refresh(p);
-        Some(lines::milk_added(k.milk))
+            k.dirty += 1;
+            lines::loaded(k.dirty)
+        };
+        self.says.push(Say::new(pid, line));
     }
 
     /// The dishwasher's cycle.

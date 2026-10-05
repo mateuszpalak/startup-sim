@@ -12,14 +12,14 @@ func run() -> void:
 		return
 	await until(func(): return holding(Item.LAPTOP), 5.0, "the laptop in hands")
 	await item(Protocol.ITEM_DROP)
-	var dialog = game().dialog
+	var box = game().container
 	# The first-aid cabinet behind the reception desk.
 	if not await walk(4, 39, 34, 60.0):
 		return
 	await press_e()
-	if not await until(func(): return dialog.visible and dialog._title_text() == "Apteczka", 5.0, "the cabinet"):
+	if not await until(func(): return box.visible and box.which == Protocol.CONTAINER_CABINET, 5.0, "the cabinet"):
 		return
-	dialog._choose(2)  # Witamina C
+	box.take(2)  # Witamina C
 	if not await until(func(): return carrying(Item.VITAMIN), 5.0, "a vitamin"):
 		return
 	await item(Protocol.ITEM_TAKE_OUT, items().find(Item.VITAMIN) - 1)
@@ -46,9 +46,9 @@ func run() -> void:
 	if not await walk(4, 45, 40, 60.0):
 		return
 	await press_e()
-	if not await until(func(): return dialog.visible and dialog._title_text() == "Magazynek", 5.0, "the storeroom shelves"):
+	if not await until(func(): return box.visible and box.which == Protocol.CONTAINER_STOREROOM, 5.0, "the storeroom shelves"):
 		return
-	dialog._choose(0)  # Coca-Cola
+	box.take(0)  # Coca-Cola
 	if not await until(func(): return carrying(Item.COLA), 5.0, "a cola"):
 		return
 	log_step("a cola from the storeroom")

@@ -217,6 +217,28 @@ impl Inventory {
         self.hands_free() || self.pockets.iter().any(Option::is_none)
     }
 
+    /// Room for an item of this kind (a big one goes only into the hands).
+    pub fn fits(&self, k: u8) -> bool {
+        self.hands_free() || (is_small(k) && self.pockets.iter().any(Option::is_none))
+    }
+
+    /// Slot `i` as the client lists them: 0 = hands, 1.. = pockets.
+    pub fn slot(&self, i: usize) -> Option<&Item> {
+        if i == 0 {
+            self.hands.as_ref()
+        } else {
+            self.pockets.get(i - 1)?.as_ref()
+        }
+    }
+
+    pub fn take_slot(&mut self, i: usize) -> Option<Item> {
+        if i == 0 {
+            self.hands.take()
+        } else {
+            self.pockets.get_mut(i - 1)?.take()
+        }
+    }
+
     /// Store a received item: small ones in a pocket first, then hands.
     pub fn add(&mut self, item: Item) -> Result<(), Item> {
         if is_small(item.kind) {

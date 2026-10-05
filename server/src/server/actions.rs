@@ -73,22 +73,15 @@ impl Server {
         }
     }
 
-    /// The answer to the R menu or the cupboard; false if `dialog` is neither.
+    /// The answer to the R menu; false if `dialog` isn't it.
     pub(super) fn answer_mischief(&mut self, pid: u16, dialog: u8, choice: u8) -> bool {
-        if dialog != mischief::MENU_ID && dialog != mischief::CUPBOARD_ID {
+        if dialog != mischief::MENU_ID {
             return false;
         }
         let Some(p) = self.players.get_mut(&pid) else { return true };
         let addr = p.addr;
         let deeds = std::mem::take(&mut p.deeds);
-        let cupboard = std::mem::take(&mut p.cupboard);
         self.send(addr, &Packet::Dialog { id: 0, npc: 0, text: String::new(), options: Vec::new(), items: Vec::new() });
-        if dialog == mischief::CUPBOARD_ID {
-            if let Some(&k) = cupboard.get(usize::from(choice)) {
-                self.take_from_cupboard(pid, k);
-            }
-            return true;
-        }
         if let Some(&deed) = deeds.get(usize::from(choice)) {
             self.do_deed(pid, deed);
         }
@@ -166,53 +159,6 @@ impl Server {
         if let Some(w) = witness.map(|w| w.id) {
             self.says.push(Say::addressed(w, lines::WITNESS, pid));
         }
-    }
-
-    /// E at the cupboard with free hands: a look inside (mugs, knives).
-    pub(super) fn open_cupboard(&mut self, pid: u16) {
-        let Some(k) = self.kitchen.as_ref() else { return };
-        let (mugs, knives) = (k.mugs, k.knives);
-        let mut kinds = Vec::new();
-        let mut options = Vec::new();
-        if mugs > 0 {
-            kinds.push(item_kind::CUP);
-            options.push(kitchen::lines::TAKE_MUG.to_string());
-        }
-        if knives > 0 {
-            kinds.push(item_kind::KNIFE);
-            options.push(kitchen::lines::TAKE_KNIFE.to_string());
-        }
-        kinds.push(0);
-        options.push(kitchen::lines::CLOSE.to_string());
-        let Some(p) = self.players.get_mut(&pid) else { return };
-        p.cupboard = kinds.clone();
-        let addr = p.addr;
-        let text = kitchen::lines::cupboard(mugs, knives);
-        // Drawn like the inventory: a mug, a knife.
-        self.send(addr, &Packet::Dialog { id: mischief::CUPBOARD_ID, npc: pid, text, options, items: kinds });
-    }
-
-    fn take_from_cupboard(&mut self, pid: u16, kind: u8) {
-        let Some(k) = self.kitchen.as_mut() else { return };
-        let free = self.players.get(&pid).is_some_and(|p| p.inventory.hands_free());
-        let line = match kind {
-            _ if !free => kitchen::lines::HANDS_FULL.to_string(),
-            item_kind::CUP if k.mugs > 0 => {
-                k.mugs -= 1;
-                let left = k.mugs;
-                self.give_new(pid, item_kind::CUP);
-                kitchen::lines::took_mug(left)
-            }
-            item_kind::CUP => kitchen::lines::NO_MUGS.to_string(),
-            item_kind::KNIFE if k.knives > 0 => {
-                k.knives -= 1;
-                self.give_new(pid, item_kind::KNIFE);
-                kitchen::lines::TOOK_KNIFE.to_string()
-            }
-            item_kind::KNIFE => kitchen::lines::NO_KNIVES.to_string(),
-            _ => return,
-        };
-        self.says.push(Say::new(pid, line));
     }
 
     /// A knife back in the cupboard (E with it in hands).

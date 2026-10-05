@@ -144,8 +144,16 @@ szafki / zlewu / zmywarki / lodówki z mapy, czyste kubki w szafce, zmywarka:
 brudne, umyte, koniec cyklu; lodówka: rzeczy, mleko, darmowe napoje).
 `use_kitchen` bierze najbliższą rzecz aneksu, ustępując ekspresowi i
 bliższym miejscom (`spots`); ekspres wymaga `CUP` w rękach; zlew zamienia
-`EMPTY_CUP` → `CUP`. `FridgeAction` → `handle_fridge_action`. Rano `restock`,
-sprzątaczka `cleaner_load`, wyjście gracza `return_mugs_of`.
+`EMPTY_CUP` → `CUP`. Rano `restock`, sprzątaczka `cleaner_load`, wyjście
+gracza `return_mugs_of`.
+
+**Pojemniki** (`server/containers.rs`): jedno okno dla lodówki, szafki,
+zmywarki, apteczki, magazynku i barku. `open_container` zapamiętuje
+`Player::container` i wysyła `Container`; `container_slots` układa sloty
+(z `Source` — skąd się biorą: rzecz w lodówce, kubki, zapas…), a
+`ContainerAction` → `handle_container_action` (weź / włóż ze slotu ekwipunku
+/ mleko / zmywarka). `tick_containers` co 1 s odświeża otwarte okna i
+zamyka je, gdy gracz odszedł.
 
 **Menu** (klient): `ui/title_screen.gd` (ekran tytułowy), `ui/pause_menu.gd`
 (Esc — `main.gd::_input`, jeśli `game.window_open()` jest fałszem),

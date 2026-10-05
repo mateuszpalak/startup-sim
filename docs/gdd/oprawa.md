@@ -155,8 +155,11 @@ pełnym ekranie — zastąpiona stylem inspirowanym Don't Starve:
 - **Krew**: dźgnięcie nożem — rozprysk kropli, na podłodze plama krwi
   (sprzątaczka: „Krew?! Co tu się działo… Ja już nic nie widziałam.”;
   inaczej znika o 22:00).
-- **Szafka, apteczka, magazynek, barek** pokazują zawartość jak ekwipunek:
-  sloty z obrazkami (klik albo klawisz numeru), „Zamknij” pod spodem.
+- **Pojemniki** — lodówka, szafka kuchenna, zmywarka, apteczka, magazynek,
+  barek — mają jedno okno: siatka slotów z obrazkami i liczbą sztuk, pod nią
+  ekwipunek postaci (ręce, kieszenie). Rzecz przeciąga się myszką (albo
+  klika) z pojemnika do ekwipunku i z powrotem; odłożyć da się to, co pasuje
+  do miejsca. Odejście albo Esc zamyka okno.
 - **Tab — menu akcji**: lista tego, co da się zrobić tu i teraz, z
   klawiszami (E przy rzeczy obok, F / Q z tym, co w rękach, kieszenie, G / X
   przy osobie obok, L w kabinie, R, czat, dziennik); wybór numerem albo
