@@ -914,6 +914,23 @@ fn back_to_work_from_home_rested_and_fed() {
     assert_eq!(*n, crate::needs::Needs::default(), "a night at home: all fresh");
 }
 
+#[test]
+fn a_laptop_left_on_a_desk_shows_whose_it_is() {
+    let mut s = server();
+    add_player(&mut s, 2);
+    let mut laptop = s.mint_item(item_kind::LAPTOP, "Laptop: Ola");
+    laptop.owner = 0; // Ola logged out
+    s.computers.push(crate::computer::Computer { handle: 900, station: 0, item: laptop, locked: true, user: None });
+    s.players.get_mut(&2).unwrap().at_computer = Some(900);
+    let nick = |s: &Server| match s.computer_packet(2) {
+        Some(Packet::Computer { owner_nick, .. }) => owner_nick,
+        other => panic!("{other:?}"),
+    };
+    assert_eq!(nick(&s), "Ola", "by the label (a save from before)");
+    s.offline.laptop_owner.insert(900, "Ola2".into());
+    assert_eq!(nick(&s), "Ola2", "the save knows whose it is");
+}
+
 /// Log out: the save keeps the character; log back in as a new session.
 fn relog(s: &mut Server, id: u16, new_id: u16) {
     let p = s.players.remove(&id).unwrap();

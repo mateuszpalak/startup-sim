@@ -239,7 +239,8 @@ Komputer to laptop położony na biurku; zawsze jest zalogowany na **właścicie
 `Computer` — ekran komputera, przy którym siedzi odbiorca (po E przy biurku,
 po każdej zmianie i co 1 s): handle u16 (id encji laptopa), owner u16 (id
 właściciela), locked u8, n u8 (≤ 40), n × {`conv u16`, `unread u8`, `title`
-str16 (≤ 24 B)}. Zablokowany komputer nie pokazuje rozmów (n = 0).
+str16 (≤ 24 B)}, owner_nick str16 (≤ 16 B; nick właściciela — także gdy nie ma
+go w grze i owner = 0). Zablokowany komputer nie pokazuje rozmów (n = 0).
 
 Rozmowy (`conv`, z perspektywy konta właściciela): 1 = #ogólny, 16 + id działu
 = kanał działu (tylko ten dział), `0x8000 | id gracza` = wiadomości prywatne.

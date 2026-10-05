@@ -169,7 +169,7 @@ func test_protocol(path: String) -> void:
 	var pc := Protocol.decode(golden["computer"].hex_decode())
 	expect(pc.get("type") == Protocol.T_COMPUTER and pc.handle == 0xE001 and pc.owner == 3 and not pc.locked
 		and pc.convs.size() == 3 and pc.convs[0].title == "#ogólny" and pc.convs[1].unread == 2
-		and pc.convs[2].conv == Protocol.CONV_DM | 4, "decode computer %s" % pc)
+		and pc.convs[2].conv == Protocol.CONV_DM | 4 and pc.owner_nick == "Ola", "decode computer %s" % pc)
 	var ch := Protocol.decode(golden["chat"].hex_decode())
 	expect(ch.get("type") == Protocol.T_CHAT and ch.conv == 17 and ch.messages.size() == 2
 		and ch.messages[1].nick == "Kuba" and ch.messages[0].text == "Deploy w piątek?" and ch.messages[1].id == 6, "decode chat %s" % ch)

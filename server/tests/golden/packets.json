@@ -101,8 +101,8 @@
       "name": "item_action"
     },
     {
-      "debug": "Computer { handle: 57345, owner: 3, locked: false, convs: [ConvEntry { conv: 1, unread: 0, title: \"#ogólny\" }, ConvEntry { conv: 17, unread: 2, title: \"#it-produkt\" }, ConvEntry { conv: 32772, unread: 1, title: \"Kuba\" }] }",
-      "hex": "54532f1501e0030000030100000800236f67c3b36c6e791100020b002369742d70726f64756b7404800104004b756261",
+      "debug": "Computer { handle: 57345, owner: 3, locked: false, convs: [ConvEntry { conv: 1, unread: 0, title: \"#ogólny\" }, ConvEntry { conv: 17, unread: 2, title: \"#it-produkt\" }, ConvEntry { conv: 32772, unread: 1, title: \"Kuba\" }], owner_nick: \"Ola\" }",
+      "hex": "54532f1501e0030000030100000800236f67c3b36c6e791100020b002369742d70726f64756b7404800104004b75626103004f6c61",
       "name": "computer"
     },
     {

@@ -169,6 +169,7 @@ pub fn golden_samples() -> Vec<(&'static str, Packet)> {
                     ConvEntry { conv: 17, unread: 2, title: "#it-produkt".into() },
                     ConvEntry { conv: 0x8004, unread: 1, title: "Kuba".into() },
                 ],
+                owner_nick: "Ola".into(),
             },
         ),
         (

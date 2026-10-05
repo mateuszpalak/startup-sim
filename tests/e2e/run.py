@@ -90,6 +90,12 @@ SCENARIOS = {
         {"server": "keep",  # after the old session timed out
          "clients": [["founder_day2", ["--login=Prezes:haslo-prezesa-1"], 7.0]]},
     ],
+    "portal_back": [
+        {"server": ["--save", "{tmp}/world.db"],
+         "clients": [["portal_day1", ["--login=Nowa:haslo-nowej-1", "--register", "--autocreate"]]]},
+        {"server": "keep",  # straight back: the old session is still there
+         "clients": [["portal_day2", ["--login=Nowa:haslo-nowej-1"]]]},
+    ],
     "persistence": [
         {"server": ["--save", "{tmp}/world.db", "--start-employed"],
          "clients": [["persist_day1", ["--login=Trwala:haslo-trwalej-1", "--register", "--autocreate"]]]},
@@ -101,7 +107,7 @@ SCENARIOS = {
 
 # Rough run times (s), to split the scenarios evenly into shards.
 DURATION = {"resign": 90, "onboarding": 60, "workday": 41, "together": 33, "fight": 33, "drinking": 31,
-            "persistence": 23, "chat": 23, "storeroom": 29, "chill": 18, "founder_back": 35, "founder": 15, "office_apps": 6}
+            "persistence": 23, "chat": 23, "storeroom": 29, "chill": 18, "founder_back": 35, "founder": 15, "portal_back": 12, "office_apps": 6}
 
 
 def shard(names, k, n):

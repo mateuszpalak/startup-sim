@@ -199,7 +199,7 @@ impl Packet {
                 for _ in 0..n {
                     convs.push(ConvEntry { conv: r.u16()?, unread: r.u8()?, title: r.str16(MAX_NICK_BYTES + 8)? });
                 }
-                Packet::Computer { handle, owner, locked, convs }
+                Packet::Computer { handle, owner, locked, convs, owner_nick: r.str16(MAX_NICK_BYTES)? }
             }
             ty::COMPUTER_ACTION => {
                 Packet::ComputerAction { token: r.u32()?, action: r.u8()?, conv: r.u16()?, arg: r.u32()?, text: r.str16(MAX_CHAT_BYTES)? }
