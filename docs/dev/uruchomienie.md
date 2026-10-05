@@ -53,6 +53,7 @@ Do testów i nagrań:
 | `--weather sun\|clouds\|rain\|storm\|fog` | stała pogoda |
 | `--treats` | od razu taca słodyczy w chill roomie |
 | `--stale-fruit <proc>` | szansa na nieświeży owoc (15) |
+| `--stain-chance <proc>` | szansa na smugę na sedesie po skorzystaniu (25) |
 | `--cleaning-at <hh:mm>` | dokładny start obchodu sprzątaczki (domyślnie losowo 15:00–16:00) |
 | `--lag-ms <ms>`, `--jitter-ms <ms>`, `--loss <0..1>` | symulacja sieci (opóźnienie w jedną stronę — RTT rośnie 2×) |
 

@@ -45,6 +45,7 @@ pub mod security;
 pub mod server;
 pub mod shop;
 pub mod sim;
+pub mod stains;
 pub mod stalls;
 pub mod supplies;
 pub mod tasks;

@@ -17,6 +17,7 @@ const ItemView = preload("res://game/item_view.gd")
 const TvView = preload("res://game/tv_view.gd")
 const Audio = preload("res://audio/audio.gd")
 const RollGame = preload("res://ui/roll_game.gd")
+const BrushGame = preload("res://ui/brush_game.gd")
 const DoorPlaque = preload("res://ui/door_plaque.gd")
 const BloodSplash = preload("res://game/blood_splash.gd")
 const ActionMenu = preload("res://ui/action_menu.gd")
@@ -121,6 +122,8 @@ var weather_layer := CanvasLayer.new()
 var dialog := DialogWindow.new()
 var gadget := GadgetView.new()  # the TV remote / the boombox
 var roll_game := RollGame.new()  # rolling a cigarette (F with tobacco)
+var brush_game := BrushGame.new()  # scrubbing a skid mark off a toilet
+var stain_here := false  # a skid mark on the toilet next to us: E = the brush
 ## A vote (or 0: close) - for the home screen, which covers the game.
 signal vote_dialog(p: Dictionary)
 
@@ -402,6 +405,8 @@ func setup(p_net, p_building, welcome: Dictionary, p_nick: String, args: Diction
 				net.send(Protocol.encode_calendar_book(net.token, start, topic)))
 	status_layer.add_child(dialog)
 	status_layer.add_child(roll_game)
+	status_layer.add_child(brush_game)
+	brush_game.scrubbed.connect(_send_action.bind(Protocol.ACTION_SCRUB))
 	status_layer.add_child(door_plaque)
 	status_layer.add_child(action_menu)
 	status_layer.add_child(notices)
@@ -522,7 +527,7 @@ func _sample_input(delta: float) -> int:
 	if not goto_legs.is_empty() or not _goto_path.is_empty():
 		var g := _goto_input(delta)  # dev script also drives the computer screen / dialogs
 		return 0 if screen.visible or dialog.visible else g
-	if dialog.visible or roll_game.visible or chat_box.typing():
+	if dialog.visible or roll_game.visible or brush_game.visible or chat_box.typing():
 		return 0
 	if screen.visible:
 		return 0
@@ -544,7 +549,11 @@ func _sample_input(delta: float) -> int:
 	if Input.is_physical_key_pressed(KEY_D) or Input.is_physical_key_pressed(KEY_RIGHT):
 		b |= Movement.IN_RIGHT
 	if Input.is_physical_key_pressed(KEY_E) or _queued_interact:
-		b |= Movement.IN_INTERACT
+		if stain_here:
+			if not brush_game.visible:
+				brush_game.start()  # not sitting on that: the brush
+		else:
+			b |= Movement.IN_INTERACT
 	_queued_interact = false
 	return b
 
@@ -1092,7 +1101,8 @@ func _reconcile(server_body: Dictionary, ack: int) -> void:
 
 ## Something in the game takes Esc itself (a window is open).
 func window_open() -> bool:
-	return screen.visible or coffee.visible or gadget.visible or shelf_window.visible or container.visible or dialog.visible or roll_game.visible \
+	return screen.visible or coffee.visible or gadget.visible or shelf_window.visible or container.visible or dialog.visible \
+		or roll_game.visible or brush_game.visible \
 		or chat_box.visible or log_history.visible
 
 
@@ -1410,6 +1420,13 @@ func _update_hint() -> void:
 						text = "Tylko z kartą (windy, schody, parking) — przepustkę da portier w portierni"
 					else:
 						text = "Wstęp tylko dla obsługi"
+	# A skid mark on the toilet right here: E scrubs it.
+	stain_here = false
+	var me_at := Movement.to_px(pred.pos)
+	for pv in puddles.values():
+		if pv.stain and pv.position.distance_to(me_at) <= 24.0:
+			stain_here = true
+			text = "[E] Umyj sedes szczotką"
 	var facing: Vector2i = [Vector2i(0, 1), Vector2i(0, -1), Vector2i(-1, 0), Vector2i(1, 0)][me.facing]
 	plaque_here = map.plaque_at(t.x, t.y, room_id, facing) if e_free and map else 0
 	if plaque_here != 0:

@@ -61,6 +61,7 @@ mod session;
 mod shop;
 mod snapshot;
 mod spots;
+mod stains;
 mod stats;
 mod supplies;
 mod treats;
@@ -146,6 +147,8 @@ pub struct Config {
     pub treats_now: bool,
     /// Chance (%) that fruit from the bowl is stale.
     pub stale_fruit_percent: u32,
+    /// A toilet used gets a skid mark this often (%).
+    pub stain_percent: u32,
     /// Minute of the day the cleaner starts her round.
     pub cleaning_at: u32,
     /// ... plus a random 0..this many minutes, drawn each day (0 = exactly).
@@ -177,6 +180,7 @@ impl Config {
             weather: None,
             treats_now: false,
             stale_fruit_percent: crate::treats::STALE_FRUIT_PERCENT,
+            stain_percent: crate::stains::CHANCE_PERCENT,
             cleaning_at: crate::cleaning::ROUND_AT,
             cleaning_spread: crate::cleaning::ROUND_SPREAD,
             start_cigarettes: false,
@@ -231,6 +235,8 @@ pub struct Server {
     machines: Vec<Machine>,
     /// Items lying on the floor.
     dropped: Vec<Dropped>,
+    /// Skid marks on toilets (shown as puddles): who, discovered yet.
+    stains: Vec<stains::Stain>,
     /// Accident puddles, until 22:00.
     puddles: Vec<Puddle>,
     /// Sofas, toilets, ashtrays, the fruit bowl.
@@ -378,6 +384,7 @@ impl Server {
             machines: coffee::find_machines(&building),
             dropped: Vec::new(),
             puddles: Vec::new(),
+            stains: Vec::new(),
             workstations: computer::find_workstations(&building),
             spots: needs::find_spots(&building),
             stalls: stalls::find_stalls(&building),
@@ -538,6 +545,7 @@ impl Server {
         self.tick_media();
         self.tick_kitchen();
         self.tick_containers();
+        self.tick_stains();
         self.tick_coffee_panels();
         self.tick_meetings();
         self.tick_lunch();

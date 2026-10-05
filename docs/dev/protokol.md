@@ -111,7 +111,9 @@ Encja (14 B): `id u16 | kind u8 | x i32 | y i32 | flags u8 | held u8 | activity 
 - `kind`: 0 gracz, 1 NPC, 2 przedmiot na podłodze, 3 laptop na biurku,
   4 pojazd, 5 taca słodyczy, 6 kałuża po wpadce (`held` 0), wymiociny
   (`held` 1), kupa (`held` 2) albo krew po dźgnięciu (`held` 3); sprzątaczka
-  ją ściera, inaczej znika o 22:00.
+  ją ściera, inaczej znika o 22:00. `held` 4 — smuga na sedesie (encja na
+  kaflu toalety): sprzątaczka jej nie rusza, zmywa ją szczotka (`Action` 3)
+  albo noc.
   Id: gracze 1..0xDFFF, przedmioty na podłodze i laptopy na biurkach od
   `0xE000` (wspólna pula), NPC od `0xF000`. `PlayerInfo` laptopa niesie imię
   i dział jego właściciela.
@@ -533,8 +535,8 @@ token u32, `action u8`: 1 menu psot (R) — serwer odpowiada `Dialog` o id 250
 z tym, co da się tu zrobić (nasikać na podłogę, zesrać się na podłogę,
 nasikać do ekspresu w zasięgu, nasikać do kubka osoby obok; ostatnia opcja =
 nic); 2 atak (X) — cios pięścią albo, z nożem w rękach, dźgnięcie najbliższej
-osoby w zasięgu 1,5 kafla. Odpowiedź na menu to zwykły `DialogAnswer`. Szafka
-w kuchni (E z wolnymi rękami) to `Dialog` o id 251 (kubek, nóż, zamknij);
+osoby w zasięgu 1,5 kafla; 3 szczotka — mini-gra (klient) skończona: smuga
+z sedesu przy graczu znika. Odpowiedź na menu to zwykły `DialogAnswer`;
 id 200–249 to pytanie o naganę po alkomacie, 252 — umowa w HR (kwota niższa niż uzgodniona; 0 podpisuję, 1 rezygnuję — HR odprowadza na portiernię, przepustka wraca, potem portal).
 
 ### 44 `SkipWait` (C→S)

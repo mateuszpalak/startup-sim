@@ -1,7 +1,8 @@
 ## A puddle left by a toilet accident (entity kind PUDDLE): neon yellow -
 ## or, thrown up (held = 1), a lumpy greenish-beige one; or a brown pile
 ## with flies (held = 2); blood after a stab (held = 3) - on the floor until
-## the cleaner mops it up or the office closes. The blob's shape comes from
+## the cleaner mops it up or the office closes; a skid mark on a toilet
+## (held = 4) - until somebody scrubs it. The blob's shape comes from
 ## the entity id, so every puddle looks a little different.
 extends Node2D
 
@@ -21,6 +22,7 @@ var last_seen_tick := 0
 var vomit := false
 var poop := false
 var blood := false
+var stain := false
 var _blobs: Array = []  # [offset, radius]
 var _lumps: Array = []  # vomit: [offset, radius]
 
@@ -29,6 +31,7 @@ func setup(id: int, kind := 0) -> void:
 	vomit = kind == 1
 	poop = kind == 2
 	blood = kind == 3
+	stain = kind == 4
 	set_process(poop)  # the flies
 	var rng := RandomNumberGenerator.new()
 	rng.seed = id
@@ -47,6 +50,12 @@ func _process(_delta: float) -> void:
 
 
 func _draw() -> void:
+	if stain:
+		# Brown streaks on the bowl (drawn over the toilet's tile).
+		draw_line(Vector2(-3.5, -1.5), Vector2(2.5, -0.5), POOP_DARK, 1.6, true)
+		draw_line(Vector2(-2.5, 1.0), Vector2(3.5, 1.8), POOP, 1.3, true)
+		draw_circle(Vector2(0.5, 0.2), 1.1, POOP)
+		return
 	if poop:
 		_draw_pile()
 		return

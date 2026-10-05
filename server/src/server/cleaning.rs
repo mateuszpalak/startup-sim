@@ -76,7 +76,8 @@ impl Server {
             !here
         });
         let puddles = self.puddles.len();
-        let here = |p: &super::puddles::Puddle| p.floor == floor && dist2(p.pos, pos) <= reach * reach;
+        let here =
+            |p: &super::puddles::Puddle| p.kind != crate::protocol::puddle::STAIN && p.floor == floor && dist2(p.pos, pos) <= reach * reach;
         let blood = self.puddles.iter().any(|p| here(p) && p.kind == crate::protocol::puddle::BLOOD);
         self.puddles.retain(|p| !here(p));
         if self.puddles.len() < puddles {
@@ -95,7 +96,7 @@ impl Server {
         // Next mug or puddle: this floor first, then the nearest.
         let mugs = self.dropped.iter().filter(|d| d.item.kind == item_kind::EMPTY_CUP).map(|d| (d.handle, d.floor, d.pos));
         let next = mugs
-            .chain(self.puddles.iter().map(|p| (p.handle, p.floor, p.pos)))
+            .chain(self.puddles.iter().filter(|p| p.kind != crate::protocol::puddle::STAIN).map(|p| (p.handle, p.floor, p.pos)))
             .filter(|(handle, _, _)| !round.unreachable.contains(handle))
             .min_by_key(|&(_, f, p)| (f != floor, dist2(p, pos)));
         match next {

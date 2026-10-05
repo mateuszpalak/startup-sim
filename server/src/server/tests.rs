@@ -367,6 +367,44 @@ fn punches_knock_out_a_knife_calls_the_police_and_earns_a_reprimand() {
 }
 
 #[test]
+fn a_skid_mark_is_seen_by_the_next_one_and_scrubbed_with_the_brush() {
+    use crate::needs::SpotKind;
+    use crate::stains::lines;
+    let mut s = server();
+    add_player(&mut s, 1);
+    add_player(&mut s, 2);
+    s.cfg.stain_percent = 100;
+    let toilet = s.spots.iter().find(|t| t.kind == SpotKind::Toilet && t.floor == 4).unwrap().clone();
+    stand_next_to(&mut s, 1, toilet.floor, toilet.tile);
+    let body = s.players[&1].body;
+    // Sat down, got up: a skid mark, and only they are told.
+    s.use_spot(1, &body);
+    assert!(s.players[&1].rest.is_some());
+    s.players.get_mut(&1).unwrap().body.pos.x += 16; // gets up
+    run_ticks(&mut s, 1);
+    assert_eq!(s.stains.len(), 1);
+    assert!(s.puddles.iter().any(|p| p.kind == crate::protocol::puddle::STAIN));
+    assert!(s.says.iter().any(|l| l.text == lines::MADE && l.reach == super::Reach::Whisper));
+    // They don't count as a witness; the next one in the stall does.
+    s.says.clear();
+    s.tick = 20;
+    s.tick_stains();
+    assert!(!s.says.iter().any(|l| l.text == lines::SEEN));
+    stand_next_to(&mut s, 2, toilet.floor, toilet.tile);
+    s.tick_stains();
+    assert!(s.says.iter().any(|l| l.speaker == 2 && l.text == lines::SEEN), "Znowu człowiek smuga zaatakował!");
+    // Nobody sits on that.
+    let body2 = s.players[&2].body;
+    assert_eq!(s.use_spot(2, &body2), Some(Some(lines::DIRTY.to_string())));
+    assert!(s.players[&2].rest.is_none());
+    // The brush: clean again.
+    s.says.clear();
+    s.scrub(2);
+    assert!(s.stains.is_empty() && !s.puddles.iter().any(|p| p.kind == crate::protocol::puddle::STAIN));
+    assert!(s.says.iter().any(|l| l.text == lines::SCRUBBED_OTHERS));
+}
+
+#[test]
 fn the_coffee_machine_needs_water_and_its_grounds_go_to_the_bin() {
     use crate::coffee::{self, lines};
     use crate::protocol::coffee_action as act;

@@ -273,6 +273,8 @@ pub mod puddle {
     pub const POOP: u8 = 2;
     /// After a stab.
     pub const BLOOD: u8 = 3;
+    /// A skid mark on a toilet (at the toilet's tile).
+    pub const STAIN: u8 = 4;
 }
 
 /// Form of employment (`Apply::form`, the contract).
@@ -300,6 +302,8 @@ pub mod action {
     pub const MENU: u8 = 1;
     /// X: punch (or stab, with a knife in hands) the nearest person.
     pub const ATTACK: u8 = 2;
+    /// The toilet brush minigame done: the skid mark next to you is gone.
+    pub const SCRUB: u8 = 3;
 }
 
 /// `Sound` kinds: things happening in the world that others hear too.
