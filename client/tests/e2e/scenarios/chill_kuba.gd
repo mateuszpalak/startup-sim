@@ -6,7 +6,7 @@ extends "res://tests/e2e/scenario.gd"
 func run() -> void:
 	if not await until(in_world, 30.0, "in the office"):
 		return
-	if not await walk(1, 38, 12, 90.0):
+	if not await walk(4, 38, 12, 90.0):
 		return
 	if not await until(func(): return not game().tvs.is_empty() and game().tvs.values()[0][0].channel == 4, 90.0, "the match on the TV"):
 		return

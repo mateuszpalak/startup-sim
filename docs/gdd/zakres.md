@@ -3,7 +3,7 @@
 *Część [GDD](README.md). MVP, rozszerzenia, backlog pomysłów i rozbieżności z kodem.*
 
 ## 9. Proponowany zakres MVP
-- Parter + piętro 1
+- Parter + piętro 4
 - Dwa działy (IT, Biznes) + NPC: portier, recepcja, Zarząd, HR
 - Uproszczona rekrutacja
 - Jedno–dwa zadania na dział

@@ -521,7 +521,7 @@ mod tests {
     }
 
     /// Rooms behind locked doors (or walled up): nobody gets in.
-    const SEALED: [&str; 2] = ["Serwerownia", "Szafa"];
+    const SEALED: [&str; 3] = ["Serwerownia", "Szafa", "Pomieszczenie użytkowe"];
 
     #[test]
     fn ground_floor_has_the_planned_rooms() {
@@ -553,7 +553,7 @@ mod tests {
     #[test]
     fn first_floor_has_the_planned_rooms() {
         let b = b();
-        let m = b.floor(1).unwrap();
+        let m = b.floor(4).unwrap();
         for name in [
             "Korytarz",
             "Hol windowy",
@@ -585,7 +585,7 @@ mod tests {
             "Winda",
             "Klatka schodowa",
         ] {
-            assert!(m.room_by_name(name).is_some(), "floor 1 missing {name}");
+            assert!(m.room_by_name(name).is_some(), "floor 4 missing {name}");
         }
         assert!(m.spawns.is_empty());
         // Desks belong to departments through their rooms.
@@ -603,7 +603,7 @@ mod tests {
         assert!(m.is_blocked(-1, 5));
         assert!(m.is_blocked(70, 5));
         assert!(!m.is_blocked(1, 1), "grass");
-        assert!(b.floor(1).unwrap().is_blocked(1, 1), "void around floor 1");
+        assert!(b.floor(4).unwrap().is_blocked(1, 1), "void around floor 4");
     }
 
     #[test]
@@ -621,7 +621,7 @@ mod tests {
         assert!(!(0..m.height).any(|y| (0..m.width).any(|x| m.tile_char(x, y) == Some('B'))), "no gates left");
         assert_eq!(m.tile_char(43, 45), Some('x'));
         assert!(m.blocks(43, 45, 0xff, dir::RIGHT), "the locked door stays locked");
-        let m1 = b.floor(1).unwrap();
+        let m1 = b.floor(4).unwrap();
         assert_eq!(m1.tile_char(43, 20), Some('L'));
         assert!(m1.blocks(43, 20, access::GUEST | access::CARD, dir::RIGHT), "the cleaning cupboard stays closed");
         assert!(!m1.blocks(43, 20, access::SERVICE, dir::RIGHT));
@@ -634,7 +634,7 @@ mod tests {
         let b = b();
         let spawn = (0, b.floor(0).unwrap().spawns[0]);
         let public = ["outside", "parking", "entrance", "shop", "smoking", "stall", "hall"];
-        for f in [0u8, 1] {
+        for f in [0u8, 3, 4] {
             let m = b.floor(f).unwrap();
             // (The lift cabins are reached by riding, not walking.)
             for r in m.rooms.iter().filter(|r| r.kind != "elevator") {
@@ -716,7 +716,7 @@ mod tests {
     #[test]
     fn floors_share_the_elevator_geometry() {
         let b = b();
-        let (a, c) = (b.floor(0).unwrap(), b.floor(1).unwrap());
+        let (a, c) = (b.floor(0).unwrap(), b.floor(4).unwrap());
         let lifts = |m: &super::Map| {
             m.links.iter().filter(|l| matches!(l.kind, super::LinkKind::Elevator { .. })).map(|l| l.area).collect::<Vec<_>>()
         };

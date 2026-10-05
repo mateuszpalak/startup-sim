@@ -257,12 +257,12 @@ func test_movement(path: String) -> void:
 	expect(floor_changes >= 3, "vectors exercise stairs/elevator (%d floor changes)" % floor_changes)
 	# Two lifts: the door tiles know theirs (the Doors packet's order).
 	expect(building.lift_ids == ["A", "B"], "lift ids %s" % [building.lift_ids])
-	expect(building.lift_at_door(0, Vector2i(37, 43)) == 0 and building.lift_at_door(1, Vector2i(41, 43)) == 1
+	expect(building.lift_at_door(0, Vector2i(37, 43)) == 0 and building.lift_at_door(4, Vector2i(41, 43)) == 1
 		and building.lift_at_door(0, Vector2i(30, 50)) == -1, "doors belong to their lift")
 	# Locked stall door (dynamic overlay): same result as stalls.rs in Rust.
-	var m = building.get_floor(1)
+	var m = building.get_floor(4)
 	var walk_left := func() -> Dictionary:
-		var bd := Movement.body(1, Movement.tile_center(7, 45), 0, Movement.LOCK_NONE, MapData.ACCESS_CARD)
+		var bd := Movement.body(4, Movement.tile_center(7, 45), 0, Movement.LOCK_NONE, MapData.ACCESS_CARD)
 		for i in 60:
 			bd = Movement.step(building, bd, Movement.IN_LEFT)
 		return bd
@@ -277,7 +277,7 @@ func test_doorway_floors() -> void:
 	var Painter = preload("res://map/map_painter.gd")
 	var building = Building.new()
 	building.load_path("res://maps/building.json")
-	for f in [0, 1, 3]:
+	for f in [0, 3, 4, 5, 6]:
 		var p = Painter.new()
 		p.map = building.get_floor(f)
 		var bad := []
@@ -294,7 +294,7 @@ func test_door_plaques() -> void:
 	var building = Building.new()
 	building.load_path("res://maps/building.json")
 	var m0 = building.get_floor(0)
-	var m1 = building.get_floor(1)
+	var m1 = building.get_floor(4)
 	var at := func(m, x: int, y: int) -> String:
 		return m.room_name(m.plaque_at(x, y, m.room_at_tile(x, y))) if m.plaque_at(x, y, m.room_at_tile(x, y)) else ""
 	var icon := func(m, x: int, y: int) -> String:

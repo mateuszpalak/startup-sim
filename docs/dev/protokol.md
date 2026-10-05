@@ -342,6 +342,12 @@ opcji (0 = żaden; okno rysuje je jak ekwipunek), inaczej k = 0; ponawiane co
 `DialogAnswer`: token u32, id u8, choice u8 — odpowiedzi na nieaktualne `id`
 są ignorowane. Odpowiedzi NPC idą jako `Say`.
 
+`npc` 0 = **panel pięter w windzie** (E w kabinie stojącej windy): `text`
+„Które piętro?”, opcje to nazwy pięter, na których winda staje (bez bieżącego,
+zablokowane piętra 1 i 2 pomija), ostatnia „Zostań”. `DialogAnswer` wciska
+przycisk („Jedziemy na: …” jako `Say`); serwer zamyka panel (`id` 0) po
+odpowiedzi, gdy winda ruszy albo gdy gracz wyjdzie z kabiny.
+
 ### 35 `LunchMenu` (S→C), 36 `LunchOrder` (C→S)
 
 Aplikacja obiadowa dla konta komputera, przy którym siedzi odbiorca (co 1 s):

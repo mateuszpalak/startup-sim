@@ -6,9 +6,10 @@
 
 Układ wg odręcznego planu (numery w nawiasach to numery z rysunku). Mapy
 70×72 kafli po 16 px (1 kafel ≈ 1 m; skala: pokój 18 mieści 8 biurek);
-pliki `client/maps/building.json`, `floor0.json`, `floor1.json`, `floor3.json`
-(klatka schodowa) generuje `tools/build_maps.py` — jedyne miejsce, gdzie się je
-zmienia. Piętro 2 jest w `building.json` jako zablokowane (bez pliku).
+pliki `client/maps/building.json`, `floor0.json`, `floor3.json`, `floor4.json`,
+`floor5.json` i `floor6.json` (klatki schodowe) generuje `tools/build_maps.py`
+— jedyne miejsce, gdzie się je zmienia. Piętra 1 i 2 są w `building.json` jako
+zablokowane (bez pliku).
 
 **Parter + teren zewnętrzny** — gracz startuje na chodniku przed wejściem.
 Wiatrołap (2) → hol (3) z ladą portiera (5, portier siedzi na 6), toaletą (7)
@@ -92,7 +93,7 @@ FttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttF
 FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF
 ```
 
-**Piętro 1** — z klatki schodowej (24) na korytarz zachodni (17), hol windowy
+**Piętro 4** — z klatki schodowej (24) na korytarz zachodni (17), hol windowy
 (13, nad windami 14/15 zamknięta szafa 58) i główny korytarz (33) z wyspą:
 WC damskie (54), łazienka damska (53), WC męskie (52) przez łazienkę męską (51),
 przejście, WC dla niepełnosprawnych (50), szafa (55), lada recepcji (49,
@@ -105,6 +106,22 @@ Mobile (20), łazienka damska (21) z kabinami (22, 23), Produkt/IT (19, 18),
 Finanse (16), korytarz wschodni (25), pokój z jednym biurkiem (26), Biznes (27),
 AI team (28), DevOps „Mordor” (32), łazienka męska (29) z pisuarami (30) i
 kabiną (31).
+
+**Piętro 3** — wg rzutu architekta (numery 301–319), obróconego o ćwierć
+obrotu, żeby drzwi wind patrzyły na południe jak na innych piętrach (zachód
+planu jest tu północą). Wzdłuż północnej ściany pokój wypoczynkowy (312) ze
+stolikami, sofami i balkonami 3 i 4, otwarty na kuchnię (313; ekspres, misa
+z owocami). Rząd pod nim: przejście do open space, pokój spotkań, serwerownia
+(311, zamknięta), magazyny (310, 309), toaleta. Open space (304) z biurkami
+po obu stronach przejścia (komunikacja), na wyspach WC damski (308), męski
+(307) i dla niepełnosprawnych (306), na końcu lada recepcji (305); po bokach
+małe balkony 1, 2, 5, 6. Trzon: sala konferencyjna 6 (318) i WC damski (319)
+na zachodzie, klatka schodowa (301), przejście obok zamkniętego pomieszczenia
+użytkowego (303) do wind, sala konferencyjna 5 (315) na wschodzie, pod nimi
+hol windowy (302) z ladą recepcji (317) i WC męski (316). Na południe
+korytarz i skrzydło sal: sala konferencyjna 4, poczekalnia, sala
+konferencyjna 3 na 16 osób (z balkonem 7), pokój biurowy na 2 osoby, sala
+konferencyjna 1.
 
 ```
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -193,8 +210,9 @@ taca ze słodyczami, miejsce założyciela i półki sklepu są w `places` mapy.
 
 **Poruszanie między piętrami:** schody — wejście na biegi schodów przenosi do
 klatki schodowej (osobny widok: bieg, półpiętro, drugi bieg), a jej koniec
-na drugie piętro; winda — trzeba ją wezwać (E przy drzwiach), poczekać, wejść
-i wybrać piętro (E w kabinie) — szczegóły w 10.18.
+na następne piętro z mapą (parter–3 i 3–4 mają osobne klatki); winda — trzeba ją
+wezwać (E przy drzwiach), poczekać, wejść i wybrać piętro na panelu (E w
+kabinie) — szczegóły w 10.18.
 
 ## 10.18 Windy
 
@@ -202,11 +220,15 @@ i wybrać piętro (E w kabinie) — szczegóły w 10.18.
   osobno: własne wezwania, drzwi i wyświetlacz. Stojąc między nimi, E wzywa
   bliższą.
 - Drzwi są zamknięte, dopóki winda nie stoi na piętrze. **E przy drzwiach
-  wzywa windę**; przy drzwiach (po lewej) wyświetlacz: piętro (P, 1) i
+  wzywa windę**; przy drzwiach (po lewej) wyświetlacz: piętro (P, 3, 4) i
   strzałka jazdy.
-- Jazda: ~3 s na piętro; po przyjeździe drzwi otwarte ~4 s (nie zamkną się na
-  kimś w drzwiach). **E w kabinie** wybiera piętro (przy dwóch aktywnych —
-  drugie); drzwi zamykają się po 1 s i jadą wszyscy w kabinie.
+- Jazda: ~3 s na piętro (z parteru na 3 mija zablokowane 1 i 2, więc jedzie
+  ~9 s, na 4 ~12 s); po przyjeździe drzwi otwarte ~4 s (nie zamkną się na kimś w
+  drzwiach). **E w kabinie** otwiera **panel pięter** (okno jak w rozmowie):
+  przycisk na każde piętro, na którym winda staje, bez bieżącego, i „Zostań”;
+  wybór przyciskiem albo klawiszami 1–9. Po wyborze drzwi zamykają się po 1 s
+  i jadą wszyscy w kabinie. Panel znika sam, gdy winda ruszy (ktoś inny
+  wybrał) albo gdy wyjdziesz z kabiny.
 - **Maksymalnie 6 osób**: z większą liczbą winda nie ruszy — drzwi zostają
   otwarte, a ktoś w kabinie woła „Przeciążenie!”. Kabina jest mała (3×2
   pola), więc 6 osób stoi ciasno.
@@ -215,11 +237,13 @@ i wybrać piętro (E w kabinie) — szczegóły w 10.18.
 
 ## 10.19 Klatka schodowa i półpiętro
 
-- Schody między parterem a piętrem 1 prowadzą przez **osobny widok klatki
-  schodowej**: bieg w górę, **półpiętro** (podest), drugi bieg. Widać tylko
-  klatkę i osoby na niej; przejście trwa kilka sekund.
-- Przy wyjściach etykiety, dokąd prowadzą (Parter / Piętro 1 / Klatka
-  schodowa).
+- Schody między parterem a piętrem 3 oraz między piętrem 3 a 4 prowadzą
+  przez **osobne widoki klatek schodowych**: bieg w górę, **półpiętro**
+  (podest), drugi bieg. Widać tylko klatkę i osoby na niej; przejście trwa
+  kilka sekund. W klatce na piętrze 3 są dwa biegi: w dół i w górę (zablokowane
+  piętra 1 i 2 się mija).
+- Przy wyjściach etykiety, dokąd prowadzą (Parter / Piętro 3 / Piętro 4 /
+  Klatka schodowa).
 
 ## 10.21 Zegar, pory dnia i dni gry
 
@@ -281,7 +305,7 @@ i wybrać piętro (E w kabinie) — szczegóły w 10.18.
 
 ## 10.33 Balkon
 
-- Na piętrze 1 przy chill roomie są drzwi na **balkon** nad wejściem do budynku
+- Na piętrze 4 przy chill roomie są drzwi na **balkon** nad wejściem do budynku
   (drewniany pomost z barierką). Balkon jest pod gołym niebem: pada deszcz,
   można palić bez czujek, dym od razu się rozwiewa.
 - **Z balkonu widać, co się dzieje na dole**: chodnik, ulicę, parking

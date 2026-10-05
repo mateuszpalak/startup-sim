@@ -24,7 +24,7 @@
 ## 10.24 Kalendarz i spotkania z zarządem
 
 - **Zarząd** to dwoje NPC: **Prezes** (podwyżki, skargi, luźne rozmowy) i
-  **Wspólniczka** (pomysły na produkt), w pokoju zarządu na piętrze 1.
+  **Wspólniczka** (pomysły na produkt), w pokoju zarządu na piętrze 4.
 - **Drzwi zarządu są zamknięte** — wchodzi tylko osoba z umówionym
   spotkaniem, **od 10 min przed do 10 min po jego początku**; wyjść można
   zawsze. Przy drzwiach podpowiedź „wstęp tylko na umówione spotkanie”.
@@ -56,7 +56,7 @@
 - **Zamówienia 10:00–15:00**, jedno naraz; płaci **konto właściciela
   komputera** (z cudzego odblokowanego laptopa można więc komuś zamówić
   obiad na jego koszt).
-- **Dostawa na recepcję** (piętro 1) po czasie dostawy ±10 min, w deszczu +15
+- **Dostawa na recepcję** (piętro 4) po czasie dostawy ±10 min, w deszczu +15
   min. Recepcja daje znać zamawiającemu („Kurier był! Kebab czeka na
   recepcji.”), E przy recepcji = pudełko do rąk (trzeba mieć wolne ręce), F =
   zjedz. Nieodebrane obiady wieczorem trafiają do kosza.

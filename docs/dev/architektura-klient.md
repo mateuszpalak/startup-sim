@@ -100,7 +100,7 @@ drugiej stronie), małe tabliczki rysuje `map_painter.gd`, dużą na środku
 ekranu `ui/door_plaque.gd` (E, gdy podpowiedź to „Przeczytaj tabliczkę”).
 
 **Podpowiedzi** na dole ekranu: „[E] Wezwij windę” / „Winda jedzie…” przy
-drzwiach windy, „[E] Jedź na: …” w kabinie,
+drzwiach windy, „[E] Wybierz piętro” w kabinie (panel pięter),
 „[E] Porozmawiaj: Portier” przy NPC, informacja o wymaganej przepustce przed
 bramką. **NPC** rysowane są w mundurze z czapką; wypowiedzi (`Say`) pokazują się
 w dymku nad postacią (także gdy mówiący dopiero wejdzie w pole widzenia) i w

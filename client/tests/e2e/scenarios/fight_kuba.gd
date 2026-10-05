@@ -6,7 +6,7 @@ extends "res://tests/e2e/scenario.gd"
 func run() -> void:
 	if not await until(in_world, 30.0, "in the office"):
 		return
-	if not await walk(1, 35, 10):  # the chill room, next to where Ola stops
+	if not await walk(4, 35, 10):  # the chill room, next to where Ola stops
 		return
 	log_step("waiting in the chill room")
 	var hud = game().stats_hud

@@ -1,5 +1,5 @@
 //! The elevator: call it (E at its doors), wait for it, step in, choose the
-//! floor (E in the cabin) and ride.
+//! floor (E in the cabin opens the panel of floor buttons) and ride.
 //!
 //! Every floor has a cabin area and door tiles; the doors are closed
 //! (`Map::set_closed`, solid for everyone) unless the car stands at that
@@ -148,11 +148,30 @@ impl Elevator {
 
     /// Button inside the cabin (standing on `floor`): ride to the next floor
     /// (with two floors: the other one). Returns the target.
-    pub fn press_inside(&mut self, b: &Building, floor: u8, tick: u32) -> Option<u8> {
+    /// Floors this lift stops at (has a cabin on), bottom up.
+    pub fn floors(&self) -> Vec<u8> {
+        let mut v: Vec<u8> = self.cabins.iter().map(|(f, _)| *f).collect();
+        v.sort_unstable();
+        v.dedup();
+        v
+    }
+
+    /// The buttons on the panel inside the cabin standing at `floor`: the
+    /// other floors it stops at. Empty while riding (or not here).
+    pub fn buttons(&self, floor: u8) -> Vec<u8> {
         if self.moving.is_some() || self.floor != floor {
+            return Vec::new();
+        }
+        self.floors().into_iter().filter(|&f| f != floor).collect()
+    }
+
+    /// Floor button `target` pressed inside the cabin standing at `floor`:
+    /// it goes there first, the doors close in 1 s. `None` = riding, not
+    /// here, or no such floor.
+    pub fn press_floor(&mut self, floor: u8, target: u8, tick: u32) -> Option<u8> {
+        if !self.buttons(floor).contains(&target) {
             return None;
         }
-        let target = b.next_elevator_floor(floor, &self.id)?;
         self.calls.retain(|&c| c != target);
         self.calls.insert(0, target);
         self.open_until = self.open_until.min(tick + CLOSE_AFTER_PRESS);
@@ -213,27 +232,39 @@ mod tests {
     fn call_wait_ride_arrive() {
         let b = Building::load(&default_building_path()).unwrap();
         let mut e = find_elevators(&b).remove(0);
-        assert_eq!(e.cabins.len(), 2, "cabin on both active floors");
-        assert_eq!(e.doors.len(), 6, "3 door tiles per floor");
+        assert_eq!(e.cabins.len(), 3, "a cabin on every active floor");
+        assert_eq!(e.doors.len(), 9, "3 door tiles per floor");
+        assert_eq!(e.floors(), [0, 3, 4], "locked floors 1 and 2 are skipped");
         assert_eq!(e.floor, 0);
         assert!(!e.is_open_at(0, 0), "doors start closed");
-        // Called from floor 1: travels there (3 s), opens.
-        assert_eq!(e.call(1, 0), lines::CALLED);
-        assert_eq!(e.call(1, 1), lines::ON_ITS_WAY);
-        let ev = run(&mut e, 0, 200, &[]);
+        // Called from floor 4: travels there (4 storeys, 3 s each), opens.
+        assert_eq!(e.call(4, 0), lines::CALLED);
+        assert_eq!(e.call(4, 1), lines::ON_ITS_WAY);
+        let ev = run(&mut e, 0, 400, &[]);
         let arrival = ev.iter().find(|(_, u)| u.arrived.is_some()).unwrap();
-        assert_eq!(arrival.1.arrived, Some((0, 1)));
-        assert_eq!(arrival.0, TRAVEL_TICKS);
-        assert!(!e.is_open_at(1, 200), "and closes again after a while");
+        assert_eq!(arrival.1.arrived, Some((0, 4)));
+        assert_eq!(arrival.0, 4 * TRAVEL_TICKS);
+        assert!(!e.is_open_at(4, 400), "and closes again after a while");
         // Called where it stands: just opens.
-        assert_eq!(e.call(1, 300), lines::HERE);
-        assert!(e.is_open_at(1, 301));
-        // Inside: choose floor 0 -> doors close in 1 s, then it rides down.
-        assert_eq!(e.press_inside(&b, 1, 310), Some(0));
-        let ev = run(&mut e, 301, 500, &[]);
+        assert_eq!(e.call(4, 500), lines::HERE);
+        assert!(e.is_open_at(4, 501));
+        // Inside: the panel offers the other floors; floor 3 pressed -> doors
+        // close in 1 s, then it rides one storey down.
+        assert_eq!(e.buttons(4), [0, 3]);
+        assert_eq!(e.press_floor(4, 4, 510), None, "no button for the floor it stands on");
+        assert_eq!(e.press_floor(4, 1, 510), None, "no button for a locked floor");
+        assert_eq!(e.press_floor(4, 3, 510), Some(3));
+        let ev = run(&mut e, 501, 700, &[]);
         let arrival = ev.iter().find(|(_, u)| u.arrived.is_some()).unwrap();
-        assert_eq!(arrival.1.arrived, Some((1, 0)));
-        assert_eq!(arrival.0, 310 + CLOSE_AFTER_PRESS + TRAVEL_TICKS);
+        assert_eq!(arrival.1.arrived, Some((4, 3)));
+        assert_eq!(arrival.0, 510 + CLOSE_AFTER_PRESS + TRAVEL_TICKS);
+        // Down to the ground floor: three storeys.
+        e.call(3, 800);
+        assert_eq!(e.press_floor(3, 0, 801), Some(0));
+        let ev = run(&mut e, 800, 1100, &[]);
+        let arrival = ev.iter().find(|(_, u)| u.arrived.is_some()).unwrap();
+        assert_eq!(arrival.1.arrived, Some((3, 0)));
+        assert_eq!(arrival.0, 801 + CLOSE_AFTER_PRESS + 3 * TRAVEL_TICKS);
     }
 
     #[test]
@@ -242,7 +273,7 @@ mod tests {
         let lifts = find_elevators(&b);
         assert_eq!(lifts.iter().map(|e| e.id.as_str()).collect::<Vec<_>>(), ["A", "B"]);
         for e in &lifts {
-            assert_eq!(e.doors.len(), 6, "{}: 3 door tiles per floor", e.id);
+            assert_eq!(e.doors.len(), 9, "{}: 3 door tiles per floor", e.id);
         }
         assert!(lifts[0].doors.iter().all(|d| !lifts[1].doors.contains(d)), "no shared doors");
         // In front of each: that one's call button is the nearer.
@@ -263,14 +294,14 @@ mod tests {
         let spot = |i: i32| (0u8, Pos::tile_center(cabin.x + i % 3, cabin.y + (i / 3) % 2));
         let seven: Vec<(u8, Pos)> = (0..7).map(spot).collect();
         e.call(0, 0);
-        assert_eq!(e.press_inside(&b, 0, 1), Some(1));
+        assert_eq!(e.press_floor(0, 4, 1), Some(4));
         let ev = run(&mut e, 0, 200, &seven);
         assert!(ev.iter().any(|(_, u)| u.overloaded == Some(0)));
         assert!(ev.iter().all(|(_, u)| u.arrived.is_none()), "7 people: it doesn't leave");
         assert!(e.is_open_at(0, 199), "doors stay open");
         // One gets out: off it goes.
-        let ev = run(&mut e, 200, 400, &seven[..6]);
-        assert!(ev.iter().any(|(_, u)| u.arrived == Some((0, 1))));
+        let ev = run(&mut e, 200, 600, &seven[..6]);
+        assert!(ev.iter().any(|(_, u)| u.arrived == Some((0, 4))));
     }
 
     #[test]

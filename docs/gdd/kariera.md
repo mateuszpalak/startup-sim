@@ -13,7 +13,7 @@ Przebieg: gracz startuje przed budynkiem bez przepustki → drzwi na klatkę i
 windy go nie wpuszczają (podpowiedź: „przepustkę da portier w portierni”) → przy portierni wciska E →
 portier: „Dzień dobry! Pierwszy dzień? Zaprowadzę na recepcję — proszę za mną.”,
 gracz dostaje przepustkę → portier idzie schodami na recepcję
-piętra 1, czekając na gracza, gdy ten zostaje w tyle („Proszę za mną!”) → na
+piętra 4, czekając na gracza, gdy ten zostaje w tyle („Proszę za mną!”) → na
 recepcji: „To recepcja — tutaj proszę się zgłosić. Przepustka gościa jest ważna
 do końca dnia.” → portier wraca na portiernię. Jeśli gracz nie idzie za nim
 przez 30 s, portier rezygnuje i odbiera przepustkę. Prowadzi jedną osobę naraz

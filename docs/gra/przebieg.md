@@ -31,7 +31,7 @@ Startujesz przed budynkiem bez przepustki. Do holu wejdziesz, ale windy,
 klatka schodowa i parking otwierają się tylko kartą.
 
 1. **Portiernia** (E): portier da przepustkę gościa i zaprowadzi na recepcję
-   na piętrze 1 (schodami).
+   na piętrze 4 (schodami).
 2. **Recepcja** (E) zaprowadzi do HR.
 3. **HR** (E) przedstawi umowę (stawka może być trochę niższa niż na
    rozmowie) — po podpisaniu dostajesz kartę pracownika i laptop.

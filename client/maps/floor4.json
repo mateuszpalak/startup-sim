@@ -1,7 +1,7 @@
 {
  "version": 1,
- "id": "floor1",
- "floor": 1,
+ "id": "floor4",
+ "floor": 4,
  "tile_px": 16,
  "width": 70,
  "height": 72,
@@ -838,7 +838,7 @@
     3,
     2
    ],
-   "to_floor": 3,
+   "to_floor": 6,
    "to": [
     36,
     13
@@ -855,7 +855,7 @@
     34
    ],
    "escort_to": [
-    1,
+    4,
     47,
     14
    ]

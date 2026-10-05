@@ -17,7 +17,8 @@
 **E** działa na to, co jest obok:
 
 - **ludzie** — rozmowa z NPC (portier, recepcja, HR, kasjer…);
-- **winda** — przy drzwiach wezwij, w kabinie wybierz piętro;
+- **winda** — przy drzwiach wezwij, w kabinie panel pięter (przycisk albo
+  klawisze **1–9**);
 - **biurko** — połóż laptop, usiądź do komputera (pulpit z pocztą,
   przeglądarką, tablicą zadań działu, obiadami, komunikatorem, kalendarzem,
   Kadrami, terminalem i koszem);

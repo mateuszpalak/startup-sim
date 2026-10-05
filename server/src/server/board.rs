@@ -77,7 +77,7 @@ impl Server {
             self.log(format!("* calendar: {} books {} at {}{who}", self.nick(account), board::topic_name(topic), clock::hhmm(start)));
             let nick = self.nick(account).to_string();
             let body = format!(
-                "Temat: {}.\nGodzina: {} w sali zarządu (piętro 1). Drzwi otworzą się 10 min wcześniej.",
+                "Temat: {}.\nGodzina: {} w sali zarządu (piętro 4). Drzwi otworzą się 10 min wcześniej.",
                 board::topic_name(topic),
                 clock::hhmm(start)
             );
@@ -154,8 +154,14 @@ impl Server {
         self.meetings.iter().position(|m| m.day == t.day && m.start == t.start && m.owner == pid)
     }
 
+    /// The dialog open for the player: the lift's floor panel or a board
+    /// member's question.
     pub(super) fn dialog_packet(&self, pid: u16) -> Option<Packet> {
-        let t = self.players.get(&pid)?.talk.as_ref()?;
+        let p = self.players.get(&pid)?;
+        if let Some(panel) = &p.lift_panel {
+            return Some(self.lift_panel_packet(panel));
+        }
+        let t = p.talk.as_ref()?;
         let m = &self.meetings[self.talk_meeting(pid, t)?];
         let board::State::Talking(step) = m.state else { return None };
         let s = board::steps(m.topic).get(step)?;
@@ -175,6 +181,12 @@ impl Server {
     }
 
     pub(super) fn handle_dialog_answer(&mut self, pid: u16, dialog: u8, choice: u8) {
+        if let Some(panel) = self.players.get(&pid).and_then(|p| p.lift_panel.clone()) {
+            if panel.id == dialog {
+                self.press_lift_panel(pid, &panel, choice);
+                return;
+            }
+        }
         if self.answer_reprimand(pid, dialog, choice)
             || self.answer_skip_vote(pid, dialog, choice)
             || self.answer_mischief(pid, dialog, choice)

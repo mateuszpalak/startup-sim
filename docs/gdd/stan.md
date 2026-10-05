@@ -6,7 +6,7 @@
 
 *Stan na 2026-09-26 — etap 1 (sieć) ukończony; dodane IPv6, sesje po tokenie,
 automatyczne ponowne łączenie, budynek wg GDD (parter z terenem zewnętrznym,
-piętro 1, schody, winda), uprawnienia (bramki) oraz cała ścieżka nowego
+piętro 4, schody, winda), uprawnienia (bramki) oraz cała ścieżka nowego
 gracza: portal z ofertami → rekrutacja → portier → recepcja → HR → karta
 pracownika z działem; oprawa graficzna w pixel arcie (10.9). 2026-09-30:
 nowy układ budynku wg odręcznego planu (10.5) — generator map znów jest
@@ -21,8 +21,9 @@ protokół 37).*
   meblami; snapshoty z interest management po `(piętro, pokój)`,
   fragmentowane ≤ 1200 B; nicki przez `PlayerInfo`/`InfoRequest`; ping;
   statystyki co 5 s; symulator `--lag-ms/--jitter-ms/--loss`.
-- **Budynek**: parter (z parkingiem zewnętrznym i strefą palenia) + piętro 1
-  wg sekcji 3, piętro 2 zablokowane; schody i winda (E) jako część
+- **Budynek**: parter (z parkingiem zewnętrznym i strefą palenia), piętro 3
+  (wg planu architekta) i piętro 4 (biurowe) wg sekcji 3, piętra 1 i 2
+  zablokowane; schody i winda (E, panel pięter w kabinie) jako część
   deterministycznej symulacji, przewidywane przez klienta; JSON-y wspólne dla
   serwera i klienta, weryfikowane jednym CRC32 budynku (protokół v2).
 - **Klient Godot** (`client/`): ekran startowy, mapa z kolorowych kafli i
@@ -48,7 +49,7 @@ protokół 37).*
 - **Okna, światło, kamera, nowa mapa**: okna, włączniki i jasność
   pomieszczeń, zoom kamery, ręcznie rysowane podłogi, ściany i meble (10.34);
   protokół v27.
-- **Balkon** na piętrze 1 z widokiem na ulicę i ludzi na dole (10.33).
+- **Balkon** na piętrze 4 z widokiem na ulicę i ludzi na dole (10.33).
 - **Wygląd „papier i atrament”**: skalowanie z oknem, odręczna czcionka,
   papierowe panele, tarcze statystyk, pasek ekwipunku, efekt tuszu i papieru na
   świecie, postacie z większymi głowami (10.32).
@@ -99,7 +100,7 @@ protokół 37).*
   osoba naraz (10.10); protokół v5.
 - **Boty** (`cargo run --release --bin bots`): 50 domyślnie, chodzą po BFS po
   całym budynku (schodami), część zbiera się w wybranym pokoju (domyślnie
-  Chill room na piętrze 1).
+  Chill room na piętrze 4).
 - **Sieć mobilna**: serwer dual-stack IPv4/IPv6; gracz identyfikowany tokenem
   (zmiana adresu w trakcie gry przenosi sesję); klient przepina gniazdo po
   ciszy/powrocie z tła i sam łączy się ponownie po utracie sesji.
@@ -119,8 +120,8 @@ protokół 37).*
 | RTT ~117 ms, jitter 10 ms, 2% strat | 60 FPS, 0 korekt, bufor interpolacji pusty w 0,40% klatek |
 | RTT ~226 ms, jitter 20 ms, 2% strat | 60 FPS, 0 korekt, bufor pusty w 0,25% klatek |
 | przejście z Wejścia do Korytarza (stara mapa) | widoczni: 42 → 5 |
-| 40 botów po całym budynku, połowa w Chill roomie (piętro 1) | serwer: 0 zgubionych ticków, tick śr. ~1,1 ms; boty: 0 błędnych predykcji mimo schodów |
-| klient w recepcji piętra 1, 26 widocznych | 60 FPS, 0 korekt, bufor interpolacji pusty w 0,00% klatek |
+| 40 botów po całym budynku, połowa w Chill roomie (piętro 4) | serwer: 0 zgubionych ticków, tick śr. ~1,1 ms; boty: 0 błędnych predykcji mimo schodów |
+| klient w recepcji piętra 4, 26 widocznych | 60 FPS, 0 korekt, bufor interpolacji pusty w 0,00% klatek |
 | gość bez przepustki: bramka → rozmowa z portierem → schody → recepcja | zatrzymany na bramce, przepustka po rozmowie, portier doprowadza na recepcję; 0 korekt |
 | pełne wdrożenie w oknie klienta: portier → recepcja → HR | karta pracownika w ~35 s gry, 0 korekt, 60 FPS |
 | rekrutacja + wdrożenie w oknie klienta (zgadywanie odpowiedzi) | przyjęta (2/3) po kilku próbach, umowa „IT / Produkt”, przy nicku „Zosia · IT” |

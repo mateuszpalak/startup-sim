@@ -46,10 +46,10 @@ startupu do korporacji.
 - Wejście z portiernią — windy, klatka schodowa i parking na kartę; portier (NPC) wpuszcza osoby bez karty
 - Parking wewnętrzny
 - Sklep — zakupy (np. kawa, przekąski, papierosy)
-- Winda — dwa piętra do wyboru, na początku aktywne tylko jedno
+- Winda — panel pięter w kabinie (parter, piętro 3, piętro 4); piętra 1 i 2 zablokowane
 - Schody — alternatywa dla windy
 
-### Piętro 1 (aktywne od startu)
+### Piętro 4 (biurowe, aktywne od startu)
 - Recepcja przy wejściu na piętro
 - Pokoje zespołów — każdy dział ma swój (rozdz. 5)
 - Pokój działu Biznesu (marketing + sprzedaż)
@@ -61,7 +61,16 @@ startupu do korporacji.
 
 Gracze mogą swobodnie chodzić po korytarzu, pokojach i wspólnych przestrzeniach.
 
-### Piętro 2 (zablokowane)
+### Piętro 3 (aktywne, wg planu architekta)
+- Pokój wypoczynkowy ze stolikami i sofami, otwarty na kuchnię; balkony 3 i 4
+- Open space (48 biurek po obu stronach przejścia), na wyspach WC damski, męski
+  i dla niepełnosprawnych, lada recepcji; małe balkony 1, 2, 5, 6
+- Pokój spotkań, serwerownia (zamknięta), dwa magazyny, toaleta
+- Hol windowy z recepcją, klatka schodowa, sale konferencyjne 5 i 6, WC
+- Korytarz do skrzydła sal: sale konferencyjne 1, 3 (16 osób) i 4, pokój
+  biurowy, poczekalnia; balkon 7
+
+### Piętra 1 i 2 (zablokowane)
 Odblokowywane wraz z rozwojem firmy (patrz sekcja 6).
 
 ## 4. Ścieżka nowego gracza
@@ -106,7 +115,7 @@ Praca graczy przynosi firmie przychody, a firma odblokowuje kolejne etapy:
 
 | Etap | Co się odblokowuje |
 |------|--------------------|
-| Startup | IT, Biznes, Zarząd, HR — tylko piętro 1 |
+| Startup | IT, Biznes, Zarząd, HR — tylko piętro 4 |
 | Scale-up | Podział IT na backend / frontend / mobile, osobne działy marketingu i sprzedaży, DevOps |
 | Korporacja | Piętro 2, dział data science / AI, sala konferencyjna na eventy dla wszystkich |
 

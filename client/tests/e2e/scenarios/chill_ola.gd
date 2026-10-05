@@ -11,7 +11,7 @@ func run() -> void:
 		return
 	await until(func(): return holding(Item.LAPTOP), 5.0, "the laptop in hands")
 	await item(Protocol.ITEM_DROP)
-	if not await walk(1, 34, 12, 90.0):  # the remote lies here
+	if not await walk(4, 34, 12, 90.0):  # the remote lies here
 		return
 	await press_e()
 	if not await until(func(): return carrying(Item.REMOTE), 5.0, "the remote"):
@@ -26,7 +26,7 @@ func run() -> void:
 		return
 	await until(func(): return not game().tvs.is_empty() and game().tvs.values()[0][0].channel == 4, 5.0, "the match on")
 	await item(Protocol.ITEM_PUT_AWAY)
-	if not await walk(1, 41, 12, 30.0):  # the boombox
+	if not await walk(4, 41, 12, 30.0):  # the boombox
 		return
 	await press_e()
 	if not await until(func(): return holding(Item.BOOMBOX), 5.0, "the boombox"):

@@ -1,6 +1,7 @@
 ## A conversation with an NPC (board meeting), the breathalyser's question,
-## the R menu or the kitchen cupboard: the text and the answers as buttons
-## (or keys 1-9). The server drives it; id 0 closes it.
+## the R menu, the kitchen cupboard or the panel of floor buttons in a lift
+## (npc 0): the text and the answers as buttons (or keys 1-9). The server
+## drives it; id 0 closes it.
 extends Control
 
 const Ink = preload("res://ui/ink_ui.gd")
@@ -148,6 +149,8 @@ func _title(p: Dictionary) -> String:
 		return "Umowa — %s" % name_of.call(p.npc)
 	if p.id >= 200:
 		return "Alkomat — %s" % name_of.call(p.npc)
+	if p.npc == 0:
+		return "Winda"
 	var who: String = name_of.call(p.npc)
 	if who == "Przechodzień":
 		return "Ktoś pyta o drogę"

@@ -15,7 +15,7 @@ func run() -> void:
 	if not await until(mail_notice, 60.0, "a notice about Ola's mail"):
 		return
 	log_step("notified")
-	if not await walk(1, 35, 10, 60.0):
+	if not await walk(4, 35, 10, 60.0):
 		return
 	if not await hear("Cześć Kuba!", 60.0):
 		return

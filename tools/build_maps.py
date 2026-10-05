@@ -9,7 +9,9 @@ Everything a floor file holds comes from here (edit this, not the JSON).
     python3 tools/build_maps.py --preview  # print ASCII only
 
 The layout follows the hand-drawn plan (numbers in the comments are the
-numbers on the drawing): ground floor 1-12, floor 1 13-58.
+numbers on the drawing): ground floor 1-12, floor 4 (the office floor)
+13-58. Floor 3 follows the architect's plan of the third storey (room
+numbers 301-319). Floors 1 and 2 are locked (no map yet).
 """
 import json
 import os
@@ -217,7 +219,7 @@ def stall(f, key, rid, name, bath, gender, toilet, stand, door, bath_name):
 
 # ------------------------------------------------------------------ shared
 # Shared building geometry (must line up between floors): two elevators
-# side by side, doors facing down (8/9 on the ground floor, 14/15 upstairs),
+# side by side, doors facing down (8/9 on the ground floor, 14/15 on floor 4),
 # each running on its own.
 ELEV_A = (36, 41, 38, 42)    # cabin interior: 3 x 2, a tight fit for 6
 ELEV_B = (40, 41, 42, 42)
@@ -225,20 +227,26 @@ SHAFT = (35, 40, 43, 43)     # walls around both (a pillar between the doors)
 ELEV_A_DOOR = (36, 43, 38, 43)
 ELEV_B_DOOR = (40, 43, 42, 43)
 
-# The stairwell between floors 0 and 1 is its own map ("floor" 3 in the
-# building list, not a real storey): a U-shaped staircase - flight up from
-# the ground floor on the left, the landing (półpiętro) at the top, flight on
-# the right leading to floor 1. Walking it takes a few seconds and you only
-# see the stairwell.
-STAIRWELL_FLOOR = 3
-MID_FLIGHT_A = (31, 7, 33, 14)   # from / to the ground floor
-MID_FLIGHT_B = (35, 7, 37, 14)   # from / to floor 1
+# The stairwells are maps of their own ("floors" 5 and 6 in the building
+# list, not real storeys): a U-shaped staircase - flight up from the lower
+# floor on the left, the landing (półpiętro) at the top, flight on the right
+# leading to the upper floor. Walking it takes a few seconds and you only
+# see the stairwell. Map 5 joins the ground floor and floor 3 (the doors to
+# the locked floors 1 and 2 stay shut on the way), map 6 floors 3 and 4.
+STAIRWELL_FLOOR = 5              # between 0 and 3
+STAIRWELL_UP_FLOOR = 6           # between 3 and 4
+MID_FLIGHT_A = (31, 7, 33, 14)   # from / to the lower floor
+MID_FLIGHT_B = (35, 7, 37, 14)   # from / to the upper floor
 MID_ARRIVAL_A = (32, 13)
 MID_ARRIVAL_B = (36, 13)
 STAIRS0 = (19, 41, 21, 42)       # the flight in 4 (ground floor)
 STAIRS0_ARRIVAL = (24, 42)
-STAIRS1 = (19, 39, 21, 40)       # the flight in 24 (floor 1)
-STAIRS1_ARRIVAL = (25, 41)
+STAIRS4 = (19, 39, 21, 40)       # the flight in 24 (floor 4), down to floor 3
+STAIRS4_ARRIVAL = (25, 41)
+STAIRS3 = (25, 39, 27, 40)       # the flights in 301 (floor 3): down to the ground floor
+STAIRS3_ARRIVAL = (26, 42)
+STAIRS3_UP = (29, 39, 31, 40)    # and up to floor 4
+STAIRS3_UP_ARRIVAL = (30, 42)
 
 # Outside (south of the building): sidewalk, street, the car park, the tram.
 STREET_Y = 61
@@ -374,7 +382,7 @@ def floor0():
     f.npcs = [
         # The porter sits behind the desk; escorts newcomers to the reception.
         # Pani Wiesia greets (and chats up) everybody coming in.
-        {"kind": "porter", "name": "Pani Wiesia", "home": [37, 49], "escort_to": [1, 36, 36]},
+        {"kind": "porter", "name": "Pani Wiesia", "home": [37, 49], "escort_to": [4, 36, 36]},
         # Behind the till; customers pay from the other side of the counter.
         {"kind": "cashier", "name": "Kasjer", "home": [20, 55]},
         # The guard walks between the shelves.
@@ -391,9 +399,10 @@ def floor0():
     return f
 
 
-# ----------------------------------------------------------------- floor 1
-def floor1():
-    f = Floor(1, "~")
+# ----------------------------------------------------------------- floor 4
+def floor4():
+    """The office floor (the hand-drawn plan's "floor 1", 13-58)."""
+    f = Floor(4, "~")
     f.switch_doors = {}
 
     # 48: the balcony (over the drive; smoking allowed, out in the open).
@@ -500,7 +509,7 @@ def floor1():
     f.door(29, 36, 29, 36, "D", "K")
     f.walls(18, 38, 29, 43, ".", "Q")
     f.room("Q", 21, "Klatka schodowa", "stairs", light="always")
-    f.area(*STAIRS1, "S", "Q")
+    f.area(*STAIRS4, "S", "Q")                           # down to floor 3
 
     # Right column: 47 meeting room, 46 HR, 44 marketing (45 cleaning
     # cupboard), 43 sales, 42 customer service, 41 storeroom.
@@ -631,7 +640,7 @@ def floor1():
     f.npcs = [
         # 56: the receptionist behind the desk (guests come to its front,
         # row 36); takes newcomers to HR.
-        {"kind": "receptionist", "name": "Recepcja", "home": [36, 34], "escort_to": [1, 47, 14]},
+        {"kind": "receptionist", "name": "Recepcja", "home": [36, 34], "escort_to": [4, 47, 14]},
         {"kind": "hr", "name": "HR", "home": [47, 12], "escort_to": [0, 34, 49]},
         # The board: the CEO and the co-founder at the table in 37.
         {"kind": "ceo", "name": "Prezes", "home": [20, 19]},
@@ -646,15 +655,213 @@ def floor1():
     return f
 
 
-def stairwell():
-    f = Floor(STAIRWELL_FLOOR, "~")
+# ----------------------------------------------------------------- floor 3
+def floor3():
+    """The third storey after the architect's plan ("rzut P3"), turned a
+    quarter turn clockwise so the lifts' doors face south like on the other
+    floors: the plan's west (the lounge) is north here, its east (the wing
+    of meeting rooms) south. Numbers in the comments are the plan's."""
+    f = Floor(3, "~")
+    f.switch_doors = {}
+
+    # The main block; balconies 3 and 4 (over the drive) off the lounge.
+    f.area(17, 6, 54, 38, "#", "-")
+    for key, rid, name, x0 in (("3", 2, "Balkon 3", 20), ("4", 3, "Balkon 4", 44)):
+        f.area(x0 - 1, 1, x0 + 7, 5, "h", "-")
+        f.area(x0, 2, x0 + 6, 5, "n", key)
+        f.room(key, rid, name, "balcony", outdoor=True)
+        f.put(x0 + 6, 2, x0 + 6, 2, "A")                 # ashtray
+
+    # 312: the lounge - tables to the east, sofas to the west. Open to the
+    # kitchen (313) at its east end; a passage down to the open space at its
+    # west end.
+    f.area(18, 7, 53, 14, ",", "W")
+    f.room("W", 1, "Pokój wypoczynkowy", "common", see=["N"], detector=True, light="always", windows=True)
+    f.door(23, 6, 23, 6, "G", "W")                       # out to balcony 3
+    f.door(47, 6, 47, 6, "G", "W")                       # out to balcony 4
+    for x in (31, 36, 41):
+        f.put(x, 8, x + 1, 9, "T")
+        f.put(x, 12, x + 1, 13, "T")
+    f.put(49, 10, 50, 11, "T")
+    f.put(20, 9, 22, 9, "Q")                             # sofas
+    f.put(20, 12, 22, 12, "Q")
+    f.put(25, 10, 25, 11, "Q")
+    f.plants([(18, 7), (53, 14)])
+
+    # The row between the lounge and the open space (the plan's middle
+    # column): the passage, a meeting room, 311 server room, 310 and 309
+    # storerooms, a toilet, 313 the kitchen.
+    f.area(18, 15, 19, 20, ",", "W")                     # the passage (part of the lounge)
+    f.walls(20, 15, 25, 21, ",", "S")
+    f.room("S", 4, "Pokój spotkań", "meeting", detector=True, light="switch", switch_door=(22, 21), windows=True)
+    f.put(22, 17, 23, 18, "T")
+    f.walls(25, 15, 29, 21, ":", "Y")
+    f.room("Y", 5, "Serwerownia", "service", light="always")
+    f.put(26, 16, 28, 16, "R")
+    f.put(26, 19, 27, 19, "R")
+    f.walls(29, 15, 33, 21, ":", "m")
+    f.room("m", 6, "Magazyn 1", "service", light="switch", switch_door=(31, 21))
+    f.put(30, 16, 32, 16, "H")
+    f.walls(33, 15, 38, 21, ":", "n")
+    f.room("n", 7, "Magazyn 2", "service", light="switch", switch_door=(35, 21))
+    f.put(34, 16, 37, 16, "H")
+    f.walls(38, 15, 43, 21, ":", "t")
+    f.room("t", 8, "Toaleta", "stall", light="always")
+    f.put(39, 16, 39, 16, "U")
+    f.put(42, 16, 42, 16, "V")
+    f.put(42, 17, 42, 17, "Y")
+    f.walls(43, 15, 54, 21, ":", "N")
+    f.area(44, 15, 53, 15, ":", "N")                     # open to the lounge
+    f.room("N", 9, "Kuchnia", "common", see=["W"], light="switch", switch_door=(48, 21), windows=True)
+    f.put(44, 16, 45, 16, "J")
+    f.put(46, 16, 46, 16, "C")                           # coffee machine
+    f.put(47, 16, 47, 16, "J")
+    f.put(48, 16, 48, 16, "O")                           # fruit bowl
+    f.put(49, 16, 49, 16, "Y")
+    f.put(51, 18, 52, 19, "T")
+
+    # 304 open space: desks on both sides of the walkway (komunikacja),
+    # with the toilets (308, 307, 306) on islands in it and 305 the reception
+    # desk at its end. Balconies 1, 2 (west) and 5, 6 (east) are tiny.
+    f.area(18, 22, 28, 37, ",", "1")
+    f.room("1", 10, "Open space (zachód)", "department", see=["K", "2"], detector=True, light="always", windows=True)
+    f.area(29, 22, 42, 37, ".", "K")
+    f.room("K", 11, "Komunikacja", "corridor", see=["1", "2"], detector=True, light="always", windows=True)
+    f.area(43, 22, 53, 37, ",", "2")
+    f.room("2", 12, "Open space (wschód)", "department", see=["1", "K"], detector=True, light="always", windows=True)
+    desk_ys = (23, 25, 28, 30, 33, 35)
+    f.desk_rows(21, 24, desk_ys)
+    f.desk_rows(47, 50, desk_ys)
+    f.walls(33, 23, 38, 30, ":", "a")
+    f.room("a", 13, "WC damski", "stall", gender="female", light="always")
+    f.put(34, 24, 34, 24, "U")
+    f.put(37, 26, 37, 26, "V")
+    f.area(33, 25, 33, 25, "k", "a")
+    f.area(34, 27, 37, 27, "#", "-")
+    f.area(34, 28, 37, 29, ":", "x")
+    f.room("x", 14, "WC męski", "stall", gender="male", light="always")
+    f.put(34, 28, 34, 28, "U")
+    f.put(34, 29, 34, 29, "u")
+    f.put(37, 29, 37, 29, "V")
+    f.area(38, 28, 38, 28, "k", "x")
+    f.walls(33, 31, 38, 35, ":", "y")
+    f.room("y", 15, "WC dla niepełnosprawnych", "stall", light="always")
+    f.put(37, 34, 37, 34, "U")
+    f.put(34, 32, 34, 32, "V")
+    f.area(33, 33, 33, 33, "k", "y")
+    f.put(35, 37, 38, 37, "K")                           # 305: reception desk
+    f.plants([(28, 22), (28, 37), (43, 37), (53, 22)])
+    f.door(18, 21, 19, 21, "D", "1")                     # the passage from the lounge
+    f.door(22, 21, 22, 21, "D", "1")                     # meeting room
+    f.door(27, 21, 27, 21, "x", "Y")                     # server room: locked
+    f.door(31, 21, 31, 21, "L", "K")                     # storerooms: staff only
+    f.door(35, 21, 35, 21, "L", "K")
+    f.area(40, 21, 40, 21, "k", "t")                     # toilet
+    f.door(48, 21, 49, 21, "D", "2")                     # kitchen
+    for key, rid, name, x0, y0, door in (
+        ("5", 16, "Balkon 1", 13, 23, (17, 25)),
+        ("6", 17, "Balkon 2", 13, 31, (17, 33)),
+        ("7", 18, "Balkon 5", 55, 23, (54, 25)),
+        ("8", 19, "Balkon 6", 55, 31, (54, 33)),
+    ):
+        f.area(x0, y0, x0 + 3, y0 + 4, "h", "-")
+        nx = x0 + 1 if x0 < 30 else x0                   # the open side is the building wall
+        f.area(nx, y0 + 1, nx + 2, y0 + 3, "n", key)
+        f.room(key, rid, name, "balcony", outdoor=True)
+        f.put(nx + (0 if x0 < 30 else 2), y0 + 1, nx + (0 if x0 < 30 else 2), y0 + 1, "A")
+        f.door(*door, *door, "G", "1" if x0 < 30 else "2")
+
+    # The core: 318 meeting room and 319 ladies' at the west end, 301 the
+    # stairwell, a passage past 303 (locked) to the lifts, 315 meeting room
+    # at the east end; 302 the lift hall below with 317 reception desk, 316
+    # gents' off it.
+    f.walls(17, 38, 24, 45, ",", "k")
+    f.room("k", 21, "Sala konferencyjna 6", "meeting", detector=True, light="switch", switch_door=(24, 44), windows=True)
+    f.put(19, 41, 22, 41, "T")
+    f.walls(17, 45, 24, 50, ":", "9")
+    f.room("9", 23, "WC damski 2", "stall", gender="female", light="always")
+    f.put(18, 46, 18, 46, "U")
+    f.put(23, 49, 23, 49, "V")
+    f.walls(24, 38, 32, 43, ".", "Q")
+    f.room("Q", 24, "Klatka schodowa", "stairs", light="always")
+    f.area(*STAIRS3, "S", "Q")                           # down to the ground floor
+    f.area(*STAIRS3_UP, "S", "Q")                        # up to floor 4
+    f.area(33, 38, 34, 43, ".", "C")                     # passage to the lifts
+    f.walls(35, 38, 43, 40, ":", "q")
+    f.room("q", 25, "Pomieszczenie użytkowe", "service", light="always")
+    f.put(40, 39, 42, 39, "H")
+    f.walls(44, 38, 54, 43, ",", "s")
+    f.room("s", 26, "Sala konferencyjna 5", "meeting", detector=True, light="switch", switch_door=(48, 43), windows=True)
+    f.put(47, 40, 50, 41, "T")
+    f.area(25, 44, 53, 49, ".", "C")
+    f.room("C", 27, "Hol windowy", "hall", detector=True, light="always")
+    elevators(f, "C")
+    f.put(27, 47, 30, 47, "K")                           # 317: reception desk
+    f.plants([(25, 49), (53, 49)])
+    f.walls(54, 44, 59, 50, ":", "u")
+    f.room("u", 28, "WC męski 2", "stall", gender="male", light="always")
+    f.put(58, 45, 58, 45, "U")
+    f.put(56, 45, 56, 45, "u")
+    f.put(55, 49, 55, 49, "V")
+    f.door(33, 38, 34, 38, "D", "K")                     # open space <-> passage
+    f.door(24, 44, 24, 44, "D", "C")                     # 318
+    f.area(24, 47, 24, 47, "k", "9")                     # 319
+    f.door(28, 43, 28, 43, "D", "C")                     # stairwell
+    f.door(35, 39, 35, 39, "x", "q")                     # 303: locked
+    f.door(48, 43, 48, 43, "D", "C")                     # 315
+    f.area(54, 47, 54, 47, "k", "u")                     # 316
+
+    # The south wing: a corridor along the hall, the meeting rooms (nr 4, 3,
+    # 1), the waiting area and a two-desk office off it; balcony 7 off the
+    # big meeting room.
+    f.area(9, 50, 61, 65, "#", "-")
+    f.area(10, 51, 60, 53, ".", "D")
+    f.room("D", 29, "Korytarz", "corridor", detector=True, light="always")
+    f.door(30, 50, 31, 50, "D", "D")                     # hall <-> corridor
+    f.door(46, 50, 47, 50, "D", "D")
+    f.area(10, 55, 20, 64, ",", "d")
+    f.room("d", 30, "Sala konferencyjna 4", "meeting", detector=True, light="switch", switch_door=(15, 54), windows=True)
+    f.put(13, 58, 17, 59, "T")
+    f.door(15, 54, 15, 54, "D", "D")
+    f.area(22, 55, 30, 64, ",", "p")
+    f.room("p", 31, "Poczekalnia", "common", detector=True, light="always", windows=True)
+    f.put(23, 56, 25, 56, "Q")
+    f.put(27, 56, 29, 56, "Q")
+    f.put(25, 59, 27, 60, "T")
+    f.put(23, 63, 25, 63, "Q")
+    f.put(27, 63, 29, 63, "Q")
+    f.plants([(22, 64), (30, 64)])
+    f.door(25, 54, 26, 54, "D", "D")
+    f.area(32, 55, 42, 64, ",", "c")
+    f.room("c", 32, "Sala konferencyjna 3", "meeting", detector=True, light="switch", switch_door=(37, 54), windows=True)
+    f.put(34, 58, 40, 59, "T")                           # 16 seats
+    f.door(37, 54, 37, 54, "D", "D")
+    f.area(33, 66, 41, 69, "h", "-")                     # balcony 7
+    f.area(34, 66, 40, 68, "n", "f")
+    f.room("f", 35, "Balkon 7", "balcony", outdoor=True)
+    f.put(40, 68, 40, 68, "A")
+    f.door(37, 65, 37, 65, "G", "c")
+    f.area(44, 55, 50, 64, ",", "b")
+    f.room("b", 33, "Pokój biurowy 2", "department", detector=True, light="switch", switch_door=(47, 54), windows=True)
+    f.put(45, 58, 46, 58, "W")
+    f.put(48, 58, 49, 58, "W")
+    f.door(47, 54, 47, 54, "D", "D")
+    f.area(52, 55, 60, 64, ",", "e")
+    f.room("e", 34, "Sala konferencyjna 1", "meeting", detector=True, light="switch", switch_door=(56, 54), windows=True)
+    f.put(54, 58, 57, 59, "T")
+    f.door(56, 54, 56, 54, "D", "D")
+    return f
+
+
+def stairwell(floor, name):
+    f = Floor(floor, "~")
     f.box(31, 4, 37, 15, ".", "P")
-    f.room("P", 1, "Półpiętro", "stairs", light="always")
+    f.room("P", 1, name, "stairs", light="always")
     f.area(*MID_FLIGHT_A, "s")
     f.area(*MID_FLIGHT_B, "s")
     f.area(34, 7, 34, 15, "#", "-")          # wall between the flights
-    f.area(31, 15, 33, 15, "S")              # down to the ground floor
-    f.area(35, 15, 37, 15, "S")              # on to floor 1
+    f.area(31, 15, 33, 15, "S")              # down to the lower floor
+    f.area(35, 15, 37, 15, "S")              # on to the upper floor
     f.put(31, 4, 31, 4, "P")                 # a plant on the landing
     return f
 
@@ -666,12 +873,23 @@ def rect(r):
 
 def links():
     lifts = [{"kind": "elevator", "id": "A", "area": rect(ELEV_A)}, {"kind": "elevator", "id": "B", "area": rect(ELEV_B)}]
+    def stairs(area, to_floor, to):
+        return {"kind": "stairs", "area": area, "to_floor": to_floor, "to": list(to)}
+
     return {
-        0: lifts + [{"kind": "stairs", "area": rect(STAIRS0), "to_floor": STAIRWELL_FLOOR, "to": list(MID_ARRIVAL_A)}],
-        1: lifts + [{"kind": "stairs", "area": rect(STAIRS1), "to_floor": STAIRWELL_FLOOR, "to": list(MID_ARRIVAL_B)}],
+        0: lifts + [stairs(rect(STAIRS0), STAIRWELL_FLOOR, MID_ARRIVAL_A)],
+        3: lifts + [
+            stairs(rect(STAIRS3), STAIRWELL_FLOOR, MID_ARRIVAL_B),
+            stairs(rect(STAIRS3_UP), STAIRWELL_UP_FLOOR, MID_ARRIVAL_A),
+        ],
+        4: lifts + [stairs(rect(STAIRS4), STAIRWELL_UP_FLOOR, MID_ARRIVAL_B)],
         STAIRWELL_FLOOR: [
-            {"kind": "stairs", "area": [31, 15, 3, 1], "to_floor": 0, "to": list(STAIRS0_ARRIVAL)},
-            {"kind": "stairs", "area": [35, 15, 3, 1], "to_floor": 1, "to": list(STAIRS1_ARRIVAL)},
+            stairs([31, 15, 3, 1], 0, STAIRS0_ARRIVAL),
+            stairs([35, 15, 3, 1], 3, STAIRS3_ARRIVAL),
+        ],
+        STAIRWELL_UP_FLOOR: [
+            stairs([31, 15, 3, 1], 3, STAIRS3_UP_ARRIVAL),
+            stairs([35, 15, 3, 1], 4, STAIRS4_ARRIVAL),
         ],
     }
 
@@ -716,7 +934,13 @@ def check(f):
 
 
 def main():
-    floors = [floor0(), floor1(), stairwell()]
+    floors = [
+        floor0(),
+        floor3(),
+        floor4(),
+        stairwell(STAIRWELL_FLOOR, "Półpiętro"),
+        stairwell(STAIRWELL_UP_FLOOR, "Półpiętro (wyżej)"),
+    ]
     for f in floors:
         f.finish()
         check(f)
@@ -736,9 +960,12 @@ def main():
         "version": 1,
         "floors": [
             {"floor": 0, "file": "floor0.json", "name": "Parter"},
-            {"floor": 1, "file": "floor1.json", "name": "Piętro 1"},
+            {"floor": 1, "file": None, "name": "Piętro 1", "locked": True},
             {"floor": 2, "file": None, "name": "Piętro 2", "locked": True},
-            {"floor": 3, "file": "floor3.json", "name": "Klatka schodowa (półpiętro)", "stairwell": True},
+            {"floor": 3, "file": "floor3.json", "name": "Piętro 3"},
+            {"floor": 4, "file": "floor4.json", "name": "Piętro 4"},
+            {"floor": 5, "file": "floor5.json", "name": "Klatka schodowa (półpiętro parter–3)", "stairwell": True},
+            {"floor": 6, "file": "floor6.json", "name": "Klatka schodowa (półpiętro 3–4)", "stairwell": True},
         ],
     }
     with open(os.path.join(OUT, "building.json"), "w", encoding="utf-8") as fh:
