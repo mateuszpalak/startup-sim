@@ -321,6 +321,18 @@ pub fn golden_samples() -> Vec<(&'static str, Packet)> {
         ("roll", Packet::Roll { token: 0x01020304, quality: 87 }),
         ("chat_say", Packet::ChatSay { token: 0x01020304, text: "/s Idziemy na kawę?".into() }),
         ("notice", Packet::Notice { icon: 2, text: "Nowa poczta: Witamy!".into() }),
+        (
+            "own_profile",
+            Packet::OwnProfile {
+                profile: Profile {
+                    gender: gender::MALE,
+                    age: 31,
+                    city: "Gdańsk".into(),
+                    email: "kuba@poczta.pl".into(),
+                    appearance: Appearance { skin: 2, hair_style: 1, hair_color: 3, shirt: 5, pants: 0 },
+                },
+            },
+        ),
         ("media", Packet::Media { screens: vec![(1, 35, 14, 4, 12_345)], music: vec![(2, 12_000, 1, 10_496, 3_200, 7)] }),
         (
             "hr_info",

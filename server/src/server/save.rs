@@ -252,6 +252,8 @@ impl Server {
         let owner_id = |n: &str| if n == nick { pid } else { self.players.values().find(|o| o.nick == n).map_or(0, |o| o.id) };
         let items: Vec<Option<crate::inventory::Item>> =
             c.inventory.iter().zip(&ids).map(|(it, &id)| it.as_ref().map(|i| i.to_item(id, owner_id(&i.owner)))).collect();
+        // Hired but no contract yet (the trial day): the job is still theirs.
+        let trial = (!c.contract).then_some(c.position).flatten().filter(|&o| self.position(o).is_some());
         let Some(p) = self.players.get_mut(&pid) else { return false };
         p.profile = c.profile.to_profile();
         p.money = c.money;
@@ -269,8 +271,11 @@ impl Server {
         p.attempts = c.attempts;
         p.seen_questions = c.seen_questions.clone();
         p.reprimands = c.reprimands;
-        if c.contract {
-            p.contract = true;
+        // Went to the office already (a contract, or the trial day under
+        // way): straight back in, with what they had on them.
+        let at_work = c.contract || (trial.is_some() && c.department != 0);
+        if at_work {
+            p.contract = c.contract;
             p.department = c.department;
             p.position = c.position;
             p.stage = if night { Stage::Home { arrive_at: None } } else { Stage::Working };
@@ -280,6 +285,8 @@ impl Server {
                 *pocket = slots.next().flatten();
             }
             refresh(p);
+        } else if trial.is_some() {
+            p.position = trial;
         }
         // A board member saved before the breathalyser existed gets one.
         let board_without =
@@ -300,6 +307,10 @@ impl Server {
         }
         if board_without {
             self.give_new(pid, crate::inventory::kind::BREATHALYSER);
+        }
+        // Hired, still at home: the trial day's invitation again.
+        if let (Some(offer), false) = (trial, at_work) {
+            self.reinvite_to_trial(pid, offer);
         }
         // Saved before the HR app: the file starts with the contract.
         self.open_hr_file(pid);

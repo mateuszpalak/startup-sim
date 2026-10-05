@@ -279,6 +279,11 @@ impl Server {
             if let Some(info) = self.info_of(id) {
                 self.send(addr, &Packet::PlayerInfo { players: vec![info] });
             }
+            // ...and its real profile (the client logged in with a stand-in
+            // one): to this player only.
+            if let Some(profile) = self.players.get(&id).map(|p| p.profile.clone()) {
+                self.send(addr, &Packet::OwnProfile { profile });
+            }
         }
         if !skip {
             self.send_portal(id, true);

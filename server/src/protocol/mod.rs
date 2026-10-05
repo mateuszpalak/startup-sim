@@ -116,6 +116,7 @@ pub mod ty {
     pub const ROLL: u8 = 59;
     pub const CHAT_SAY: u8 = 60;
     pub const NOTICE: u8 = 61;
+    pub const OWN_PROFILE: u8 = 62;
 }
 
 /// `ItemAction::action`.
@@ -928,6 +929,11 @@ pub enum Packet {
     Notice {
         icon: u8,
         text: String,
+    },
+    /// The player's own character (gender, age, city, e-mail, look) as the
+    /// server keeps it - sent to that player only, after logging back in.
+    OwnProfile {
+        profile: Profile,
     },
     /// Rolled a cigarette (the minigame, tobacco in hands): how well, 0..100.
     Roll {

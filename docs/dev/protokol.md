@@ -498,6 +498,13 @@ najbliższa osoba w 2 kaflach („(szeptem) …”), „/k tekst” — całe pi
 rogu ekranu. Przedmioty: 52 mały kluczyk (barek), 53 whisky, 54 koniak, 55
 wódka; barek to `Dialog` 255.
 
+### 62 `OwnProfile` (S→C)
+
+Własna postać z zapisu, tylko dla jej gracza, zaraz po ponownym zalogowaniu
+(klient wysyła w `Connect` profil zastępczy): `gender u8`, `age u8`, wygląd
+5 × u8 (jak w `Connect`), `city` str16, `email` str16. Nigdy nie trafia do
+innych graczy.
+
 ### 59 `Roll` (C→S)
 
 token u32, `quality u8` (0..100) — wynik mini-gry skręcania; serwer zabiera

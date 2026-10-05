@@ -241,6 +241,11 @@
       "name": "notice"
     },
     {
+      "debug": "OwnProfile { profile: Profile { gender: 1, age: 31, city: \"Gdańsk\", email: \"kuba@poczta.pl\", appearance: Appearance { skin: 2, hair_style: 1, hair_color: 3, shirt: 5, pants: 0 } } }",
+      "hex": "54532f3e011f02010305000700476461c584736b0e006b75626140706f637a74612e706c",
+      "name": "own_profile"
+    },
+    {
       "debug": "Media { screens: [(1, 35, 14, 4, 12345)], music: [(2, 12000, 1, 10496, 3200, 7)] }",
       "hex": "54532f3a0101230e04393000000102e02e00000100290000800c00000700",
       "name": "media"

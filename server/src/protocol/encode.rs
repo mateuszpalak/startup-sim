@@ -55,6 +55,7 @@ impl Packet {
             Packet::Roll { .. } => ty::ROLL,
             Packet::ChatSay { .. } => ty::CHAT_SAY,
             Packet::Notice { .. } => ty::NOTICE,
+            Packet::OwnProfile { .. } => ty::OWN_PROFILE,
             Packet::Sound { .. } => ty::SOUND,
             Packet::TaskAction { .. } => ty::TASK_ACTION,
             Packet::TaskBoard { .. } => ty::TASK_BOARD,
@@ -468,6 +469,13 @@ impl Packet {
             Packet::ChatSay { token, text } => {
                 w.u32(*token);
                 w.str16(text, MAX_SAY_BYTES);
+            }
+            Packet::OwnProfile { profile } => {
+                w.u8(profile.gender);
+                w.u8(profile.age);
+                w.appearance(&profile.appearance);
+                w.str16(&profile.city, MAX_CITY_BYTES);
+                w.str16(&profile.email, MAX_EMAIL_BYTES);
             }
             Packet::Notice { icon, text } => {
                 w.u8(*icon);

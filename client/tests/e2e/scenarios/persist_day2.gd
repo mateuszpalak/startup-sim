@@ -1,5 +1,5 @@
 ## After the server restart: logging in again brings the character back -
-## the card in the pocket, the laptop still on the desk.
+## its own profile (e-mail), the card in the pocket, the laptop still on the desk.
 extends "res://tests/e2e/scenario.gd"
 
 const Item = preload("res://game/item_art.gd")
@@ -10,6 +10,8 @@ func run() -> void:
 		return
 	if not await hear("Z powrotem", 15.0):
 		return
+	# Logged in with a stand-in profile: the server sends back the real one.
+	check(main.profile.email == "trwala@poczta.pl", "own e-mail back (%s)" % main.profile.email)
 	await until(func(): return carrying(Item.EMPLOYEE_CARD), 5.0, "the employee card")
 	check(not carrying(Item.LAPTOP), "the laptop not in the pockets (it is on the desk)")
 	# Back to the desk (the laptop is seen from its room).

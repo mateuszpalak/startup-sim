@@ -290,6 +290,12 @@ func _sync_portal() -> void:
 
 
 func _on_packet(p: Dictionary) -> void:
+	if p.type == Protocol.T_OWN_PROFILE:
+		# Logged back in with a stand-in profile: the real one, from the save.
+		profile = p.profile
+		portal.set_profile(net.nick, profile)
+		if game:
+			game.set_own_appearance(profile.appearance)
 	portal.on_packet(p)
 	if p.type == Protocol.T_RECRUIT_RESULT:
 		_sync_portal()

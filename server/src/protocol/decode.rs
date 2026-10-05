@@ -395,6 +395,12 @@ impl Packet {
             }
             ty::CHAT_SAY => Packet::ChatSay { token: r.u32()?, text: r.str16(MAX_SAY_BYTES)? },
             ty::NOTICE => Packet::Notice { icon: r.u8()?, text: r.str16(MAX_TEXT_BYTES)? },
+            ty::OWN_PROFILE => {
+                let (gender, age, appearance) = (r.u8()?, r.u8()?, r.appearance()?);
+                let city = r.str16(MAX_CITY_BYTES)?;
+                let email = r.str16(MAX_EMAIL_BYTES)?;
+                Packet::OwnProfile { profile: Profile { gender, age, city, email, appearance } }
+            }
             ty::ROLL => Packet::Roll { token: r.u32()?, quality: r.u8()? },
             ty::MEDIA => {
                 let n = r.u8()? as usize;
