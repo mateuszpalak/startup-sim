@@ -1,4 +1,4 @@
-# Protokół sieciowy (wersja 46)
+# Protokół sieciowy (wersja 47)
 
 Własny binarny protokół na UDP. Implementacje:
 - serwer: `server/src/protocol/` (źródło prawdy),
