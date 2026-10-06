@@ -324,6 +324,8 @@ kabinie) — szczegóły w 10.18.
   zaparkowanym aucie/rowerze albo — pieszo / tramwajem / taksówką — na
   zachodnim końcu chodnika, na przystanku tramwajowym lub na postoju taksówek
   (parter, podpowiedź „[E] Wracam do domu”).
+  Kto wrócił do gry w trakcie dnia pracy (albo serwer się zrestartował), a
+  przyjechał autem / rowerem, ma je z powrotem na parkingu / przy stojaku.
 - Pierwsze E pyta („E jeszcze raz — tak”, 5 s), drugie potwierdza: auto/rower
   odjeżdża ulicą, gracz ląduje w domu.
 - **Wypłata** za przepracowane minuty (jak o 22:00), od razu przy wyjściu.

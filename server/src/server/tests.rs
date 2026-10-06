@@ -1173,6 +1173,33 @@ fn on_the_trial_day_comes_back_into_the_building_with_the_pass() {
 }
 
 #[test]
+fn back_at_work_by_car_the_car_is_parked_and_takes_you_home() {
+    let mut s = server();
+    s.clock = crate::clock::Clock::new(12 * 60, 1); // midday
+    add_player(&mut s, 1);
+    s.employ(1);
+    let p = s.players.get_mut(&1).unwrap();
+    p.stage = Stage::Working;
+    p.commute_mode = crate::commute::mode::CAR;
+    relog(&mut s, 1, 2);
+    let v = s.vehicles.iter().find(|v| v.owner == 2).expect("the car is in the car park");
+    assert!(v.parked());
+    // Twice at the car: home.
+    let p = s.players.get_mut(&2).unwrap();
+    p.body = Body { access: p.body.access, ..Body::at(0, v.pos) };
+    let body = p.body;
+    assert_eq!(s.try_go_home(2, &body).as_deref(), Some(crate::commute::lines::GO_HOME_ASK));
+    s.try_go_home(2, &body);
+    assert!(matches!(s.players[&2].stage, Stage::Home { .. }), "went home by car");
+    // Logging in again doesn't park a second one.
+    s.players.get_mut(&2).unwrap().stage = Stage::Working;
+    s.vehicles.clear();
+    s.park_own_vehicle(2);
+    s.park_own_vehicle(2);
+    assert_eq!(s.vehicles.iter().filter(|v| v.owner == 2).count(), 1);
+}
+
+#[test]
 fn hr_finds_a_lost_laptop_or_issues_a_new_one() {
     use super::lost_items::{lines, DIALOG};
     let mut s = server();

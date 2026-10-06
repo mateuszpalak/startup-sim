@@ -181,6 +181,28 @@ impl Vehicle {
         })
     }
 
+    /// The car / bike already standing in its place (back in the game at
+    /// work: it came in the morning).
+    pub fn parked_for(o: &Outside, mode_id: u8, handle: u16, owner: u16, slot: usize) -> Option<Vehicle> {
+        let mut v = Vehicle::for_mode(o, mode_id, handle, owner, slot).filter(|v| v.parks)?;
+        let last = v.path.len() - 1;
+        let (dx, dy) = (v.path[last].x - v.path[last - 1].x, v.path[last].y - v.path[last - 1].y);
+        v.facing = if dy > 0 {
+            0
+        } else if dy < 0 {
+            1
+        } else if dx < 0 {
+            2
+        } else {
+            3
+        };
+        v.pos = v.path[last];
+        v.next = v.path.len();
+        v.rider = None;
+        v.moving = false;
+        Some(v)
+    }
+
     /// A patrol car: drives up to the entrance and waits there (`leave`).
     pub fn police(o: &Outside, handle: u16) -> Vehicle {
         Vehicle::emergency(handle, vehicle::POLICE, crate::security::car_path(o))
