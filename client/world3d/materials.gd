@@ -48,24 +48,17 @@ static func wall() -> ShaderMaterial:
 	return get_all()["wall"]
 
 
-static func _std(rough: float, metal: float) -> StandardMaterial3D:
-	var m := StandardMaterial3D.new()
-	m.vertex_color_use_as_albedo = true
-	m.vertex_color_is_srgb = true
-	m.roughness = rough
-	m.metallic = metal
+## Vertex-coloured surface (prop.gdshader: darkened in unlit rooms).
+static func _std(rough: float, metal: float) -> ShaderMaterial:
+	var m := _shader_mat("res://world3d/shaders/prop.gdshader")
+	m.set_shader_parameter("roughness", rough)
+	m.set_shader_parameter("metallic", metal)
 	return m
 
 
-static func _glass() -> StandardMaterial3D:
-	var m := StandardMaterial3D.new()
-	m.vertex_color_use_as_albedo = true
-	m.vertex_color_is_srgb = true
-	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	m.roughness = 0.05
-	m.metallic = 0.2
-	m.cull_mode = BaseMaterial3D.CULL_DISABLED
-	return m
+## See-through; glows at night when the room's lamp is on (glass.gdshader).
+static func _glass() -> ShaderMaterial:
+	return _shader_mat("res://world3d/shaders/glass.gdshader")
 
 
 static func _screen() -> ShaderMaterial:

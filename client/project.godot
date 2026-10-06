@@ -45,3 +45,30 @@ lights_and_shadows/positional_shadow/soft_shadow_filter_quality=3
 textures/vram_compression/import_etc2_astc=true
 
 textures/canvas_textures/default_texture_filter=1
+
+[shader_globals]
+
+atmos_mask={
+"type": "sampler2D",
+"value": ""
+}
+atmos_mask_size={
+"type": "vec2",
+"value": Vector2(1, 1)
+}
+atmos_floor_y={
+"type": "float",
+"value": 0.0
+}
+atmos_wet={
+"type": "float",
+"value": 0.0
+}
+atmos_night={
+"type": "float",
+"value": 0.0
+}
+atmos_clouds={
+"type": "float",
+"value": 0.0
+}

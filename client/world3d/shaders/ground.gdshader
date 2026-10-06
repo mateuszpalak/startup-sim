@@ -2,6 +2,8 @@
 // UV2.x (see materials.gd GROUND_*), all in world space (no textures).
 shader_type spatial;
 
+#include "res://world3d/shaders/atmos.gdshaderinc"
+
 varying vec3 v_world;
 varying float v_kind;
 
@@ -91,6 +93,20 @@ void fragment() {
 	} else {
 		col *= 0.95 + fbm(p * 2.0) * 0.1;
 	}
-	ALBEDO = col;
+	// The weather and the room's light (atmos.gdshaderinc).
+	vec4 a = atmos_at(v_world + vec3(0.0, 0.05, 0.0));
+	float wet = atmos_wet * a.r;
+	if (wet > 0.0) {
+		// Wet: darker and glossy, puddles in the dips.
+		float dip = smoothstep(0.58, 0.72, fbm(p * 0.45 + 7.0)) * ((k == 3 || k == 4) ? 0.0 : 1.0);
+		col *= mix(1.0, 0.58, wet) * (1.0 - dip * wet * 0.25);
+		rough = mix(rough, k == 4 ? 0.6 : 0.16, wet);
+		rough = mix(rough, 0.02, dip * wet);
+		SPECULAR = mix(0.5, 0.75, wet);
+	}
+	if (a.r > 0.5) {
+		col *= atmos_cloud_shade(p, TIME);
+	}
+	ALBEDO = col * a.g;
 	ROUGHNESS = rough;
 }
