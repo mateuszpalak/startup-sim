@@ -13,6 +13,11 @@ const Coords = preload("res://world3d/coords.gd")
 const MeshBatch = preload("res://world3d/mesh_batch.gd")
 const Materials = preload("res://world3d/materials.gd")
 const Props = preload("res://world3d/props.gd")
+const ArtMaterials = preload("res://world3d/art/art_materials.gd")
+const Doors = preload("res://world3d/art/doors.gd")
+const Signage = preload("res://world3d/art/signage.gd")
+const Exterior = preload("res://world3d/art/exterior.gd")
+const S = preload("res://world3d/art/shapes.gd")
 const Ink = preload("res://ui/ink_ui.gd")
 
 const WALL_T := 0.28          # wall thickness
@@ -83,7 +88,13 @@ func build(building, floor_index: int, floor_names := {}) -> Node3D:
 	_linear()
 	if f == 0:
 		_outdoors()
-	var mats := Materials.get_all()
+		Exterior.street(self)
+	Signage.build(self, root)
+	var mats := ArtMaterials.merged(Materials.get_all())
+	if f == 0:
+		var ext := Exterior.storeys(self, mats)
+		if ext:
+			root.add_child(ext)
 	for pair in [[ground, "Ground"], [walls, "Walls"], [things, "Things"]]:
 		var b: MeshBatch = pair[0]
 		if not b.is_empty():
@@ -392,9 +403,8 @@ func _door_tile(x: int, y: int, t: String) -> void:
 			things.box(Vector3(a.x - 0.02, 0, b.z - fw), Vector3(b.x + 0.02, top, b.z), mat, frame_col)
 		things.box(Vector3(a.x - 0.02, top - fw, a.z), Vector3(b.x + 0.02, top, b.z), mat, frame_col, 8 | 1 | 2)
 	var mid := (a + b) / 2
+	Doors.build(self, x, y, t, a, b, horiz, top, prev_same, next_same)
 	match t:
-		"locked_door":
-			_leaf(a, b, horiz, top, Color("#7a4a3a"))
 		"glass_door":
 			# a glass fan light over the opening (the doors slide away)
 			things.box(Vector3(a.x, top - 0.25, mid.z - 0.01) if horiz else Vector3(mid.x - 0.01, top - 0.25, a.z),
@@ -576,9 +586,27 @@ func _linear() -> void:
 			var n: bool = same.call(0, -1)
 			match t:
 				"fence":
-					# a trimmed hedge along the plot's edge
+					# a trimmed hedge along the plot's edge: one rounded block
+					# per straight run (drawn from the run's first tile)
 					var hc := Color("#4c7a3a").lerp(Color("#5d8c42"), float(_hash(x, y) % 4) / 4.0)
-					things.box(Vector3(x + 0.08, 0, y + 0.08), Vector3(x + 0.92, 0.95 + (_hash(x, y, 1) % 3) * 0.03, y + 0.92), "leaf", hc, 63 & ~8, hc.lightened(0.1))
+					var runs := []
+					if e and not w:
+						var x1: int = x
+						while _type(x1 + 1, y) == t:
+							x1 += 1
+						runs.append(Rect2(x, y, x1 - x + 1, 1))
+					if s and not n:
+						var y1: int = y
+						while _type(x, y1 + 1) == t:
+							y1 += 1
+						runs.append(Rect2(x, y, 1, y1 - y + 1))
+					if not (e or w or n or s):
+						runs.append(Rect2(x, y, 1, 1))
+					for r: Rect2 in runs:
+						S.rbox(things, Vector3(r.position.x + 0.08, 0, r.position.y + 0.08), Vector3(r.end.x - 0.08, 1.0, r.end.y - 0.08), 0.14, "leaf", hc, hc.lightened(0.08))
+					for k in 2:
+						var p := Vector3(x + 0.25 + 0.5 * k, 0.93, y + 0.3 + float(_hash(x, y, k + 3) % 40) / 100.0)
+						things.sphere(p, 0.2 + float(_hash(x, y, k) % 3) * 0.03, "leaf", hc.lightened(0.04 * k), Vector3(1, 0.55, 1), 2, 6)
 				"railing":
 					_thin_line(x, y, e, w, n, s, 0.06, 1.0, "glass", Color(0.75, 0.88, 0.95, 0.3))
 					_thin_line(x, y, e, w, n, s, 0.08, 0.06, "metal", Color("#d0d6db"), 1.0)

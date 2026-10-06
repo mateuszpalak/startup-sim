@@ -11,6 +11,9 @@ const DESK_TOP := 0.76
 const LID_TILT := 0.32   # radians back from vertical
 const W := 0.34
 const D := 0.23
+## Towards the chair: clear of the desk's own keyboard and monitor
+## (props._desk), near the desk's front edge.
+const FRONT := 0.19
 
 var view: Node2D
 var _flags := -1
@@ -58,7 +61,7 @@ func setup(p_view: Node2D, _wv: Node3D) -> void:
 
 
 func sync(pos: Vector3, _delta: float) -> void:
-	position = pos + Vector3(0, DESK_TOP, 0.04)
+	position = pos + Vector3(0, DESK_TOP, FRONT)
 	if view.flags == _flags:
 		return
 	_flags = view.flags

@@ -94,6 +94,8 @@ func _init() -> void:
 					c.set_state(false, true)
 			for i in 40:
 				await process_frame
+		# the frame just drawn (not the previous one still in the texture)
+		await RenderingServer.frame_post_draw
 		var img := get_root().get_texture().get_image()
 		var path := out.path_join("%s.png" % shot)
 		img.save_png(path)

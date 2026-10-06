@@ -131,6 +131,8 @@ func _init() -> void:
 			wv.weather.strike()
 			for i in 3:
 				await process_frame
+		# the frame just drawn (not the previous one still in the texture)
+		await RenderingServer.frame_post_draw
 		var img := get_root().get_texture().get_image()
 		var path := out.path_join("%s.png" % p[0])
 		img.save_png(path)
