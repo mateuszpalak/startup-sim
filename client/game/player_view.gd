@@ -70,6 +70,8 @@ var nick_label := Label.new()
 ## Nick and speech bubble live in `_tag`, which follows this view from a
 ## layer above the world's ink effect (`label_root`) so text stays sharp.
 static var label_root: Node = null
+## The 3D world places the tags itself (on screen over the 3D heads).
+static var tags_placed_externally := false
 var _tag := Node2D.new()
 var bubble := PanelContainer.new()
 var bubble_label := Label.new()
@@ -277,7 +279,7 @@ func _process(delta: float) -> void:
 		tree_exiting.connect(func():
 				if is_instance_valid(_tag):
 					_tag.queue_free())
-	if _tag.get_parent() != self:
+	if _tag.get_parent() != self and not tags_placed_externally:
 		_tag.global_position = global_position
 		_tag.visible = is_visible_in_tree()
 	if bubble.visible:

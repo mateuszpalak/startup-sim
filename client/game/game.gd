@@ -7,7 +7,7 @@ signal entered_world
 
 const Protocol = preload("res://net/protocol.gd")
 const Movement = preload("res://sim/movement.gd")
-const MapView = preload("res://map/map_view.gd")
+const WorldView = preload("res://world3d/world_view.gd")
 const PlayerView = preload("res://game/player_view.gd")
 const RemotePlayer = preload("res://game/remote_player.gd")
 const DebugOverlay = preload("res://ui/debug_overlay.gd")
@@ -45,7 +45,8 @@ const LightView = preload("res://game/light_view.gd")
 const Settings = preload("res://ui/settings.gd")
 const Ink = preload("res://ui/ink_ui.gd")
 
-const ZOOM := 3.0
+## Nick / bubble tags are drawn at screen scale (the 3D world places them).
+const ZOOM := 1.0
 ## Remote players are rendered this far in the past (2 snapshots at 20 Hz).
 const INTERP_DELAY_SEC := 0.1
 ## Each Input packet repeats this many latest inputs (covers packet loss).
@@ -63,7 +64,11 @@ const Departments = preload("res://net/departments.gd")
 
 var net
 var building
-var views := {}          # floor -> MapView (only the current floor is visible)
+## The 3D presentation (world3d/): mirrors the 2D views below, which stay
+## as invisible state holders (positions, facing, looks, tags).
+var world_view := WorldView.new()
+## Parent of the 2D world drawing (hidden: the 3D world shows it).
+var hidden_2d := Node2D.new()
 var tick_hz := 20
 var nick := ""
 var world := Node2D.new()
@@ -192,9 +197,12 @@ var _goto_floor := -1   # floor the current path was planned on
 func setup(p_net, p_building, welcome: Dictionary, p_nick: String, args: Dictionary) -> void:
 	RenderingServer.set_default_clear_color(Color("#15171f"))  # the night around the building
 	label_layer.layer = 7
-	label_layer.follow_viewport_enabled = true
+	label_layer.follow_viewport_enabled = false  # tags are put on screen by world_view
 	add_child(label_layer)
 	PlayerView.label_root = label_layer
+	PlayerView.tags_placed_externally = true
+	hidden_2d.visible = false
+	add_child(hidden_2d)
 	net = p_net
 	building = p_building
 	nick = p_nick
@@ -217,39 +225,25 @@ func setup(p_net, p_building, welcome: Dictionary, p_nick: String, args: Diction
 		audio.world = world
 
 	var map0 = building.get_floor(0)
-	for f in building.floors.size():
-		var m = building.get_floor(f)
-		if m == null:
-			continue
-		var view := MapView.new()
-		var names := {}  # where stairs lead (not "to the stairwell": the EXIT sign says it)
-		for g in building.floors.size():
-			if not building.floors[g].stairwell:
-				names[g] = building.floor_name(g)
-		view.build(m, ZOOM, names)
-		view.visible = false
-		add_child(view)
-		view.remove_child(view.labels)
-		label_layer.add_child(view.labels)
-		view.labels.visible = false
-		views[f] = view
+	world_view.setup(self, building)
 	world.y_sort_enabled = true
-	add_child(puddle_layer)
-	add_child(ride_mask)  # between the map and the people
-	add_child(world)
+	hidden_2d.add_child(puddle_layer)
+	hidden_2d.add_child(ride_mask)
+	hidden_2d.add_child(world)
 	boombox.bus = "Music"
 	boombox.max_distance = 320.0
 	boombox.attenuation = 1.6
 	world.add_child(boombox)
 	light_view.setup(building)
-	add_child(light_view)  # over the world (and inked with it)
+	hidden_2d.add_child(light_view)  # its state lights the 3D rooms (world_view)
 	# Smoke over the ink effect (drawn in its own style), under the weather.
 	smoke_layer.layer = 5
 	smoke_layer.follow_viewport_enabled = true
+	smoke_layer.visible = false  # TODO 3D smoke (world3d)
 	add_child(smoke_layer)
 	smoke_view.setup(building)
 	smoke_layer.add_child(smoke_view)
-	for f in views:
+	for f in world_view.floors:
 		var m = building.get_floor(f)
 		stall_doors[f] = []
 		elevator_doors[f] = []
@@ -338,7 +332,7 @@ func setup(p_net, p_building, welcome: Dictionary, p_nick: String, args: Diction
 	mat.shader = load("res://game/mood.gdshader")
 	mood.material = mat
 	Settings.load_once()
-	mood.visible = not args.has("no-mood")  # the ink and paper: always (off only for dev / perf runs)
+	mood.visible = false  # the 2D ink-and-paper post effect: not for the 3D world
 	mood_layer.add_child(mood)
 	alarm_tint.set_anchors_preset(Control.PRESET_FULL_RECT)
 	alarm_tint.color = Color(0.9, 0.05, 0.05, 0.0)
@@ -429,6 +423,7 @@ func setup(p_net, p_building, welcome: Dictionary, p_nick: String, args: Diction
 			if not gadget.lift:
 				gadget.close())  # (the lift's panel: the server closes it, or shows it again)
 	screen_layer.add_child(screen)
+	add_child(world_view)  # last: it reads the state the rest updated this frame
 	_show_floor(0)
 	set_zoom_level.call_deferred(float(args["zoom"]) if args.has("zoom") else Settings.zoom)
 
@@ -437,9 +432,7 @@ func _show_floor(f: int) -> void:
 	smoke_view.set_floor(f)
 	light_view.set_floor(f)
 	_below_floor = -1
-	for k in views:
-		views[k].visible = (k == f)
-		views[k].labels.visible = (k == f)
+	world_view.show_floor(f)
 	for k in stall_doors:
 		for dv in stall_doors[k]:
 			dv.visible = (k == f)
@@ -474,7 +467,7 @@ func reset_session(welcome: Dictionary) -> void:
 	computers.clear()
 	screen.set_seated(false)
 	screen.chats.clear()
-	for f in views:
+	for f in world_view.floors:
 		building.get_floor(f).set_closed_tiles([])
 	screen.my_id = net.player_id
 	inventory = []
@@ -541,14 +534,22 @@ func _sample_input(delta: float) -> int:
 	if not get_window().has_focus():
 		return 0
 	var b := 0
+	# Keys are screen directions; the camera may be turned (world_view),
+	# the input sent stays in map axes.
+	var sd := Vector2i.ZERO
 	if Input.is_physical_key_pressed(KEY_W) or Input.is_physical_key_pressed(KEY_UP):
-		b |= Movement.IN_UP
+		sd.y -= 1
 	if Input.is_physical_key_pressed(KEY_S) or Input.is_physical_key_pressed(KEY_DOWN):
-		b |= Movement.IN_DOWN
+		sd.y += 1
 	if Input.is_physical_key_pressed(KEY_A) or Input.is_physical_key_pressed(KEY_LEFT):
-		b |= Movement.IN_LEFT
+		sd.x -= 1
 	if Input.is_physical_key_pressed(KEY_D) or Input.is_physical_key_pressed(KEY_RIGHT):
-		b |= Movement.IN_RIGHT
+		sd.x += 1
+	var md := world_view.screen_to_map(sd)
+	if md.y < 0: b |= Movement.IN_UP
+	if md.y > 0: b |= Movement.IN_DOWN
+	if md.x < 0: b |= Movement.IN_LEFT
+	if md.x > 0: b |= Movement.IN_RIGHT
 	if Input.is_physical_key_pressed(KEY_E) or _queued_interact:
 		if stain_here:
 			if not brush_game.visible:
@@ -1041,7 +1042,7 @@ func _on_snapshot(p: Dictionary) -> void:
 			r = RemotePlayer.new()
 			var npc: bool = e.kind == Protocol.KIND_NPC
 			r.look = (e.flags >> 3) & 7 if npc else 0
-			r.setup(e.id, _label_for(nicks.get(e.id, "..."), depts.get(e.id, 0)), ZOOM * zoom_level)
+			r.setup(e.id, _label_for(nicks.get(e.id, "..."), depts.get(e.id, 0)), ZOOM)
 			if not npc and appearances.has(e.id):
 				r.set_appearance(appearances[e.id])
 			world.add_child(r)
@@ -1123,14 +1124,7 @@ var zoom_level := 1.0
 
 func set_zoom_level(z: float) -> void:
 	zoom_level = clampf(z, ZOOM_MIN, ZOOM_MAX)
-	var zz := ZOOM * zoom_level
-	camera.zoom = Vector2(zz, zz)
-	me.set_zoom(zz)
-	for r in remotes.values():
-		if r.has_method("set_zoom"):
-			r.set_zoom(zz)
-	for v in views.values():
-		v.set_zoom(zz)
+	world_view.set_zoom(zoom_level)
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -1524,24 +1518,14 @@ var _below_floor := -1
 
 
 func _update_below_view() -> void:
-	var want: int = building.floor_below(floor_index, room_id)
-	if want == _below_floor:
-		return
-	if _below_floor >= 0 and views.has(_below_floor):
-		views[_below_floor].visible = false
-		views[_below_floor].modulate = Color.WHITE
-	_below_floor = want
-	if want >= 0 and views.has(want):
-		views[want].visible = true
-		views[want].modulate = Color(0.78, 0.78, 0.82)
+	# (3D: the street level is always shown under the upper floors.)
+	_below_floor = building.floor_below(floor_index, room_id)
 
 
 ## Smoke, detectors and room names are drawn over the ride mask: hide them
 ## while riding.
 func _set_floor_extras_visible(on: bool) -> void:
 	smoke_view.visible = on
-	if views.has(pred.floor):
-		views[pred.floor].labels.visible = on
 
 
 func _set_door_views_visible(on: bool) -> void:
