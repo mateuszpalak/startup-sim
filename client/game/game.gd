@@ -697,9 +697,10 @@ func _on_media(p: Dictionary) -> void:
 	boombox_music = p.music[0] if not p.music.is_empty() else {}
 	gadget.track = boombox_music.get("track", 0)
 	gadget.tv_channel = 0
-	var me_px := Movement.to_px(pred.pos)
 	var best := INF
-	for s in p.screens:  # the TV nearest to us on our floor
+	# the TV nearest to us on our floor (media can come before our first state)
+	for s in (p.screens if pred.has("pos") else []):
+		var me_px := Movement.to_px(pred.pos)
 		var d := me_px.distance_to(Vector2(s.x * 16, s.y * 16))
 		if s.floor == pred.floor and d < best:
 			best = d
