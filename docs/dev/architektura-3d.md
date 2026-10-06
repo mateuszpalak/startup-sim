@@ -28,7 +28,7 @@ go rysuje.
 | `world3d/elevator_door_3d.gd`, `stall_door_3d.gd` | drzwi windy (rozsuwane skrzydła, wyświetlacz piętra), drzwi kabin (obrót na zawiasie do środka kabiny, czerwone/zielone okienko) |
 | `world3d/ride_cabin_3d.gd` | jazda windą: piętro ukryte, widać tylko kabinę (tło czarne) |
 | `world3d/camera_rig.gd` | kamera: pochylenie 55°, płynne śledzenie, zoom, obrót |
-| `tests/render_objects.gd` | podgląd widoków encji: `godot --path client -s tests/render_objects.gd -- /katalog [items vehicles night laptops tv tray elevator stalls ride]` |
+| `tests/render_objects.gd` | podgląd widoków encji: `godot --path client -s tests/render_objects.gd -- /katalog [items vehicles tram night laptops tv tray elevator stalls ride]` |
 | `tests/render_3d.gd` | podgląd bez serwera: `godot --path client -s tests/render_3d.gd -- /katalog [nazwa:piętro:x,y:zoom:obrót:minuta]` |
 
 ## Współrzędne

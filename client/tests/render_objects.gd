@@ -18,7 +18,7 @@ const RideMask = preload("res://game/ride_mask.gd")
 const ItemArt = preload("res://game/item_art.gd")
 const Protocol = preload("res://net/protocol.gd")
 
-const ALL := ["items", "vehicles", "night", "laptops", "tv", "tray", "elevator", "stalls", "ride"]
+const ALL := ["items", "vehicles", "tram", "night", "laptops", "tv", "tray", "elevator", "stalls", "ride"]
 
 
 class FakeGame extends Node:
@@ -169,6 +169,17 @@ func _shot_vehicles() -> Array:
 		id += 1
 	game.me.visible = false
 	return [0, _px(Vector2i(31, y - 1)), 0.75]
+
+
+func _shot_tram() -> Array:
+	var tr := _tiles(0, "tram_track")
+	var t: Vector2i = tr[tr.size() / 2]
+	var v := VehicleView.new()
+	v.setup(VehicleView.TRAM, 0)
+	v.push(_px(t), 2)
+	game.world.add_child(v)
+	game.me.visible = false
+	return [0, _px(t + Vector2i(0, -1)), 0.9, 600, 30.0]
 
 
 func _shot_night() -> Array:
