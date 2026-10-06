@@ -1,7 +1,7 @@
 ## Hand-drawn floor art (Don't Starve-ish, matching the characters and the
 ## UI): muted colours, ink outlines, slightly wobbly edges. Drawn with vector
 ## calls in world pixels (16 per tile) inside a SubViewport rendered once at
-## a higher resolution (see map_view.gd), so it costs nothing per frame.
+## a higher resolution (dev tool tests/render_maps.gd), so it costs nothing per frame.
 ## Deterministic: same map -> same picture.
 extends Node2D
 
