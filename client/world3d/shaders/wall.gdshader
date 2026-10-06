@@ -3,6 +3,8 @@
 // world_view.gd updates the uniforms every frame.
 shader_type spatial;
 
+#include "res://world3d/shaders/atmos.gdshaderinc"
+
 uniform vec3 focus = vec3(0.0, -1000.0, 0.0);  // the player's chest
 uniform vec3 cam_pos = vec3(0.0, 1000.0, 0.0);
 uniform float radius = 2.6;     // metres around the line
@@ -10,9 +12,11 @@ uniform float keep_h = 0.55;    // walls are never cut below this (above the flo
 uniform float floor_y = 0.0;
 
 varying vec3 v_world;
+varying vec3 v_normal;
 
 void vertex() {
 	v_world = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
+	v_normal = normalize((MODEL_MATRIX * vec4(NORMAL, 0.0)).xyz);
 }
 
 float bayer4(vec2 p) {
@@ -42,6 +46,8 @@ void fragment() {
 			}
 		}
 	}
-	ALBEDO = pow(COLOR.rgb, vec3(2.2));  // vertex colours are sRGB
+	// the room this face looks into: dark when it is (atmos.gdshaderinc)
+	vec4 a = atmos_at(v_world + vec3(v_normal.x, 0.0, v_normal.z) * 0.45);
+	ALBEDO = pow(COLOR.rgb, vec3(2.2)) * atmos_light(a);  // vertex colours are sRGB
 	ROUGHNESS = 0.9;
 }

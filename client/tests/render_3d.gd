@@ -1,8 +1,10 @@
 ## Dev tool: render views of the 3D world to PNG without a server (needs a
 ## renderer - run without --headless):
 ##   godot --path client -s tests/render_3d.gd -- /output/dir [shot ...]
-## A shot is "name:floor:tile_x,tile_y[:zoom[:yaw_deg[:minute]]]"; without
-## shots a default set is rendered. A few stand-in people are placed around
+## A shot is "name:floor:tile_x,tile_y[:zoom[:yaw_deg[:minute[:weather[:extras]]]]]"
+## (weather: Protocol.WEATHER_*; extras: "+"-joined smoke, puddles, blood,
+## flash, lamps); without shots a default set is rendered. Prints the frame
+## time of every shot (run with --disable-vsync --max-fps 0 to measure). A few stand-in people are placed around
 ## the focus point.
 extends SceneTree
 
@@ -34,6 +36,7 @@ class FakeGame extends Node:
 	var game_minute := 600
 	var weather := 0
 	var light_view = preload("res://game/light_view.gd").new()
+	var smoke_view = preload("res://game/smoke_view.gd").new()
 
 	static func daylight_color(minute: int) -> Color:
 		return preload("res://game/game.gd").daylight_color(minute)
@@ -48,6 +51,7 @@ func _init() -> void:
 	b.load_path("res://maps/building.json")
 	var game := FakeGame.new()
 	game.light_view.setup(b)
+	game.smoke_view.setup(b)
 	get_root().add_child(game)
 	var wv := WorldView.new()
 	get_root().add_child(wv)
@@ -66,8 +70,14 @@ func _init() -> void:
 		var zoom := float(p[3]) if p.size() > 3 else 1.0
 		var yaw := deg_to_rad(float(p[4])) if p.size() > 4 else 0.0
 		game.game_minute = int(p[5]) if p.size() > 5 else 600
+		game.weather = int(p[6]) if p.size() > 6 else 1
+		var extras: PackedStringArray = p[7].split("+") if p.size() > 7 else PackedStringArray()
 		game.light_view.set_floor(f)
 		game.light_view.minute = game.game_minute
+		game.light_view.weather = game.weather
+		game.smoke_view.set_floor(f)
+		for c in game.puddle_layer.get_children():
+			c.free()
 		wv.show_floor(f)
 		wv.set_zoom(zoom)
 		wv.rig._yaw_goal = yaw
@@ -85,10 +95,44 @@ func _init() -> void:
 					r.position = (Vector2(c) + Vector2(0.5, 0.5)) * 16.0
 					break
 			k += 1
+		wv.weather.snap()
+		var here: int = m.room_at_tile(t.x, t.y)
+		if extras.has("lamps"):
+			var on := []
+			for rid in m.room_names:
+				on.append(rid)
+			game.light_view.on_lights({"floor": f, "rooms": on})
+		else:
+			game.light_view.on_lights({"floor": f, "rooms": []})
+		if extras.has("smoke"):
+			game.smoke_view._shown = {here: 0.7}
+			game.smoke_view._target = {here: 0.7}
+		else:
+			game.smoke_view._shown = {}
+			game.smoke_view._target = {}
+		if extras.has("puddles"):
+			for i in 5:
+				var pv = preload("res://game/puddle_view.gd").new()
+				pv.setup(i + 1, [0, 1, 3, 2, 0][i])
+				pv.position = (Vector2(t) + Vector2(-3 + i * 1.6, 2.5)) * 16.0
+				game.puddle_layer.add_child(pv)
 		for i in 40:
+			if i == 30 and extras.has("blood"):
+				wv.blood.burst(wv.px_to_world(game.me.position + Vector2(20, 0)) + Vector3(0, 1.2, 0))
+			if i == 37 and extras.has("flash"):
+				wv.weather.strike()
 			await process_frame
+		# frame time (meaningful with --disable-vsync --max-fps 0)
+		var t0 := Time.get_ticks_usec()
+		for i in 60:
+			await process_frame
+		var ms := (Time.get_ticks_usec() - t0) / 60000.0
+		if extras.has("flash"):
+			wv.weather.strike()
+			for i in 3:
+				await process_frame
 		var img := get_root().get_texture().get_image()
 		var path := out.path_join("%s.png" % p[0])
 		img.save_png(path)
-		print("%s -> %s" % [shot, path])
+		print("%s -> %s  (%.2f ms / frame)" % [shot, path, ms])
 	quit()
