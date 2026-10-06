@@ -6,8 +6,10 @@
 ##     the street level under the upper floors,
 ##   - an Avatar3D per PlayerView (me + remotes), nick / bubble tags placed
 ##     on screen over their heads (the 2D tags, re-used),
-##   - placeholder stand-ins for other entities (items, vehicles... - see
-##     ENTITY_PROXIES; each gets a proper 3D view later),
+##   - a 3D view per entity / door 2D view (ENTITY_VIEWS: items, vehicles,
+##     laptops, TVs, trays, elevator and stall doors), placeholder boxes for
+##     the rest (ENTITY_PROXIES),
+##   - the elevator car alone while riding (RideCabin3D, from game.ride_mask),
 ##   - room lamps (from LightView's state), the camera with wall cutaway.
 extends Node3D
 
@@ -19,18 +21,26 @@ const Avatar3D = preload("res://world3d/avatar_3d.gd")
 const PlayerView = preload("res://game/player_view.gd")
 const Protocol = preload("res://net/protocol.gd")
 
+const RideCabin3D = preload("res://world3d/ride_cabin_3d.gd")
+
+## 2D view script (under game.world) -> its 3D view script. A 3D view has
+## setup(view_2d, world_view) and sync(world_pos, delta); it is shown while
+## the 2D view is visible.
+const ENTITY_VIEWS := {
+	"res://game/item_view.gd": preload("res://world3d/item_3d.gd"),
+	"res://game/vehicle_view.gd": preload("res://world3d/vehicle_3d.gd"),
+	"res://game/computer_view.gd": preload("res://world3d/computer_3d.gd"),
+	"res://game/tv_view.gd": preload("res://world3d/tv_3d.gd"),
+	"res://game/tray_view.gd": preload("res://world3d/tray_3d.gd"),
+	"res://game/elevator_door_view.gd": preload("res://world3d/elevator_door_3d.gd"),
+	"res://game/stall_door_view.gd": preload("res://world3d/stall_door_3d.gd"),
+}
 ## 2D entity view script -> [size (x, y, z) m, colour]: plain boxes until
 ## each gets its own 3D view.
 const ENTITY_PROXIES := {
-	"res://game/item_view.gd": [Vector3(0.25, 0.12, 0.2), Color("#e0c060")],
-	"res://game/computer_view.gd": [Vector3(0.36, 0.03, 0.26), Color("#3a3d44")],
-	"res://game/tray_view.gd": [Vector3(0.5, 0.05, 0.35), Color("#d8d2c4")],
 	"res://game/puddle_view.gd": [Vector3(0.7, 0.01, 0.6), Color(0.85, 0.8, 0.3, 0.7)],
-	"res://game/tv_view.gd": [Vector3(0.0, 0.0, 0.0), Color.BLACK],
 	"res://game/blood_splash.gd": [Vector3(0.4, 0.01, 0.4), Color("#9b1b1b")],
 }
-const VEHICLE_SIZES := {1: Vector3(3.6, 1.4, 1.7), 2: Vector3(1.6, 1.1, 0.4), 3: Vector3(3.8, 1.5, 1.7),
-	4: Vector3(14.0, 3.0, 2.4), 5: Vector3(3.8, 1.5, 1.7), 6: Vector3(6.0, 2.6, 2.3)}
 
 var game: Node   # game.gd
 var building
@@ -41,8 +51,11 @@ var floors := {}        # floor -> Node3D (built map)
 var floor_shown := -1
 var avatars := {}       # PlayerView (instance id) -> Avatar3D
 var proxies := {}       # 2D node (instance id) -> MeshInstance3D
+var views3d := {}       # 2D node (instance id) -> 3D view (ENTITY_VIEWS)
+var ride_cabin := RideCabin3D.new()
 var _lamps := {}        # floor -> Array of [OmniLight3D, room]
 var _sky_mat := ProceduralSkyMaterial.new()
+var _riding := false
 
 
 func setup(p_game: Node, p_building) -> void:
@@ -52,6 +65,7 @@ func setup(p_game: Node, p_building) -> void:
 	_setup_environment()
 	add_child(rig)
 	rig.camera.make_current()
+	add_child(ride_cabin)
 	var names := {}  # where stairs lead (not "to the stairwell")
 	for g in building.floors.size():
 		if not building.floors[g].stairwell:
@@ -170,6 +184,8 @@ func _process(delta: float) -> void:
 		return
 	_sync_avatars(delta)
 	_sync_proxies()
+	_sync_views(delta)
+	_sync_ride()
 	var me: Node2D = game.me
 	var focus := px_to_world(me.position)
 	rig.shake = game.camera.offset
@@ -235,27 +251,24 @@ func _sync_proxies() -> void:
 		if n is PlayerView or not (n is Node2D):
 			continue
 		var path: String = n.get_script().resource_path if n.get_script() else ""
-		var is_vehicle := path == "res://game/vehicle_view.gd"
-		if not is_vehicle and not ENTITY_PROXIES.has(path):
+		if not ENTITY_PROXIES.has(path):
 			continue
 		var id: int = n.get_instance_id()
 		seen[id] = true
 		var mi: MeshInstance3D = proxies.get(id)
 		if mi == null:
-			mi = _make_proxy(n, path, is_vehicle)
+			mi = _make_proxy(path)
 			add_child(mi)
 			proxies[id] = mi
 		mi.visible = n.visible
 		var p := px_to_world(n.position)
 		mi.position = p + Vector3(0, (mi.mesh as BoxMesh).size.y / 2 if mi.mesh is BoxMesh else 0.0, 0)
-		if is_vehicle:
-			mi.rotation.y = 0.0 if n.facing >= 2 else PI / 2
 	for n in game.puddle_layer.get_children():
 		var id: int = n.get_instance_id()
 		seen[id] = true
 		var mi: MeshInstance3D = proxies.get(id)
 		if mi == null:
-			mi = _make_proxy(n, "res://game/puddle_view.gd", false)
+			mi = _make_proxy("res://game/puddle_view.gd")
 			add_child(mi)
 			proxies[id] = mi
 		mi.position = px_to_world(n.position) + Vector3(0, 0.01, 0)
@@ -265,24 +278,72 @@ func _sync_proxies() -> void:
 			proxies.erase(id)
 
 
-func _make_proxy(n: Node2D, path: String, is_vehicle: bool) -> MeshInstance3D:
+func _make_proxy(path: String) -> MeshInstance3D:
 	var mi := MeshInstance3D.new()
 	var box := BoxMesh.new()
 	var mat := StandardMaterial3D.new()
 	mat.roughness = 0.6
-	if is_vehicle:
-		box.size = VEHICLE_SIZES.get(n.kind, Vector3(3.6, 1.4, 1.7))
-		mat.albedo_color = n.color if n.kind != 4 else Color("#d8433a")
-		mat.metallic = 0.4
-	else:
-		var spec: Array = ENTITY_PROXIES[path]
-		box.size = spec[0]
-		mat.albedo_color = spec[1]
-		if spec[1].a < 1.0:
-			mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	var spec: Array = ENTITY_PROXIES[path]
+	box.size = spec[0]
+	mat.albedo_color = spec[1]
+	if spec[1].a < 1.0:
+		mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	mi.mesh = box
 	mi.material_override = mat
 	return mi
+
+
+## The 3D views of ENTITY_VIEWS, following their 2D views.
+func _sync_views(delta: float) -> void:
+	var seen := {}
+	for n in game.world.get_children():
+		if n is PlayerView or not (n is Node2D) or n.get_script() == null:
+			continue
+		var script = ENTITY_VIEWS.get(n.get_script().resource_path)
+		if script == null:
+			continue
+		var id: int = n.get_instance_id()
+		seen[id] = true
+		var v: Node3D = views3d.get(id)
+		if v == null:
+			v = script.new()
+			add_child(v)
+			v.setup(n, self)
+			views3d[id] = v
+		v.visible = n.visible
+		if n.visible:
+			v.sync(px_to_world(n.position), delta)
+	for id in views3d.keys():
+		if not seen.has(id):
+			views3d[id].queue_free()
+			views3d.erase(id)
+
+
+## Riding the elevator (game.ride_mask up): only the car is drawn - the
+## floor, its lamps and everybody outside the car are hidden, the sky goes
+## black.
+func _sync_ride() -> void:
+	var mask = game.get("ride_mask")
+	var riding: bool = mask != null and mask.visible
+	if riding:
+		var h: Rect2 = mask.hole.grow(-2.0)
+		ride_cabin.show_cabin(Rect2(h.position * Coords.PX, h.size * Coords.PX), Coords.floor_y(maxi(floor_shown, 0)))
+		for id in avatars:
+			var a: Node3D = avatars[id]
+			var p: Vector2 = a.view.position
+			if not h.grow(4.0).has_point(p):
+				a.visible = false
+		for k in floors:
+			floors[k].visible = false
+	if riding == _riding:
+		return
+	_riding = riding
+	ride_cabin.visible = riding
+	if not riding:
+		show_floor(floor_shown)
+	var e: Environment = env.environment
+	e.background_mode = Environment.BG_COLOR if riding else Environment.BG_SKY
+	e.background_color = Color("#0b0c10")
 
 
 # ------------------------------------------------------------- light
