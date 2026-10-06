@@ -1,5 +1,5 @@
 ## The settings (title screen and the Esc menu): full screen, battery
-## saving, crash reports, the camera zoom, sound volumes, the microphone.
+## saving, crash reports, the camera zoom, the 3D resolution, sound volumes, the microphone.
 ## Changes apply and save at once. The options scroll when the window is
 ## short; "Wróć" stays visible under them.
 extends VBoxContainer
@@ -70,6 +70,7 @@ func _ready() -> void:
 	_content.add_child(zr)
 	_update_zoom_label()
 	_content.add_child(Ink.label("W grze: kółko myszy albo + / - zmienia przybliżenie na chwilę.", 16, Ink.TEXT_MUTED))
+	_render_row()
 	_volume("Efekty", Settings.vol_sfx, func(v: float): Settings.vol_sfx = v)
 	_volume("Otoczenie", Settings.vol_ambient, func(v: float): Settings.vol_ambient = v)
 	_volume("Muzyka", Settings.vol_music, func(v: float): Settings.vol_music = v)
@@ -139,6 +140,36 @@ func _volume(title: String, value: float, set_value: Callable) -> void:
 		_save())
 	row.add_child(s)
 	_content.add_child(row)
+
+
+## 3D quality: "Auto" (left end) or 50..100 % of the screen's resolution.
+func _render_row() -> void:
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 12)
+	var l := Ink.label("", 18, Ink.TEXT_INK)
+	l.custom_minimum_size = Vector2(210, 0)
+	row.add_child(l)
+	var s := HSlider.new()
+	s.min_value = 0.45  # = auto
+	s.max_value = 1.0
+	s.step = 0.05
+	s.value = Settings.render_scale if Settings.render_scale > 0.0 else 0.45
+	s.custom_minimum_size = Vector2(220, 24)
+	s.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	var show := func(v: float):
+		if v < 0.49:
+			l.text = "Rozdzielczość 3D: auto (%d%%)" % roundi(Settings.effective_render_scale() * 100)
+		else:
+			l.text = "Rozdzielczość 3D: %d%%" % roundi(v * 100)
+	show.call(s.value)
+	s.value_changed.connect(func(v: float):
+		Settings.render_scale = 0.0 if v < 0.49 else v
+		show.call(v)
+		Settings.apply_render(get_viewport())
+		_save())
+	row.add_child(s)
+	_content.add_child(row)
+	_content.add_child(Ink.label("Niższa = płynniej (obraz skalowany przez FSR, napisy zostają ostre).", 16, Ink.TEXT_MUTED))
 
 
 func _update_zoom_label() -> void:

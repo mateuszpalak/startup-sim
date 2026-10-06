@@ -81,6 +81,11 @@ func _ready() -> void:
 	Settings.load_once()
 	Settings.apply_window()
 	Settings.apply_fps()
+	if args.has("render-scale"):  # dev: --render-scale=0.6 (not saved)
+		Settings.render_scale = clampf(float(args["render-scale"]), 0.25, 1.0)
+	Settings.apply_render(get_viewport())
+	if args.has("perf"):
+		Engine.max_fps = 0  # measure the headroom (run with --disable-vsync)
 	add_child(audio)
 	Settings.apply_audio()
 	add_child(updates)
@@ -354,6 +359,8 @@ func _perf_report() -> void:
 	if now - _perf_at < 2000:
 		return
 	_perf_hook(self)
+	var vp := get_viewport().get_viewport_rid()
+	RenderingServer.viewport_set_measure_render_time(vp, true)
 	if _perf_at > 0:
 		var top := _perf_draws.keys()
 		top.sort_custom(func(a, b): return _perf_draws[a] > _perf_draws[b])
@@ -361,8 +368,9 @@ func _perf_report() -> void:
 		for k in top.slice(0, 6):
 			parts.append("%s %.0f/s" % [k, _perf_draws[k] / ((now - _perf_at) / 1000.0)])
 		print("perf: redraws  " + ", ".join(parts))
-		print("perf: fps %d  process %.2f ms  physics %.2f ms  draw calls %d  items %d  nodes %d" % [
+		print("perf: fps %d  process %.2f ms  physics %.2f ms  gpu %.2f ms  render cpu %.2f ms  draw calls %d  items %d  nodes %d" % [
 			Engine.get_frames_per_second(), 1000.0 * _perf_proc / _perf_frames, 1000.0 * _perf_phys / _perf_frames,
+			RenderingServer.viewport_get_measured_render_time_gpu(vp), RenderingServer.viewport_get_measured_render_time_cpu(vp),
 			Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME),
 			Performance.get_monitor(Performance.RENDER_TOTAL_OBJECTS_IN_FRAME),
 			Performance.get_monitor(Performance.OBJECT_NODE_COUNT)])
@@ -598,6 +606,8 @@ func _notification(what: int) -> void:
 			net.close()
 			get_tree().quit()
 		NOTIFICATION_APPLICATION_FOCUS_OUT:
-			Settings.apply_fps(false)  # in the background: draw less
+			if not args.has("perf"):  # benchmarks: never throttled
+				Settings.apply_fps(false)  # in the background: draw less
 		NOTIFICATION_APPLICATION_FOCUS_IN:
-			Settings.apply_fps(true)
+			if not args.has("perf"):
+				Settings.apply_fps(true)

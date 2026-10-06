@@ -1,5 +1,5 @@
 ## Player settings, kept in user://settings.cfg: full screen, the world's
-## ink effect, the default camera zoom, battery saving (30 frames a second),
+## ink effect, the default camera zoom, the 3D render scale, battery saving (30 frames a second),
 ## sound volumes (0..1), sending crash reports without asking.
 extends RefCounted
 
@@ -13,6 +13,9 @@ static var vol_sfx := 0.8
 static var vol_ambient := 0.6
 static var vol_music := 0.5
 static var vol_voice := 0.9
+## 3D resolution (0.5..1, upscaled with FSR); 0 = automatic (0.7 on
+## HiDPI / Retina screens, else 1).
+static var render_scale := 0.0
 static var mic_device := "Default"
 static var _loaded := false
 
@@ -33,6 +36,9 @@ static func load_once() -> void:
 	vol_music = clampf(float(cfg.get_value("audio", "music", 0.5)), 0.0, 1.0)
 	vol_voice = clampf(float(cfg.get_value("audio", "voice", 0.9)), 0.0, 1.0)
 	mic_device = str(cfg.get_value("audio", "mic", "Default"))
+	render_scale = float(cfg.get_value("video", "render_scale", 0.0))
+	if render_scale != 0.0:
+		render_scale = clampf(render_scale, 0.5, 1.0)
 
 
 static func save() -> void:
@@ -40,6 +46,7 @@ static func save() -> void:
 	cfg.set_value("video", "fullscreen", fullscreen)
 	cfg.set_value("video", "zoom", zoom)
 	cfg.set_value("video", "battery", battery)
+	cfg.set_value("video", "render_scale", render_scale)
 	cfg.set_value("privacy", "crash_reports_always", crash_reports_always)
 	cfg.set_value("audio", "sfx", vol_sfx)
 	cfg.set_value("audio", "ambient", vol_ambient)
@@ -72,3 +79,19 @@ static func apply_window() -> void:
 ## is what costs CPU here, so this is the big knob.
 static func apply_fps(focused := true) -> void:
 	Engine.max_fps = (30 if battery else 60) if focused else 20
+
+
+## The 3D scale actually used (resolves "automatic").
+static func effective_render_scale() -> float:
+	if render_scale > 0.0:
+		return render_scale
+	return 0.7 if DisplayServer.screen_get_scale() > 1.0 else 1.0
+
+
+## Draw the 3D world at a lower resolution, upscaled with AMD FSR 1 (the
+## UI stays sharp). At 1.0: plain bilinear (no upscaling pass).
+static func apply_render(vp: Viewport) -> void:
+	var s := effective_render_scale()
+	vp.scaling_3d_scale = s
+	vp.scaling_3d_mode = Viewport.SCALING_3D_MODE_FSR if s < 0.99 else Viewport.SCALING_3D_MODE_BILINEAR
+	vp.fsr_sharpness = 0.25
