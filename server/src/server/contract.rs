@@ -17,6 +17,10 @@ impl Server {
     /// HR (`npc`) shows `pid` the contract: the agreed pay with HR's "small
     /// correction" (drawn once, then the same every time it's shown).
     pub(super) fn show_contract(&mut self, npc: u16, pid: u16) {
+        // Already signed (back without the card): the lost-and-found instead.
+        if self.players.get(&pid).is_some_and(|p| p.contract) {
+            return self.hr_desk(npc, pid);
+        }
         let fallback =
             self.players.get(&pid).and_then(|p| p.position).and_then(|o| self.position(o)).map_or(pay::DEFAULT_RANGE[0], |o| o.salary[0]);
         let cut = self.rng.u32(pay::CUT_PERCENT);

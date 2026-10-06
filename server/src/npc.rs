@@ -80,7 +80,6 @@ pub mod lines {
     pub const RECEPTION_HAS_CARD: &str = "Dzień dobry! Miłego dnia w pracy.";
     pub const NO_PASS: &str = "Najpierw proszę zgłosić się na portierni.";
     // HR
-    pub const HR_HAS_CARD: &str = "Umowa już podpisana, karta działa. Powodzenia!";
     pub const HR_HANDS_FULL: &str = "Proszę odłożyć to, co masz w rękach — zaraz dostaniesz laptopa.";
     // Security / police
     pub const GUARD_HELLO: &str = "Dzień dobry. Płacimy przy kasie, prawda?";
@@ -217,6 +216,8 @@ pub enum Event {
     Arrived { npc: u16 },
     /// HR: show this player the contract.
     ShowContract { npc: u16, player: u16 },
+    /// HR to an employee: "how can I help?" (a lost laptop or card).
+    HrDesk { npc: u16, player: u16 },
     /// Saw a player out (turned the contract down) to the porter's desk, or
     /// gave up waiting: the pass goes back.
     SawOut { npc: u16, player: u16 },
@@ -451,7 +452,7 @@ impl Npc {
         }
         if self.role == Role::Hr {
             return if has_card {
-                vec![say(lines::HR_HAS_CARD)]
+                vec![Event::HrDesk { npc: self.id, player }]
             } else if has_pass && !hands_free {
                 vec![say(lines::HR_HANDS_FULL)]
             } else if has_pass && matches!(self.state, State::Idle) {
@@ -917,7 +918,7 @@ mod tests {
         assert_eq!(says(&hr.interact(&b, 1, 0, true)), vec![lines::NO_PASS]);
         assert_eq!(says(&hr.interact(&b, 1, access::GUEST, false)), vec![lines::HR_HANDS_FULL], "laptop needs free hands");
         assert_eq!(hr.interact(&b, 1, access::GUEST, true), vec![Event::ShowContract { npc: hr.id, player: 1 }]);
-        assert_eq!(says(&hr.interact(&b, 1, access::CARD, true)), vec![lines::HR_HAS_CARD]);
+        assert!(matches!(hr.interact(&b, 1, access::CARD, true)[..], [Event::HrDesk { player: 1, .. }]));
         assert!(hr.is_idle(), "HR stays at the desk");
         // Turned down: HR walks the guest to the porter's desk downstairs.
         assert!(hr.see_out(&b, 1));

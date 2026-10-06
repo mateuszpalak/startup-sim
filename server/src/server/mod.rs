@@ -45,6 +45,7 @@ mod interact;
 mod items;
 mod kitchen;
 mod leave;
+mod lost_items;
 mod office;
 mod positions;
 pub use positions::lines as position_lines;

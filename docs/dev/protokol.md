@@ -534,6 +534,9 @@ z boomboxem; 0 = stoi na podłodze)}. Klient liczy, ile minęło od `started`,
 więc wszyscy widzą i słyszą ten sam moment. Wybór kanału / utworu: F z pilotem
 (41) / boomboxem (42) w rękach → `Dialog` 253 / 254.
 
+`Dialog` 251 — HR do pracownika: „W czym mogę pomóc?” (0 zgubiony laptop,
+1 zgubiona karta, 2 nic); odpowiedź HR jako `Say` (gdzie jest albo nowy).
+
 ### 55 `Action` (C→S)
 
 token u32, `action u8`: 1 menu psot (R) — serwer odpowiada `Dialog` o id 250

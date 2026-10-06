@@ -147,6 +147,7 @@ impl Server {
                 }
                 npc::Event::Contract { player } => self.sign_contract(player),
                 npc::Event::ShowContract { npc, player } => self.show_contract(npc, player),
+                npc::Event::HrDesk { npc, player } => self.hr_desk(npc, player),
                 npc::Event::SawOut { player, .. } => self.saw_out(player),
             }
         }

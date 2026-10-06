@@ -196,6 +196,8 @@ pub(super) struct Player {
     pub(super) container: Option<u8>,
     /// The coffee machine's panel open (machine index).
     pub(super) coffee_panel: Option<usize>,
+    /// HR's "how can I help?" open: the HR person.
+    pub(super) hr_desk: Option<u16>,
     /// In a lift cabin, choosing the floor.
     pub(super) lift_panel: Option<LiftPanel>,
     pub(super) next_dialog_id: u8,
@@ -290,6 +292,7 @@ impl Player {
             talk: None,
             container: None,
             coffee_panel: None,
+            hr_desk: None,
             lift_panel: None,
             next_dialog_id: 0,
             rest: None,

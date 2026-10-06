@@ -16,7 +16,8 @@
 
 **E** działa na to, co jest obok:
 
-- **ludzie** — rozmowa z NPC (portier, recepcja, HR, kasjer…);
+- **ludzie** — rozmowa z NPC (portier, recepcja, HR — też gdy zgubisz laptop
+  albo kartę, kasjer…);
 - **winda** — przy drzwiach wezwij, w kabinie panel windy: na parter od razu,
   na inne piętra najpierw **przyłóż kartę** do czytnika (klik albo **K**),
   potem przycisk piętra (albo cyfra; **P** parter, **Esc** zostań);
