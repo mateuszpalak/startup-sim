@@ -29,6 +29,8 @@ const SHIN := 0.26
 const UPPER_ARM := 0.21
 const FOREARM := 0.19
 const HEAD_R := 0.25
+## Eye line above the head centre (the face sits a bit high: seen from above).
+const EYE_Y := 0.03
 const NECK_Y := 0.44        # neck base above the pelvis joint
 const SHOULDER := Vector3(0.195, 0.37, 0.0)
 const SEAT_Y := 0.5         # pelvis height when seated (chairs ~0.46)
@@ -251,28 +253,28 @@ func setup(p_view: Node2D) -> void:
 func _build_face() -> void:
 	for sx in [-1.0, 1.0]:
 		# eyes: dark ovals with a glint (like the 2D ones)
-		var e := _face_pivot(sx * 0.088, 0.0, -0.012)
+		var e := _face_pivot(sx * 0.088, EYE_Y, -0.012)
 		_add(e, M.sphere(0.05, 12, 8), "eye", Vector3.ZERO, Vector3.ZERO, Vector3(0.68, 1.0, 0.42), false, false)
 		_add(e, M.sphere(0.014, 6, 4), "white", Vector3(-0.012, 0.018, 0.019), Vector3.ZERO, Vector3.ONE, false, false)
 		_eyes.append(e)
-		var x := _face_pivot(sx * 0.088, 0.0, -0.004)
+		var x := _face_pivot(sx * 0.088, EYE_Y, -0.004)
 		var cross := M.cached("xeye", func(): return M.tube(PackedVector3Array([Vector3(-0.035, -0.035, 0), Vector3(0.035, 0.035, 0)]), 0.009, 5))
 		_add(x, cross, "eye", Vector3.ZERO, Vector3.ZERO, Vector3.ONE, false, false)
 		_add(x, cross, "eye", Vector3.ZERO, Vector3(0, 0, PI / 2), Vector3.ONE, false, false)
 		x.visible = false
 		_eye_x.append(x)
 		# brows
-		var b := _face_pivot(sx * 0.09, 0.085, -0.004)
+		var b := _face_pivot(sx * 0.09, EYE_Y + 0.085, -0.004)
 		_add(b, M.cached("brow", func(): return M.tube(M.arc(Vector3(0, -0.05, 0), 0.06, PI * 0.36, PI * 0.64, 6), 0.011, 5)), "brow", Vector3.ZERO, Vector3.ZERO, Vector3.ONE, false, false)
 		_brows.append(b)
 		# cheeks
-		var c := _face_pivot(sx * 0.145, -0.075, -0.012)
+		var c := _face_pivot(sx * 0.145, EYE_Y - 0.075, -0.012)
 		_add(c, M.sphere(0.045, 10, 6), "cheek", Vector3.ZERO, Vector3.ZERO, Vector3(1.0, 0.62, 0.3), false, false)
 	# nose
-	var n := _face_pivot(0.0, -0.045, -0.006)
+	var n := _face_pivot(0.0, EYE_Y - 0.045, -0.006)
 	_add(n, M.sphere(0.026, 10, 6), "nose", Vector3.ZERO, Vector3.ZERO, Vector3(1.0, 0.85, 0.8), false, false)
 	# mouth: a smile, an open oval (talking, shock) or a flat line (tired)
-	var m := _face_pivot(0.0, -0.11, -0.002)
+	var m := _face_pivot(0.0, EYE_Y - 0.105, -0.002)
 	_smile = _add(m, M.cached("smile", func(): return M.tube(M.arc(Vector3(0, 0.035, 0), 0.045, PI * 1.25, PI * 1.75, 8), 0.0085, 5)), "mouth", Vector3.ZERO, Vector3.ZERO, Vector3.ONE, false, false)
 	_mouth_open = _add(m, M.sphere(0.034, 12, 6), "mouth", Vector3(0, -0.004, -0.006), Vector3.ZERO, Vector3(1.0, 0.7, 0.35), false, false)
 	_mouth_flat = _add(m, M.cached("flatmouth", func(): return M.tube(PackedVector3Array([Vector3(-0.03, 0, 0), Vector3(0.03, 0, 0)]), 0.008, 5)), "mouth", Vector3.ZERO, Vector3.ZERO, Vector3.ONE, false, false)
@@ -357,9 +359,9 @@ func _build_hair(look: int) -> void:
 			_fixed(_hat, M.sphere(0.022, 6, 4), Color("#2b7f33"), Vector3(0, 0.3, -0.01))
 		PlayerView.LOOK_PORTER:  # Pani Wiesia's glasses
 			for sx in [-1.0, 1.0]:
-				var g := _face_pivot(sx * 0.088, 0.0, 0.012, _hat)
+				var g := _face_pivot(sx * 0.088, EYE_Y, 0.012, _hat)
 				_fixed(g, M.torus(0.05, 0.062, 18), FRAME, Vector3.ZERO, Vector3(PI / 2, 0, 0))
-			_fixed(_face_pivot(0.0, 0.01, 0.02, _hat), M.box(Vector3(0.06, 0.01, 0.01)), FRAME)
+			_fixed(_face_pivot(0.0, EYE_Y + 0.01, 0.02, _hat), M.box(Vector3(0.06, 0.01, 0.01)), FRAME)
 
 
 func _build_outfit(look: int) -> void:
@@ -538,7 +540,7 @@ func _pose(delta: float) -> void:
 	var pel_rot := Vector3.ZERO
 	var spine := Vector3((0.08 + 0.14 * run + (0.2 if slow else 0.0)) * mv, sw * 0.16 * amp, 0)
 	# chin up a little by default: the camera looks from above
-	var head := Vector3(-0.1 + (0.04 - 0.08 * run) * mv + (0.2 if slow else 0.0), -sw * 0.1 * amp, 0)
+	var head := Vector3(-0.16 + (0.04 - 0.08 * run) * mv + (0.2 if slow else 0.0), -sw * 0.1 * amp, 0)
 	var hip := [Vector3(sw * 0.7 * amp, 0, -0.02), Vector3(-sw * 0.7 * amp, 0, 0.02)]
 	var kb := (0.9 + 0.5 * run) * amp
 	var knee := [Vector3(maxf(0.0, -cos(ph)) * kb + 0.05 + 0.2 * run, 0, 0), Vector3(maxf(0.0, cos(ph)) * kb + 0.05 + 0.2 * run, 0, 0)]
@@ -752,7 +754,7 @@ func _pose_face(delta: float, st: int, talking: bool) -> void:
 		tilt = -0.35
 	for i in 2:
 		var s := -1.0 if i == 0 else 1.0
-		var base := _surf(s * 0.09, 0.085 + lift, -0.004)
+		var base := _surf(s * 0.09, EYE_Y + 0.085 + lift, -0.004)
 		_brows[i].transform = Transform3D(Basis.looking_at(-base.normalized(), Vector3.UP) * Basis(Vector3.BACK, -s * tilt), base)
 	# mouth
 	var open := 0.0

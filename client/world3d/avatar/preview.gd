@@ -160,7 +160,7 @@ func _scene_looks() -> void:
 		var p := Vector3(-4.0 + i * 1.0, 0, 0)
 		_person(p, 11 + i * 5, looks[i])
 		_label(p + Vector3(0, 0, 0.6), names[i])
-	_cam(Vector3(0, 0.7, 0.2), 7.0)
+	_cam(Vector3(0, 0.7, 0.2), 8.6)
 
 
 func _scene_hair() -> void:
