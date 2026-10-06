@@ -24,6 +24,7 @@ func _init() -> void:
 	test_roll_scores()
 	test_doorway_floors()
 	test_door_plaques()
+	test_camera_keys()
 	print("%d checks, %d failures" % [checks, failures])
 	quit(1 if failures > 0 else 0)
 
@@ -365,6 +366,27 @@ func test_scripts_compile() -> void:
 
 
 ## The rolling minigame's scoring.
+## Movement keys under a turned 3D camera (camera_rig.screen_to_map).
+func test_camera_keys() -> void:
+	var rig = preload("res://world3d/camera_rig.gd").new()
+	var cases := [  # [yaw in 45-degree steps, screen key, map direction]
+		[0, Vector2i(0, -1), Vector2i(0, -1)],
+		[2, Vector2i(0, -1), Vector2i(-1, 0)],
+		[4, Vector2i(1, 0), Vector2i(-1, 0)],
+		[6, Vector2i(1, 0), Vector2i(0, 1)],
+		[1, Vector2i(0, -1), Vector2i(-1, -1)],
+		[1, Vector2i(1, -1), Vector2i(0, -1)],
+		[-1, Vector2i(0, -1), Vector2i(1, -1)],
+		[3, Vector2i(0, 0), Vector2i(0, 0)],
+	]
+	for c in cases:
+		rig._yaw_goal = c[0] * PI / 4
+		var got: Vector2i = rig.screen_to_map(c[1])
+		expect(got == c[2], "camera keys: yaw %d x45, key %s -> %s, want %s" % [c[0], c[1], got, c[2]])
+	rig.camera.free()
+	rig.free()
+
+
 func test_roll_scores() -> void:
 	var RollGame = preload("res://ui/roll_game.gd")
 	expect(RollGame.fill_score(0.7) == 100 and RollGame.fill_score(0.3) == 0 and RollGame.fill_score(0.85) == 80, "fill score")

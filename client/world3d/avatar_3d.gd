@@ -81,6 +81,10 @@ var _cig: Node3D = null
 var _ring := MeshInstance3D.new()
 var _fx: Node3D
 
+## Parts smaller than this (AABB diagonal, m) get no outline / no shadow.
+const SMALL_OUTLINE := 0.2
+const SMALL_SHADOW := 0.12
+
 ## role -> [[MeshInstance3D, outline]]; colours come from the look.
 var _roles := {}
 var _colors := {}
@@ -109,6 +113,12 @@ func _add(parent: Node3D, mesh: Mesh, role: String, pos := Vector3.ZERO, rot := 
 	mi.position = pos
 	mi.rotation = rot
 	mi.scale = scl
+	# small pieces: no ink hull (a pixel or two on screen), no shadow
+	var size: float = (mesh.get_aabb().size * scl).length()
+	if size < SMALL_OUTLINE:
+		outline = false
+	if size < SMALL_SHADOW:
+		shadow = false
 	if not shadow:
 		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	parent.add_child(mi)
@@ -178,6 +188,34 @@ func _face_pivot(x: float, y: float, out := 0.0, parent: Node3D = null) -> Node3
 	return p
 
 
+## Render layer of everything on a character: floor decals (puddles,
+## stains - cull mask 1) don't project onto people.
+const LAYER := 2
+
+
+func _enter_tree() -> void:
+	if not get_tree().node_added.is_connected(_on_node_added):
+		get_tree().node_added.connect(_on_node_added)
+	_set_layers(self)
+
+
+func _exit_tree() -> void:
+	if get_tree().node_added.is_connected(_on_node_added):
+		get_tree().node_added.disconnect(_on_node_added)
+
+
+func _on_node_added(n: Node) -> void:
+	if n is VisualInstance3D and is_ancestor_of(n):
+		n.layers = LAYER
+
+
+static func _set_layers(n: Node) -> void:
+	if n is VisualInstance3D:
+		n.layers = LAYER
+	for c in n.get_children():
+		_set_layers(c)
+
+
 func setup(p_view: Node2D) -> void:
 	view = p_view
 	_seed = float(view.get_instance_id() % 1000) * 0.137
@@ -219,21 +257,22 @@ func setup(p_view: Node2D) -> void:
 		var sx := -1.0 if i == 0 else 1.0
 		_shoulder[i].position = Vector3(sx * SHOULDER.x, SHOULDER.y, 0)
 		_spine.add_child(_shoulder[i])
-		_add(_shoulder[i], M.sphere(0.066, 12, 7), "shirt", Vector3(0, -0.01, 0))
-		_add(_shoulder[i], M.capsule(0.058, UPPER_ARM + 0.08), "shirt", Vector3(0, -UPPER_ARM / 2, 0))
+		_add(_shoulder[i], M.merged("upper_arm", [[M.sphere(0.066, 12, 7), Transform3D(Basis(), Vector3(0, -0.01, 0))],
+			[M.capsule(0.058, UPPER_ARM + 0.08), Transform3D(Basis(), Vector3(0, -UPPER_ARM / 2, 0))]]), "shirt")
 		_elbow[i].position.y = -UPPER_ARM
 		_shoulder[i].add_child(_elbow[i])
 		_add(_elbow[i], M.capsule(0.05, FOREARM + 0.06), "sleeve", Vector3(0, -FOREARM / 2, 0))
 		_hand[i].position.y = -FOREARM - 0.04
 		_elbow[i].add_child(_hand[i])
-		_add(_hand[i], M.sphere(0.06, 12, 7), "skin", Vector3.ZERO, Vector3.ZERO, Vector3(0.9, 1.0, 0.9))
-		_add(_hand[i], M.sphere(0.024, 8, 5), "skin", Vector3(-sx * 0.045, 0.012, 0.03), Vector3.ZERO, Vector3.ONE, false, false)  # thumb
+		_add(_hand[i], M.merged("hand%d" % i, [[M.sphere(0.06, 12, 7), Transform3D(Basis.from_scale(Vector3(0.9, 1.0, 0.9)), Vector3.ZERO)],
+			[M.sphere(0.024, 8, 5), Transform3D(Basis(), Vector3(-sx * 0.045, 0.012, 0.03))]]), "skin")  # with the thumb
 	# head
 	_head.position = Vector3(0, 0.06 + HEAD_R - 0.03, 0)
 	_neck.add_child(_head)
-	_add(_head, M.sphere(HEAD_R, 26, 16), "skin")
-	for sx in [-1.0, 1.0]:
-		_add(_head, M.sphere(0.05, 10, 6), "skin", Vector3(sx * (HEAD_R - 0.005), -0.02, -0.01), Vector3.ZERO, Vector3(0.45, 1.0, 0.75))
+	var head_parts := [[M.sphere(HEAD_R, 26, 16), Transform3D()]]
+	for sx in [-1.0, 1.0]:  # ears
+		head_parts.append([M.sphere(0.05, 10, 6), Transform3D(Basis.from_scale(Vector3(0.45, 1.0, 0.75)), Vector3(sx * (HEAD_R - 0.005), -0.02, -0.01))])
+	_add(_head, M.merged("head", head_parts), "skin")
 	_build_face()
 	_head.add_child(_hair)
 	_head.add_child(_hat)
@@ -472,6 +511,12 @@ func _make_cig() -> Node3D:
 
 
 # ---------------------------------------------------------------------- sync
+
+## World point just above the head (hair / hat included) - where the nick
+## and speech bubbles hang; follows sitting, lying, crouching.
+func head_top() -> Vector3:
+	return _head.global_position + Vector3(0, HEAD_R + 0.12, 0)
+
 
 ## Follow the 2D view. `pos` is the feet position in the world.
 func sync(pos: Vector3, delta: float) -> void:

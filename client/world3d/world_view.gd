@@ -177,7 +177,7 @@ func _place_tags() -> void:
 		if not is_instance_valid(v):
 			continue
 		var tag: Node2D = v._tag
-		var head: Vector3 = a.global_position + Vector3(0, 1.85, 0)
+		var head: Vector3 = a.head_top()
 		if cam.is_position_behind(head) or not a.visible:
 			tag.visible = false
 			continue

@@ -68,11 +68,11 @@ func sync(pos: Vector3, delta: float) -> void:
 		l.visible = night
 
 
+## Lights on with the world's night (lighting_3d: dusk, storm darkness).
 func _night() -> bool:
-	var g = _wv.game if _wv else null
-	if g == null or not ("light_view" in g):
+	if _wv == null or not ("lighting" in _wv):
 		return false
-	return g.light_view.daylight(g.game_minute) < 0.5
+	return _wv.lighting.night > 0.35
 
 
 func _build(kind: int) -> void:

@@ -26,12 +26,25 @@ static func cached(key: String, maker: Callable) -> Mesh:
 
 ## Matte (toy-like) material of a colour. `outline` adds a thin ink hull
 ## (the 2D game's ink line), `alpha` < 1 makes it see-through, `glow` > 0
-## makes it emissive (cigarette tips, screens).
+## makes it emissive (cigarette tips, screens). Opaque colours use the
+## character shader (dark rooms darken it).
 static func mat(col: Color, outline := false, rough := 0.78, glow := 0.0) -> Material:
 	var key := "%s|%d|%.2f|%.2f" % [col.to_html(), int(outline), rough, glow]
-	var m: StandardMaterial3D = _mats.get(key)
+	var m = _mats.get(key)
 	if m != null:
 		return m
+	if col.a >= 0.999:
+		var sm := ShaderMaterial.new()
+		sm.shader = _char_shader()
+		sm.set_shader_parameter("albedo", col)
+		sm.set_shader_parameter("roughness", rough)
+		if glow > 0.0:
+			sm.set_shader_parameter("emission", col)
+			sm.set_shader_parameter("emission_energy", glow)
+		if outline:
+			sm.next_pass = _outline()
+		_mats[key] = sm
+		return sm
 	m = StandardMaterial3D.new()
 	m.albedo_color = col
 	m.roughness = rough
@@ -47,6 +60,17 @@ static func mat(col: Color, outline := false, rough := 0.78, glow := 0.0) -> Mat
 		m.next_pass = _outline()
 	_mats[key] = m
 	return m
+
+
+static var _shader: Shader
+
+
+## Opaque character colours: darkened in unlit windowless rooms (the
+## world's atmosphere mask, see shaders/char.gdshader).
+static func _char_shader() -> Shader:
+	if _shader == null:
+		_shader = load("res://world3d/shaders/char.gdshader")
+	return _shader
 
 
 ## Unshaded, see-through (effects: smoke, smell, bubbles).
@@ -79,6 +103,16 @@ static func _outline() -> Material:
 
 
 # ----------------------------------------------------------------- primitives
+
+## Several meshes baked into one (fewer draw calls): `parts` is
+## [[mesh, Transform3D], ...]; cached under `key`.
+static func merged(key: String, parts: Array) -> Mesh:
+	return cached("merged|" + key, func():
+		var st := SurfaceTool.new()
+		for p in parts:
+			st.append_from(p[0], 0, p[1])
+		return st.commit())
+
 
 static func sphere(r: float, segs := 16, rings := 10) -> Mesh:
 	return cached("sph%.3f/%d/%d" % [r, segs, rings], func():

@@ -1,8 +1,9 @@
 ## The follow camera: looks down at ~55 degrees from the south (so "up" on
 ## the keyboard walks away from the camera, as in 2D), follows the player
 ## smoothly, zooms with the game's zoom level, turns with the right mouse
-## button or , / . (Home: back to north-up). Movement keys follow the turn
-## in 90-degree steps (`input_quadrant`), so the wire input stays world-axis.
+## button or , / . (Home: back to north-up) in 45-degree steps. Movement
+## keys follow the turn (`screen_to_map`), so the wire input stays in map
+## axes and matches what's on screen.
 extends Node3D
 
 const PITCH_DEG := 55.0
@@ -58,13 +59,19 @@ func input_quadrant() -> int:
 	return posmod(int(round(_yaw_goal / (PI / 2))), 4)
 
 
-## Screen direction (x right, y down: as the keys) -> world/map direction.
+## Screen direction (x right, y down: as the keys) -> world/map direction,
+## in eight directions: at a 45-degree turn "up" walks diagonally (up the
+## screen), a diagonal key pair walks along a map axis.
 func screen_to_map(d: Vector2i) -> Vector2i:
-	match input_quadrant():
-		1: return Vector2i(d.y, -d.x)
-		2: return Vector2i(-d.x, -d.y)
-		3: return Vector2i(-d.y, d.x)
-	return d
+	if d == Vector2i.ZERO:
+		return d
+	var steps := posmod(int(round(_yaw_goal / (PI / 4))), 8)
+	var v := Vector2(d).normalized().rotated(-steps * PI / 4)
+	return Vector2i(_unit(v.x), _unit(v.y))
+
+
+static func _unit(x: float) -> int:
+	return 1 if x > 0.38 else (-1 if x < -0.38 else 0)
 
 
 func _unhandled_input(event: InputEvent) -> void:

@@ -184,7 +184,7 @@ func _shot_tram() -> Array:
 
 func _shot_night() -> Array:
 	var r := _shot_vehicles()
-	r.append(1290)
+	r[3] = 1290
 	return r
 
 
