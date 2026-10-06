@@ -319,6 +319,11 @@ impl Server {
         if board_without {
             self.give_new(pid, crate::inventory::kind::BREATHALYSER);
         }
+        // Back at work having come by car / bike: it's parked where they left
+        // it (vehicles aren't kept while away or over a restart).
+        if at_work && !night {
+            self.park_own_vehicle(pid);
+        }
         // Hired, still at home: the trial day's invitation again.
         if let (Some(offer), false) = (trial, at_work) {
             self.reinvite_to_trial(pid, offer);

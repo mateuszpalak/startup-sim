@@ -22,6 +22,7 @@ fn near(a: Pos, b: Pos, tiles: i32) -> bool {
 
 impl Server {
     /// E at your way home; `None` = not there.
+    /// (A car / bike left at work goes home with its owner - `go_home`.)
     pub(super) fn try_go_home(&mut self, pid: u16, body: &Body) -> Option<String> {
         let p = self.players.get(&pid)?;
         if !p.contract || !p.in_building() || body.floor != 0 || self.clock.is_night() {
@@ -30,7 +31,9 @@ impl Server {
         let own_vehicle = self.vehicles.iter().position(|v| v.owner == pid && v.parked() && near(v.pos, body.pos, 2));
         let at_spot = commute::home_spot(&self.building.outside, p.commute_mode).is_some_and(|(spot, r)| near(spot, body.pos, r));
         let by_vehicle = matches!(p.commute_mode, mode::CAR | mode::BIKE);
-        if !(own_vehicle.is_some() || (!by_vehicle && at_spot)) {
+        // The tram always takes you home, however you came.
+        let at_tram = commute::home_spot(&self.building.outside, mode::TRAM).is_some_and(|(spot, r)| near(spot, body.pos, r));
+        if !(own_vehicle.is_some() || (!by_vehicle && at_spot) || at_tram) {
             return None;
         }
         if self.tick >= p.home_ask_until {

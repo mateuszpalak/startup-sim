@@ -144,6 +144,21 @@ impl Server {
         self.save_soon = true;
     }
 
+    /// The player's car / bike standing in the car park / at the rack (if
+    /// that's how they commute and it isn't there).
+    pub(super) fn park_own_vehicle(&mut self, pid: u16) {
+        let Some(mode) = self.players.get(&pid).map(|p| p.commute_mode) else { return };
+        if self.vehicles.iter().any(|v| v.owner == pid) {
+            return;
+        }
+        let handle = self.alloc_handle();
+        let kind_of = |m: u8| Vehicle::for_mode(&self.building.outside, m, 0, 0, 0).map(|v| v.kind);
+        let slot = self.vehicles.iter().filter(|v| v.parks && Some(v.kind) == kind_of(mode)).count();
+        if let Some(v) = Vehicle::parked_for(&self.building.outside, mode, handle, pid, slot) {
+            self.vehicles.push(v);
+        }
+    }
+
     /// Morning arrival: on foot along the sidewalk, or riding in a vehicle
     /// that drops them off (see `tick_vehicles`).
     pub(super) fn arrive(&mut self, pid: u16) {
