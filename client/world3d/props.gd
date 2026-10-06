@@ -849,11 +849,11 @@ static func _car(b: MeshBatch, c: Dictionary) -> void:
 	var L: float = maxf(c.w, c.d) - 0.3
 	var W: float = minf(c.w, c.d) - 0.25
 	var col: Color = S.vary(CAR_COLORS[_h(c, 3) % CAR_COLORS.size()], _h(c, 4), 0.03)
-	var glass := Color(0.1, 0.14, 0.2, 0.9)
+	var glass := Color(0.2, 0.27, 0.35, 0.95)
 	if _h(c, 5) % 2 == 0:
 		b.xf = b.xf * Transform3D(Basis(Vector3.UP, PI), Vector3.ZERO)  # bonnet the other way
-	S.rbox(b, Vector3(-L / 2, 0.24, -W / 2), Vector3(L / 2, 0.72, W / 2), 0.12, "metal", col)
-	_cabin(b, -L / 2 + 0.75, L / 2 - 1.05, W, 0.7, 1.24, glass, col)
+	S.rbox(b, Vector3(-L / 2, 0.24, -W / 2), Vector3(L / 2, 0.72, W / 2), 0.12, "plastic", col)
+	_cabin(b, -L * 0.3, L * 0.16, W, 0.7, 1.24, glass, col)
 	for e in [-1.0, 1.0]:
 		S.rbox(b, Vector3(e * L / 2 - 0.06, 0.22, -W / 2 + 0.05), Vector3(e * L / 2 + 0.06, 0.38, W / 2 - 0.05), 0.04, "plastic", Color("#2a2b30"))
 	for sz in [-1.0, 1.0]:
@@ -870,14 +870,14 @@ static func _car(b: MeshBatch, c: Dictionary) -> void:
 			S.disc(b, Vector3(0, 0.115 if sz > 0 else -0.115, 0), 0.17, "chrome", Color("#b8bec5"), 8, sz < 0)
 			b.xf = kw
 	for sz in [-1.0, 1.0]:
-		var mx := L / 2 - 1.1
-		S.rbox(b, Vector3(mx - 0.08, 0.74, sz * (W / 2 + 0.06) - 0.05), Vector3(mx + 0.04, 0.84, sz * (W / 2 + 0.06) + 0.05), 0.02, "metal", col)
+		var mx := L * 0.16 + 0.05
+		S.rbox(b, Vector3(mx - 0.08, 0.74, sz * (W / 2 + 0.06) - 0.05), Vector3(mx + 0.04, 0.84, sz * (W / 2 + 0.06) + 0.05), 0.02, "plastic", col)
 	b.xf = keep
 
 
 ## The car's glasshouse: sloped windscreens, side windows, a roof.
 static func _cabin(b: MeshBatch, x0: float, x1: float, W: float, y0: float, y1: float, glass: Color, col: Color) -> void:
-	var rake := 0.35
+	var rake := 0.3
 	var z0 := -W / 2 + 0.1
 	var z1 := W / 2 - 0.1
 	var b0 := Vector3(x0, y0, z0)
@@ -892,10 +892,10 @@ static func _cabin(b: MeshBatch, x0: float, x1: float, W: float, y0: float, y1: 
 	b.quad(b0, b3, t3, t0, Vector3(-(y1 - y0), rake * 0.7, 0).normalized(), "glass", glass)
 	b.quad(b0, b1, t1, t0, Vector3(0, 0.15, -1).normalized(), "glass", glass)
 	b.quad(b3, b2, t2, t3, Vector3(0, 0.15, 1).normalized(), "glass", glass)
-	S.rbox(b, Vector3(t0.x - 0.03, y1, z0 + 0.06), Vector3(t1.x + 0.03, y1 + 0.05, z1 - 0.06), 0.025, "metal", col)
+	S.rbox(b, Vector3(t0.x - 0.03, y1, z0 + 0.06), Vector3(t1.x + 0.03, y1 + 0.05, z1 - 0.06), 0.025, "plastic", col)
 	var m := (x0 + x1) / 2
 	for zz in [z0 + 0.02, z1 - 0.02]:
-		S.tube(b, Vector3(m, y0, zz), Vector3(m, y1, zz + (0.06 if zz < 0 else -0.06)), 0.03, "metal", col.darkened(0.3), 4)
+		S.tube(b, Vector3(m, y0, zz), Vector3(m, y1, zz + (0.06 if zz < 0 else -0.06)), 0.03, "plastic", col.darkened(0.3), 4)
 
 
 # ------------------------------------------------------------- outdoors
