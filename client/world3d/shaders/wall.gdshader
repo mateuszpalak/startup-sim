@@ -48,6 +48,6 @@ void fragment() {
 	}
 	// the room this face looks into: dark when it is (atmos.gdshaderinc)
 	vec4 a = atmos_at(v_world + vec3(v_normal.x, 0.0, v_normal.z) * 0.45);
-	ALBEDO = pow(COLOR.rgb, vec3(2.2)) * a.g;  // vertex colours are sRGB
+	ALBEDO = pow(COLOR.rgb, vec3(2.2)) * atmos_light(a);  // vertex colours are sRGB
 	ROUGHNESS = 0.9;
 }

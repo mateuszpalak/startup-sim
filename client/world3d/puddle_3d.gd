@@ -99,12 +99,12 @@ func _textures(kind: String) -> Array:
 	var orm := Image.create(s, s, false, Image.FORMAT_RGBA8)
 	var rng := RandomNumberGenerator.new()
 	rng.seed = hash(kind)
-	var blobs := [[Vector2.ZERO, 0.42]]
+	var blobs := [[Vector2.ZERO, 0.6]]
 	for i in 5:
 		var a := TAU * i / 5.0 + rng.randf_range(-0.5, 0.5)
-		blobs.append([Vector2(cos(a), sin(a)) * rng.randf_range(0.25, 0.45), rng.randf_range(0.15, 0.28)])
+		blobs.append([Vector2(cos(a), sin(a)) * rng.randf_range(0.35, 0.55), rng.randf_range(0.25, 0.4)])
 	if kind == "stain":
-		blobs = [[Vector2(-0.3, -0.1), 0.18], [Vector2(0.0, 0.0), 0.2], [Vector2(0.3, 0.1), 0.16], [Vector2(0.1, 0.3), 0.12]]
+		blobs = [[Vector2(-0.35, -0.1), 0.3], [Vector2(0.0, 0.0), 0.35], [Vector2(0.35, 0.1), 0.28], [Vector2(0.1, 0.35), 0.22]]
 	for y in s:
 		for x in s:
 			var p := Vector2(x, y) / s * 2.0 - Vector2.ONE
@@ -119,7 +119,11 @@ func _textures(kind: String) -> Array:
 			alb.set_pixel(x, y, Color(c, a * (0.9 if kind != "stain" else 0.8)))
 			orm.set_pixel(x, y, Color(1.0, spec[3], 0.0, 1.0))
 	alb.generate_mipmaps()
-	var em := alb.duplicate()
+	var em := Image.create(s, s, false, Image.FORMAT_RGBA8)  # glow only where the puddle is
+	for y in s:
+		for x in s:
+			var c := alb.get_pixel(x, y)
+			em.set_pixel(x, y, Color(c.r * c.a, c.g * c.a, c.b * c.a, 1.0))
 	_tex[kind] = [ImageTexture.create_from_image(alb), ImageTexture.create_from_image(orm), ImageTexture.create_from_image(em)]
 	return _tex[kind]
 

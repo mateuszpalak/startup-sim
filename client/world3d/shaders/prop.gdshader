@@ -15,7 +15,8 @@ void vertex() {
 
 void fragment() {
 	vec4 a = atmos_at(v_world);
-	ALBEDO = pow(COLOR.rgb, vec3(2.2)) * a.g;
+	ALBEDO = pow(COLOR.rgb, vec3(2.2)) * atmos_light(a);
+	SPECULAR = 0.5 * a.g;
 	ROUGHNESS = roughness;
 	METALLIC = metallic;
 }

@@ -93,7 +93,7 @@ func _setup_environment() -> void:
 	e.ssao_power = 1.5
 	e.ssao_detail = 0.6
 	e.ssao_light_affect = 0.15
-	e.ssil_enabled = true
+	e.ssil_enabled = false  # too costly at Retina resolution
 	e.ssil_radius = 3.0
 	e.ssil_intensity = 0.7
 	e.glow_enabled = true
@@ -158,8 +158,8 @@ func add_lamps(f: int, node: Node3D) -> void:
 			if _type(m, x, y) == "sidewalk" and _type(m, x, y + 1) == "street":
 				var o := OmniLight3D.new()
 				o.position = Vector3(x + 0.5, 3.3, y + 0.6 + 0.58)
-				o.omni_range = 9.0
-				o.omni_attenuation = 1.3
+				o.omni_range = 7.0
+				o.omni_attenuation = 1.7
 				o.light_color = STREET_LAMP_COLOR
 				o.light_energy = 0.0
 				o.shadow_enabled = false
@@ -257,7 +257,7 @@ func update(delta: float) -> void:
 	_clouds = want_clouds if _snap else move_toward(_clouds, want_clouds, delta * 0.2)
 	_sky_mat.set_shader_parameter("clouds", _clouds)
 	# fog: thick ground fog in fog weather, a light haze in rain
-	var fog_d: float = {Protocol.WEATHER_FOG: 0.05, Protocol.WEATHER_RAIN: 0.012, Protocol.WEATHER_STORM: 0.018}.get(weather, 0.0)
+	var fog_d: float = {Protocol.WEATHER_FOG: 0.025, Protocol.WEATHER_RAIN: 0.012, Protocol.WEATHER_STORM: 0.018}.get(weather, 0.0)
 	e.fog_density = fog_d if _snap else move_toward(e.fog_density if e.fog_enabled else 0.0, fog_d, delta * 0.02)
 	e.fog_enabled = e.fog_density > 0.0005
 	e.fog_light_color = hor.lerp(Color("#c4c8cc") * lerpf(0.25, 1.0, day), 0.5)
@@ -287,7 +287,7 @@ func _update_lamps(delta: float, lv) -> void:
 		var o: OmniLight3D = pair[0]
 		o.light_energy = move_toward(o.light_energy, lamp_e if on else 0.0, delta * 4.0)
 		o.visible = o.light_energy > 0.01
-	var street_e := smoothstep(0.25, 0.75, night) * 2.4
+	var street_e := smoothstep(0.25, 0.75, night) * 3.2
 	for o in _street:
 		o.light_energy = move_toward(o.light_energy, street_e, delta * 1.5)
 		o.visible = o.light_energy > 0.01

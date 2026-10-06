@@ -25,6 +25,12 @@ vec4 atmos_at(vec3 w) {
 	return textureLod(atmos_mask, uv, 0.0);
 }
 
+// How much light reaches a surface in the room of mask texel `a` (dark
+// rooms: next to nothing, the sun shines in through the missing ceiling).
+float atmos_light(vec4 a) {
+	return a.g * a.g;
+}
+
 float atmos_hash(vec2 p) {
 	return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
 }

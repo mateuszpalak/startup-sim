@@ -107,6 +107,6 @@ void fragment() {
 	if (a.r > 0.5) {
 		col *= atmos_cloud_shade(p, TIME);
 	}
-	ALBEDO = col * a.g;
+	ALBEDO = col * atmos_light(a);
 	ROUGHNESS = rough;
 }
