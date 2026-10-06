@@ -26,8 +26,16 @@ umowę.” → recepcja idzie do pokoju HR (czeka i przypomina jak portier; po
 30 s wraca, nie odbierając przepustki) → „To dział HR — tutaj podpisuje się
 umowę i odbiera kartę.” → gracz wciska E przy HR → „Umowa podpisana — witamy
 w firmie! Oto karta pracownika.” — **karta pracownika zastępuje przepustkę
-gościa**. Osoby z kartą recepcja i HR tylko witają; osoby bez przepustki
+gościa**. Osoby z kartą recepcja tylko wita; osoby bez przepustki
 odsyłają na portiernię.
+
+**Biuro rzeczy znalezionych w HR**: pracownik przy HR (E) dostaje „W czym
+mogę pomóc?” — „Zgubiłem/am laptopa” / „…kartę”. HR sprawdza, gdzie jest:
+przy Tobie („Przecież masz go przy sobie”), na biurku (pokój i piętro), na
+podłodze (pokój i piętro), u kogoś innego (kto). Dopiero gdy naprawdę
+przepadł (np. leżał na podłodze, gdy wychodziłeś z gry), HR wydaje nowy.
+Kto zgubił kartę, wchodzi z przepustką od portiera — HR zamiast umowy pyta,
+w czym pomóc.
 
 NPC: Portier (mundur z czapką), Recepcja i HR (koszula z krawatem) — jako
 neutralne nazwy stanowisk. Wciśnięcie E trafia najpierw do NPC stojącego na

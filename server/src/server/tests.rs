@@ -1173,6 +1173,39 @@ fn on_the_trial_day_comes_back_into_the_building_with_the_pass() {
 }
 
 #[test]
+fn hr_finds_a_lost_laptop_or_issues_a_new_one() {
+    use super::lost_items::{lines, DIALOG};
+    let mut s = server();
+    add_player(&mut s, 1);
+    add_player(&mut s, 2);
+    s.employ(1);
+    let hr = s.npcs.iter().find(|n| n.role == crate::npc::Role::Hr).unwrap().id;
+    let ask = |s: &mut Server, choice: u8| -> String {
+        s.says.clear();
+        s.hr_desk(hr, 1);
+        assert!(s.answer_hr_desk(1, DIALOG, choice));
+        s.says.iter().find(|l| l.speaker == hr).map(|l| l.text.clone()).unwrap_or_default()
+    };
+    // With them: nothing to do.
+    assert_eq!(ask(&mut s, 0), lines::WITH_YOU);
+    // On the floor somewhere: where.
+    let laptop = s.players.get_mut(&1).unwrap().inventory.take_hands().unwrap();
+    s.drop_at(4, Pos::tile_center(36, 16), laptop);
+    assert!(ask(&mut s, 0).starts_with("Ktoś widział twój laptop na podłodze"));
+    // Somebody else has it: who.
+    let d = s.dropped.iter().position(|d| d.item.kind == item_kind::LAPTOP).unwrap();
+    let laptop = s.dropped.remove(d).item;
+    s.give(2, laptop);
+    assert_eq!(ask(&mut s, 0), lines::with("twój laptop", "p2"));
+    // Really gone: a new one (only that one).
+    s.players.get_mut(&2).unwrap().inventory.remove_owned_by(1);
+    assert_eq!(ask(&mut s, 0), lines::NEW_LAPTOP);
+    assert_eq!(s.players[&1].inventory.items().filter(|i| i.kind == item_kind::LAPTOP && i.owner == 1).count(), 1);
+    // The card in the pocket: there.
+    assert_eq!(ask(&mut s, 1), lines::CARD_WITH_YOU);
+}
+
+#[test]
 fn the_laptop_carried_out_is_still_yours_after_logging_back_in() {
     let mut s = server();
     add_player(&mut s, 1);
