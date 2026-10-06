@@ -323,7 +323,9 @@ kabinie) — szczegóły w 10.18.
 - Do domu wraca się **tak, jak się przyjechało**: E przy **swoim**
   zaparkowanym aucie/rowerze albo — pieszo / tramwajem / taksówką — na
   zachodnim końcu chodnika, na przystanku tramwajowym lub na postoju taksówek
-  (parter, podpowiedź „[E] Wracam do domu”).
+  (parter, podpowiedź „[E] Wracam do domu”). **Tramwaj zawsze**: z przystanku
+  da się wrócić do domu niezależnie od dojazdu (zostawione auto / rower
+  wraca samo).
   Kto wrócił do gry w trakcie dnia pracy (albo serwer się zrestartował), a
   przyjechał autem / rowerem, ma je z powrotem na parkingu / przy stojaku.
 - Pierwsze E pyta („E jeszcze raz — tak”, 5 s), drugie potwierdza: auto/rower

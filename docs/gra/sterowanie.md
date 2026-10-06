@@ -42,7 +42,8 @@
   środku ekranu; **E** albo **Esc** — schowaj);
 - **dwa razy** przy swoim aucie / rowerze, na zachodnim końcu chodnika, na
   przystanku tramwajowym lub postoju taksówek — powrót do domu przed końcem
-  dnia (wypłata za przepracowany czas).
+  dnia (wypłata za przepracowany czas); **tramwajem z przystanku zawsze**,
+  niezależnie od tego, czym się przyjechało.
 
 ## Przedmioty
 

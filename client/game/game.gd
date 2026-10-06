@@ -1345,7 +1345,7 @@ func _update_hint() -> void:
 					text = kitchen_names.get(ktype, "")
 	if text == "" and map and pred.floor == 0:
 		# The way home (like the server): our car / bike, or the spot on foot /
-		# at the tram stop / taxi stand.
+		# at the tram stop / taxi stand; the tram stop always works.
 		var me_p := Movement.to_px(pred.pos)
 		var spots := {}
 		for pair in [[1, "walk_home"], [4, "taxi"], [5, "tram_stop"]]:
@@ -1361,6 +1361,10 @@ func _update_hint() -> void:
 				if vehicles[id].kind == want_kind and vehicles[id].position.distance_to(me_p) <= map.tile_px * 2:
 					text = "[E] Wracam do domu (%s)" % ("samochodem" if commute_mode == 3 else "rowerem")
 					break
+		if text == "" and spots.has(5):
+			var tram: Vector2 = (Vector2(spots[5]) + Vector2(0.5, 0.5)) * map.tile_px
+			if tram.distance_to(me_p) <= map.tile_px * 2:
+				text = "[E] Wracam do domu (tramwajem)"
 	if text == "" and map:
 		# Light switch within reach (1 tile, like the server).
 		var me_c := Movement.to_px(pred.pos)
