@@ -281,10 +281,9 @@ func _process(delta: float) -> void:
 				keyboard.open_for(chat._input)
 				ctx = "keyboard"
 		_ctx = ctx
-		if ctx != "game":
-			for k in [KEY_W, KEY_A, KEY_S, KEY_D, KEY_B, KEY_V, KEY_E, KEY_F]:
-				press(k, false)
-			_move_keys.clear()
+		# Another context: nothing stays held (a Start pressed in the world
+		# would else keep Esc down under the menu it opened).
+		release_all()
 		_ui_dir = Vector2i.ZERO
 	cursor.set_root(ui_root() if ctx == "ui" else (keyboard if ctx == "keyboard" else null))
 	cursor.visible = active and cursor.root != null
