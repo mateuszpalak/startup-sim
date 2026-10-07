@@ -12,7 +12,7 @@ z `--3d` — 3D.
 ```bash
 tools/build-macos.sh              # → build/StartupSim-<wersja>.dmg
 tools/build-macos.sh --app-only   # sama aplikacja, bez podpisu
-tools/build-macos.sh --3d         # to samo z klienta 3D (client3d/), też z --app-only
+tools/build-macos.sh --3d         # → build/StartupSim3D-<wersja>-macos.dmg (klient 3D), też z --app-only
 ```
 
 Skrypt najpierw buduje przeglądarkę w grze (`tools/build_webview.sh`, godot_wry
@@ -99,10 +99,10 @@ mówi „Zaktualizuj grę w TestFlight”.
 ## Budowanie klienta na Androida
 
 ```bash
-tools/build-android.sh                # → build/StartupSim-<wersja>-debug.apk
+tools/build-android.sh                # → build/StartupSim3D-<wersja>-android-debug.apk
 tools/build-android.sh --install      # to samo + adb install i uruchomienie
-tools/build-android.sh --release      # → build/StartupSim-<wersja>.aab (Google Play, Gradle)
-tools/build-android.sh --release-apk  # → podpisany .apk do instalacji ręcznej
+tools/build-android.sh --release      # → build/StartupSim3D-<wersja>-android.aab (Google Play, Gradle)
+tools/build-android.sh --release-apk  # → build/StartupSim3D-<wersja>-android.apk (podpisany, do instalacji ręcznej)
 ```
 
 Wymaga szablonów eksportu Godota 4.7.2 dla Androida, JDK 17
@@ -133,7 +133,7 @@ to wspólny profil „mobile” z `client3d/platform/platform.gd` (jak na iOS).
 Gra jest zawsze na pełnym ekranie (tryb immersyjny, bez pasków systemu).
 
 Na telefonie: włącz *Opcje programisty → Debugowanie USB*, podłącz kabel i
-`tools/build-android.sh --install` (albo `adb install -r build/StartupSim-<wersja>-debug.apk`).
+`tools/build-android.sh --install` (albo `adb install -r build/StartupSim3D-<wersja>-android-debug.apk`).
 Serwer: gra oferuje serwery z `client3d/net/servers.cfg` (wkładany do
 paczki) oraz „Inny serwer…” — pole adres:port (np. serwer domowy), wyraźnie
 oznaczone jako spoza listy gry; jego certyfikat jest przypinany przy
@@ -201,7 +201,7 @@ wprost do zipa dla danej architektury (`…-windows-x86_64.zip` /
    `application/version`) — po niej klienci poznają, że jest nowsza.
 2. Zbuduj dmg: `tools/build-macos.sh` (2D) albo `tools/build-macos.sh --3d` (3D).
 3. `git tag -a v<wersja> -m "Startup Sim <wersja>"` i `git push origin v<wersja>`.
-4. `gh release create v<wersja> build/StartupSim-<wersja>.dmg --title "Startup Sim <wersja>" --notes "…"`
+4. `gh release create v<wersja> build/StartupSim-<wersja>.dmg build/StartupSim3D-<wersja>-macos.dmg build/StartupSim3D-<wersja>-android.apk --title "Startup Sim <wersja>" --notes "…"`
    (tag `v<wersja>` musi zgadzać się z `config/version`).
 5. Zipy dla Windows dołącza CI po tagu (albo ręcznie:
    `tools/build-windows.sh --all` i `gh release upload v<wersja> dist/*.zip`).

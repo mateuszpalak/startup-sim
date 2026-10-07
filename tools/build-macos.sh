@@ -5,7 +5,7 @@
 #   tools/build-macos.sh            -> build/StartupSim-<version>.dmg
 #   tools/build-macos.sh --app-only -> build/Startup Sim.app, unsigned (sign it
 #                                      yourself with tools/macos/entitlements.plist)
-#   tools/build-macos.sh --3d [...]  -> the same from the 3D client (client3d/)
+#   tools/build-macos.sh --3d [...]  -> build/StartupSim3D-<version>-macos.dmg (3D client, client3d/)
 #                                      instead of the 2D one (client/)
 #
 # Needs: Godot 4.7.2 + its export templates, the "Developer ID Application"
@@ -71,7 +71,7 @@ codesign --force --timestamp --options runtime --entitlements "$ROOT/tools/macos
 codesign --verify --strict --deep --verbose=2 "$APP"
 
 echo "== obraz dysku"
-DMG="$ROOT/build/StartupSim-$VERSION.dmg"
+if [ "$CLIENT" = client3d ]; then DMG="$ROOT/build/StartupSim3D-$VERSION-macos.dmg"; else DMG="$ROOT/build/StartupSim-$VERSION.dmg"; fi
 STAGE="$ROOT/build/dmg"
 RW="$ROOT/build/rw.dmg"
 mkdir -p "$STAGE/.background"
