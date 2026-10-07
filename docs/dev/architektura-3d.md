@@ -47,7 +47,7 @@ piętra): wysokość stopni pod postacią z meta `heights` piętra.
 - Nowy widok 3D encji: osobny plik w `world3d/`, tworzony w `world_view` dla odpowiadającego widoku 2D (wpis w `ENTITY_VIEWS`: `setup(widok_2d, world_view)`, `sync(pozycja, delta)`; zastępuje pudełko z `ENTITY_PROXIES`); stan czytaj z widoku 2D, nie z sieci.
 - Geometria statyczna przez `MeshBatch` (jedno wywołanie rysowania na materiał), kolory jako sRGB w wierzchołkach.
 - Ściany używają `wall.gdshader` (parametry `focus`, `cam_pos` ustawia `world_view`); inne wysokie rzeczy, które mają znikać, też muszą z niego korzystać.
-- UI to `CanvasLayer`y nad 3D — bez zmian. Nicki i dymki to te same węzły 2D (`PlayerView._tag`), stawiane na ekranie nad głową (`_place_tags`).
+- UI to `CanvasLayer`y nad 3D. Wygląd: `ui/ui_kit.gd` (tokeny kolorów, promieni, rozmiarów, czcionka Nunito, panele, ikony wektorowe `draw_icon`, animacje `pop_in`/`fade_in`), ikony przedmiotów renderowane z modeli 3D (`ui/item_icons.gd`), tło menu to żywy świat 3D (`ui/title_backdrop_3d.gd`, tworzony przez `main.gd`, nie w trybie headless), podgląd postaci 3D (`ui/avatar_preview.gd`). Zrzuty UI: scenariusz `ui_tour` (`--scenario=ui_tour --shots=/katalog`, poza `run.py`) → `docs/media/3d/ui/`. Nicki i dymki to te same węzły 2D (`PlayerView._tag`), stawiane na ekranie nad głową (`_place_tags`).
 
 ## Do przeniesienia (właściciele)
 
