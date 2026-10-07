@@ -7,6 +7,9 @@ extends Control
 const ItemArt = preload("res://game/item_art.gd")
 const Ink = preload("res://ui/ink_ui.gd")
 const Touch = preload("res://touch/touch.gd")
+const Pad = preload("res://pad/pad.gd")
+
+const KEYS := "1–3 wyjmij / schowaj  ·  Q upuść  ·  G podaj  ·  F użyj"
 
 signal slot_clicked(pocket: int)
 
@@ -50,11 +53,21 @@ func _ready() -> void:
 		add_child(l)
 	Ink.style_label(_caption, 18, Ink.TEXT)
 	Ink.style_label(_keys, 14, Ink.TEXT_DIM)
-	_keys.text = "1–3 wyjmij / schowaj  ·  Q upuść  ·  G podaj  ·  F użyj"
+	_keys.text = KEYS
 	_panel.resized.connect(_place)
 	get_viewport().size_changed.connect(_place)
 	update_slots([])
 	_place.call_deferred()
+
+
+## The key help under the bar: the keyboard's keys, or the pad's buttons.
+func set_pad_keys(on: bool) -> void:
+	if not on:
+		_keys.text = KEYS
+		return
+	var l := func(b: int) -> String: return Pad.label(b)
+	_keys.text = "%s / %s kieszenie  ·  %s użyj  ·  %s co mogę zrobić (upuść, podaj)" % [
+		l.call(JOY_BUTTON_LEFT_SHOULDER), l.call(JOY_BUTTON_RIGHT_SHOULDER), l.call(JOY_BUTTON_X), l.call(JOY_BUTTON_Y)]
 
 
 ## Bottom centre of the viewport (the parent is a CanvasLayer).

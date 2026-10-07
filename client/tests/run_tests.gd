@@ -8,6 +8,8 @@ const MapData = preload("res://map/map_data.gd")
 const Building = preload("res://map/building.gd")
 const NetClient = preload("res://net/net_client.gd")
 const Updates = preload("res://net/updates.gd")
+const PadMap = preload("res://pad/pad_map.gd")
+const Pad = preload("res://pad/pad.gd")
 
 var failures := 0
 var checks := 0
@@ -26,6 +28,8 @@ func _init() -> void:
 	test_roll_scores()
 	test_doorway_floors()
 	test_door_plaques()
+	test_pad_map()
+	test_pad_glyphs()
 	print("%d checks, %d failures" % [checks, failures])
 	quit(1 if failures > 0 else 0)
 
@@ -451,3 +455,95 @@ func test_release_assets() -> void:
 		var got: String = Updates.asset_url(assets, suffix, "page") if suffix != "" else "page"
 		expect(got == want[k], "2D asset for %s: %s, want %s" % [k, got, want[k]])
 	expect(Updates.asset_url(null, ".dmg", "page") == "page", "no assets -> release page")
+
+
+## Gamepad bindings (pad/pad_map.gd): every action has a pad input, no
+## button does two things, a press stands for the key the game reads, the
+## sticks give the keys' eight directions (so the movement bits, and the
+## prediction, are exactly what WASD sends).
+func test_pad_map() -> void:
+	PadMap.register()
+	for action in PadMap.ACTIONS:
+		var a: Dictionary = PadMap.ACTIONS[action]
+		expect(not a.buttons.is_empty() or not a.axis.is_empty(), "pad input for %s" % action)
+		expect(InputMap.has_action("pad_" + action), "InputMap pad_%s" % action)
+	var used := {}
+	for action in PadMap.ACTIONS:
+		for b in PadMap.ACTIONS[action].buttons:
+			expect(not used.has(b), "button %d bound once (%s)" % [b, action])
+			used[b] = true
+	var axes := {}
+	for action in PadMap.ACTIONS:
+		var ax: Array = PadMap.ACTIONS[action].axis
+		if not ax.is_empty():
+			var k := "%d/%d" % [ax[0], ax[1]]
+			expect(not axes.has(k), "axis %s bound once (%s)" % [k, action])
+			axes[k] = true
+	var keys := {"interact": KEY_E, "back": KEY_ESCAPE, "use": KEY_F, "actions": KEY_TAB, "talk": KEY_V,
+		"whisper": KEY_B, "chat": KEY_ENTER, "journal": KEY_H, "menu": KEY_ESCAPE, "move_up": KEY_W,
+		"move_down": KEY_S, "move_left": KEY_A, "move_right": KEY_D}
+	for action in keys:
+		expect(PadMap.key_of(action) == keys[action], "%s -> key %d" % [action, keys[action]])
+	expect(PadMap.action_of_button(JOY_BUTTON_A) == "interact", "A interacts")
+	expect(PadMap.action_of_button(JOY_BUTTON_B) == "back", "B goes back")
+	expect(PadMap.action_of_button(JOY_BUTTON_Y) == "actions", "Y opens the action menu")
+	expect(PadMap.action_of_button(JOY_BUTTON_START) == "menu", "Start = the game menu")
+	expect(PadMap.action_of_button(JOY_BUTTON_RIGHT_STICK) == "zoom_reset", "RS click resets the zoom")
+	var ev := InputEventJoypadButton.new()
+	ev.button_index = JOY_BUTTON_X
+	ev.pressed = true
+	expect(ev.is_action("pad_use"), "the InputMap knows X = use")
+	var mv := InputEventJoypadMotion.new()
+	mv.axis = JOY_AXIS_LEFT_Y
+	mv.axis_value = -0.9
+	expect(mv.is_action("pad_move_up"), "left stick up = move_up")
+	# Sticks: dead zone, four axes, diagonals only near 45 degrees.
+	var cases := [[Vector2(0.1, -0.2), Vector2i.ZERO], [Vector2(0.3, 0.1), Vector2i.ZERO], [Vector2(0, -1), Vector2i(0, -1)],
+		[Vector2(1, 0), Vector2i(1, 0)], [Vector2(-0.7, 0.7), Vector2i(-1, 1)], [Vector2(0.95, -0.3), Vector2i(1, 0)],
+		[Vector2(0.5, -0.5), Vector2i(1, -1)], [Vector2(0.2, 0.9), Vector2i(0, 1)]]
+	for c in cases:
+		expect(PadMap.stick_dir(c[0]) == c[1], "stick %s -> %s (got %s)" % [c[0], c[1], PadMap.stick_dir(c[0])])
+	expect(PadMap.stick_value(Vector2(0.2, 0)) == Vector2.ZERO, "stick value: dead zone")
+	expect(is_equal_approx(PadMap.stick_value(Vector2(1, 0)).x, 1.0), "stick value: full tilt = 1")
+	# Every direction holds exactly the keys a keyboard player would.
+	var wasd := {Vector2i(0, -1): [KEY_W], Vector2i(0, 1): [KEY_S], Vector2i(-1, 0): [KEY_A], Vector2i(1, 0): [KEY_D],
+		Vector2i(1, -1): [KEY_W, KEY_D], Vector2i(-1, -1): [KEY_W, KEY_A], Vector2i(1, 1): [KEY_S, KEY_D],
+		Vector2i(-1, 1): [KEY_S, KEY_A], Vector2i.ZERO: []}
+	for d in wasd:
+		var got: Array = Pad.keys_for(PadMap.stick_dir(Vector2(d).normalized() if d != Vector2i.ZERO else Vector2.ZERO))
+		got.sort()
+		var want: Array = wasd[d].duplicate()
+		want.sort()
+		expect(got == want, "stick %s holds the keys %s (got %s)" % [d, want, got])
+
+
+## Pad glyphs: the family by the controller's name, the labels, the hints.
+func test_pad_glyphs() -> void:
+	var names := {"Xbox Series Controller": "xbox", "PS5 Controller": "ps", "DualSense Wireless Controller": "ps",
+		"Sony PLAYSTATION(R)3 Controller": "ps", "Nintendo Switch Pro Controller": "nintendo",
+		"Steam Deck": "xbox", "Generic USB Joystick": "xbox", "Joy-Con (L/R)": "nintendo"}
+	for n in names:
+		expect(PadMap.style_for(n) == names[n], "%s -> %s glyphs" % [n, names[n]])
+	expect(PadMap.button_label(JOY_BUTTON_A, "xbox") == "A", "Xbox bottom button: A")
+	expect(PadMap.button_label(JOY_BUTTON_A, "nintendo") == "B", "Switch bottom button: B")
+	expect(PadMap.ps_shape(JOY_BUTTON_A) == "cross" and PadMap.ps_shape(JOY_BUTTON_Y) == "triangle", "PlayStation shapes")
+	expect(PadMap.button_label(PadMap.RT, "ps") == "R2", "PlayStation right trigger: R2")
+	expect(PadMap.button_label(JOY_BUTTON_LEFT_SHOULDER, "nintendo") == "L", "Switch left bumper: L")
+	var h: Array = PadMap.pad_hint("[E] Połóż laptop", "xbox")
+	expect(h[0] == JOY_BUTTON_A and h[1] == "Połóż laptop", "hint [E] -> A glyph (got %s)" % [h])
+	h = PadMap.pad_hint("[E] Usiądź  ·  [E] tabliczka", "nintendo")
+	expect(h[0] == JOY_BUTTON_A and h[1] == "Usiądź  ·  (B) tabliczka", "second key named inline (got %s)" % [h])
+	h = PadMap.pad_hint("[V] mów · [B] szept: Ola", "ps")
+	expect(h[0] == PadMap.RT and h[1] == "mów · (L2) szept: Ola", "voice hint on triggers (got %s)" % [h])
+	h = PadMap.pad_hint("[E] Wybierz piętro", "ps")
+	expect(h[0] == JOY_BUTTON_A and h[1] == "Wybierz piętro", "PlayStation: the cross glyph (got %s)" % [h])
+	h = PadMap.pad_hint("[G] Podaj kawę: Ola", "xbox")
+	expect(h[0] == -1 and h[1] == "Podaj kawę: Ola", "no pad button for G: the key is dropped (got %s)" % [h])
+	h = PadMap.pad_hint("Jedziemy…", "xbox")
+	expect(h[0] == -1 and h[1] == "Jedziemy…", "no key: unchanged")
+	expect(PadMap.hint_button("Q") == -1, "Q (drop) has no pad button: hidden in pad hints")
+	expect(PadMap.hint_button("1–3") == JOY_BUTTON_RIGHT_SHOULDER, "pockets on RB")
+	var Glyphs = preload("res://pad/pad_glyphs.gd")
+	expect(Glyphs.width(JOY_BUTTON_A, "xbox", 24.0) == 24.0, "face glyph is square-round")
+	expect(Glyphs.width(JOY_BUTTON_START, "ps", 24.0) > 24.0, "Options glyph is wider")
+	expect(Glyphs.width(JOY_BUTTON_DPAD_UP, "nintendo", 20.0) == 20.0, "d-pad glyph is square")

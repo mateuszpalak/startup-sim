@@ -105,7 +105,8 @@ widoczność przycisków.
 
 ## Pad (Xbox, PlayStation, Switch Pro, Steam Deck)
 
-Tylko w wersji 3D (`client3d/`), na komputerze i telefonie. Wystarczy
+W obu wersjach — 2D (`client/`) i 3D (`client3d/`) — na komputerze i
+telefonie. Wystarczy
 podłączyć pad (też w trakcie gry) i nacisnąć cokolwiek: podpowiedzi
 pokazują wtedy przyciski pada (A/B/X/Y, na PlayStation ✕ ○ □ △, na Switchu
 B/A/Y/X), a przyciski dotykowe się chowają. Dowolny klawisz, klik albo
@@ -115,8 +116,8 @@ otwiera menu gry.
 | Pad (Xbox / PlayStation / Switch) | Co robi | Klawisz |
 |---|---|---|
 | **lewa gałka**, **krzyżak** | chodzenie (8 kierunków) | WASD |
-| **prawa gałka** ← → | obrót kamery (puść — dosuwa do 45°) | , . |
-| **prawa gałka** ↑ ↓ | przybliż / oddal | + / - |
+| **prawa gałka** ← → | 3D: obrót kamery (puść — dosuwa do 45°); 2D: nic | , . |
+| **prawa gałka** ↑ ↓ | przybliż / oddal | + / - (2D: też kółko myszy) |
 | **A / ✕ / B** (dolny) | to, co podpowiada napis (usiądź, połóż, rozmawiaj…) | E |
 | **B / ○ / A** (prawy) | wstecz: zamknij okno, wstań od komputera | Esc |
 | **X / □ / Y** (lewy) | użyj trzymanego przedmiotu | F |
@@ -127,7 +128,12 @@ otwiera menu gry.
 | **Menu / Options / +** | menu gry | Esc |
 | **View / Share / −** | czat tekstowy | Enter |
 | **wciśnięcie lewej gałki** | dziennik dnia | H |
-| **wciśnięcie prawej gałki** | kamera prosto | Home |
+| **wciśnięcie prawej gałki** | 3D: kamera prosto; 2D: przybliżenie z ustawień | Home |
+
+Gałka i krzyżak wysyłają dokładnie te same klawisze co WASD (osiem
+kierunków, martwa strefa 0,35, skos tylko w pobliżu 45°), więc ruch,
+przewidywanie ruchu po stronie klienta i serwer widzą to samo co przy
+klawiaturze.
 
 **Okna i menu** (ekran tytułowy, logowanie, postać, ustawienia, rozmowy,
 pojemniki, sklep, ekspres, pilot, boombox, winda, wybór dojazdu, rozmowa
@@ -145,6 +151,15 @@ spacja, **LB** polskie litery, **RB** wielkie, **Start** = Enter (wyślij),
 Mini-gry: skręcanie — **A** zamiast spacji, szczotka — lewa gałka szoruje.
 
 ![Podpowiedź z przyciskiem pada](../media/3d/pad/hint_xbox.jpg)
+
+W wersji 2D przyciski pada są rysowane w tym samym atramentowo-pikselowym
+stylu co reszta interfejsu (ramka wyboru: złota, z inkowym obrysem):
+
+| | |
+|---|---|
+| ![Podpowiedź (A) przy biurku, 2D](../media/2d-pad/hint.jpg) | ![Menu akcji z przyciskami pada, 2D](../media/2d-pad/actions.jpg) |
+| ![StartOS — ramka na ikonie Kadry, 2D](../media/2d-pad/startos.jpg) | ![Klawiatura pada przy czacie, 2D](../media/2d-pad/keyboard.jpg) |
+| ![Ustawienia — sekcja Pad, 2D](../media/2d-pad/settings.jpg) | |
 
 W ustawieniach („Pad”): odwrócenie osi prawej gałki, czułość gałki,
 wibracje (nokaut, przyjazd windy).
