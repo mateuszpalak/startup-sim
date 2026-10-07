@@ -94,9 +94,12 @@ func on_dialog(p: Dictionary) -> void:
 		b.focus_mode = Control.FOCUS_NONE
 		b.pressed.connect(func(): _choose(choice))
 		_opts.add_child(b)
+	var was := visible
 	visible = true
 	_panel.reset_size()
 	_place.call_deferred()
+	if not was:
+		(func(): _place(); Kit.pop_in(_panel, 0.95, 0.2)).call_deferred()
 
 
 ## One thing in the cupboard: its picture in a slot, the key, what it says.
@@ -110,11 +113,11 @@ func _item_slot(kind: int, i: int, text: String) -> Control:
 	box.tooltip_text = text
 	box.pressed.connect(func(): _choose(i))
 	box.draw.connect(func():
-		Kit.box("slot_active" if box.is_hovered() else "slot").draw(box.get_canvas_item(), Rect2(Vector2.ZERO, box.size))
+		Kit.draw_rrect(box, Rect2(Vector2.ZERO, box.size), Color("#fff1e9") if box.is_hovered() else Kit.CARD, Kit.R_MD,
+			Kit.ACCENT if box.is_hovered() else Color(Kit.TEXT_INK, 0.12), 2)
 		ItemIcons.draw(box, kind, Rect2(Vector2(8, 6), Vector2.ONE * (box.size.x - 16)))
-		var f := Kit.font()
-		box.draw_string_outline(f, Vector2(8, box.size.y - 8), str(i + 1), HORIZONTAL_ALIGNMENT_LEFT, -1, 16, 4, Kit.INK)
-		box.draw_string(f, Vector2(8, box.size.y - 8), str(i + 1), HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Kit.GOLD))
+		Kit.draw_rrect(box, Rect2(5, 5, 22, 22), Kit.ACCENT, 11)
+		box.draw_string(Kit.font_bold(), Vector2(5, 21), str(i + 1), HORIZONTAL_ALIGNMENT_CENTER, 22, 14, Color.WHITE))
 	box.mouse_entered.connect(box.queue_redraw)
 	box.mouse_exited.connect(box.queue_redraw)
 	col.add_child(box)

@@ -17,8 +17,8 @@ const COLUMNS := ["Do zrobienia", "W toku", "Zrobione"]
 const PRIORITIES := ["Niski", "Średni", "Pilny"]
 const PRIO_COLORS := [Color("#8fa37a"), Color("#e0a82e"), Color("#c0392b")]
 const Departments = preload("res://net/departments.gd")
-const INK := Color("#1c2430")
-const MUTED := Color("#6a7383")
+const INK := Kit.TEXT_INK
+const MUTED := Kit.TEXT_MUTED
 
 var me := ""                 # the account's nick (the computer's owner)
 var dept := 0

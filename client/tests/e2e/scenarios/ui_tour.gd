@@ -69,6 +69,17 @@ func run() -> void:
 	await pc("close")
 	await wait(1.0)
 
+	g.log_history.toggle()
+	await shot("journal")
+	g.log_history.toggle()
+	g.overlay.visible = true
+	g.action_menu.open([{"key": "E", "text": "Usiądź przy biurku", "icon": "hand", "run": func(): pass}, {"key": "Q", "text": "Upuść laptop", "icon": Item.LAPTOP, "run": func(): pass},
+		{"key": "G", "text": "Podaj komuś", "icon": "give", "run": func(): pass}, {"key": "H", "text": "Dziennik dnia", "icon": "log", "run": func(): pass},
+		{"key": "Enter", "text": "Napisz na czacie", "icon": "chat", "run": func(): pass}])
+	await shot("actions_debug")
+	g.action_menu.close()
+	g.overlay.visible = false
+
 	main.pause.open()
 	await shot("pause")
 	main.pause._show(main.pause._settings)

@@ -347,14 +347,12 @@ func setup(p_net, p_building, welcome: Dictionary, p_nick: String, args: Diction
 	status_layer.add_child(alarm_tint)
 	status_layer.move_child(alarm_tint, 0)  # under the HUD
 	alarm_label.set_anchors_preset(Control.PRESET_CENTER_TOP)
-	alarm_label.position = Vector2(-330, 70)
+	alarm_label.position = Vector2(-330, 110)
 	alarm_label.size = Vector2(660, 40)
 	alarm_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	alarm_label.text = "ALARM POŻAROWY — wyjdź z budynku!"
-	alarm_label.add_theme_font_size_override("font_size", 32)
-	alarm_label.add_theme_color_override("font_color", Color("#ffdddd"))
-	alarm_label.add_theme_constant_override("outline_size", 8)
-	alarm_label.add_theme_color_override("font_outline_color", Color("#7a0000"))
+	Kit.style_label(alarm_label, 26, Color.WHITE)
+	alarm_label.add_theme_stylebox_override("normal", Kit.box("alarm"))
 	alarm_label.visible = false
 	status_layer.add_child(alarm_label)
 	weather_layer.layer = 6  # over the world and the smoke, under the HUD

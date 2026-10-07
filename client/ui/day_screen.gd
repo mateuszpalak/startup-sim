@@ -50,8 +50,9 @@ func _ready() -> void:
 	for l in [_title, _sub, _info]:
 		l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		l.add_theme_color_override("font_color", Color.WHITE)
-		l.add_theme_constant_override("outline_size", 8)
-		l.add_theme_color_override("font_outline_color", Kit.INK)
+		l.add_theme_constant_override("shadow_offset_y", 3)
+		l.add_theme_constant_override("shadow_outline_size", 6)
+		l.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.3))
 		col.add_child(l)
 	_title.add_theme_font_size_override("font_size", 64)
 	_sub.add_theme_font_size_override("font_size", 24)

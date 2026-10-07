@@ -203,6 +203,7 @@ func _show() -> void:
 	_render()
 	if not was:
 		_last_sync = 0
+		(func(): Kit.pop_in(_frame, 0.97, 0.22)).call_deferred()
 		if not state.locked and _windows.has("chat"):
 			_entry.grab_focus.call_deferred()
 
@@ -442,7 +443,7 @@ func _build() -> void:
 	_browser.add_theme_constant_override("separation", 6)
 	var addr := PanelContainer.new()
 	addr.add_theme_stylebox_override("panel", Kit.box("input"))
-	_style_label(_url, 14, Color("#4a5566"))
+	_style_label(_url, 14, Kit.TEXT_MUTED)
 	addr.add_child(_url)
 	_browser.add_child(addr)
 	var marks := HBoxContainer.new()
@@ -461,7 +462,7 @@ func _build() -> void:
 	home.add_theme_constant_override("separation", 12)
 	home.add_child(_mini_label("Strona startowa"))
 	var ht := Label.new()
-	_style_label(ht, 22, Color("#1c2430"))
+	_style_label(ht, 22, Kit.TEXT_INK)
 	ht.text = "Ulubione"
 	home.add_child(ht)
 	var tiles := HBoxContainer.new()
@@ -481,7 +482,7 @@ func _build() -> void:
 		pic.draw.connect(func(): Desktop.draw_icon(pic, kind))
 		tb.add_child(pic)
 		var tl := Label.new()
-		_style_label(tl, 17, Color("#1c2430"))
+		_style_label(tl, 17, Kit.TEXT_INK)
 		tl.text = bm[1] + "\n" + bm[2]
 		tl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		tl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -536,7 +537,7 @@ func _build() -> void:
 	var head := MarginContainer.new()
 	for s in ["left", "right", "top", "bottom"]:
 		head.add_theme_constant_override("margin_" + s, 12)
-	_style_label(_conv_title, 18, Color("#1c2430"))
+	_style_label(_conv_title, 18, Kit.TEXT_INK)
 	head.add_child(_conv_title)
 	main.add_child(head)
 	main.add_child(HSeparator.new())
@@ -564,9 +565,9 @@ func _build() -> void:
 	_entry.add_theme_font_size_override("font_size", 16)
 	_entry.add_theme_stylebox_override("normal", Kit.box("input"))
 	_entry.add_theme_stylebox_override("focus", Kit.box("input_focus"))
-	_entry.add_theme_color_override("font_color", Color("#1c2430"))
-	_entry.add_theme_color_override("font_placeholder_color", Color("#8a93a3"))
-	_entry.add_theme_color_override("caret_color", Color("#1c2430"))
+	_entry.add_theme_color_override("font_color", Kit.TEXT_INK)
+	_entry.add_theme_color_override("font_placeholder_color", Kit.TEXT_MUTED)
+	_entry.add_theme_color_override("caret_color", Kit.TEXT_INK)
 	_entry.keep_editing_on_text_submit = true  # Enter sends, you keep typing
 	_entry.text_submitted.connect(func(_t): _send())
 	in_row.add_child(_entry)
@@ -584,7 +585,7 @@ func _build() -> void:
 	cal_pad.add_child(_cal_view)
 	_views["calendar"] = cal_pad
 	var ch := Label.new()
-	_style_label(ch, 20, Color("#1c2430"))
+	_style_label(ch, 20, Kit.TEXT_INK)
 	ch.text = "Kalendarz zarządu — spotkania na dziś"
 	_cal_view.add_child(ch)
 	_style_label(_cal_mine, 15, Kit.ACCENT)
@@ -592,7 +593,7 @@ func _build() -> void:
 	var trow := HBoxContainer.new()
 	trow.add_theme_constant_override("separation", 10)
 	var tl := Label.new()
-	_style_label(tl, 15, Color("#1c2430"))
+	_style_label(tl, 15, Kit.TEXT_INK)
 	tl.text = "Temat:"
 	trow.add_child(tl)
 	for t in Protocol.TOPICS:
@@ -618,7 +619,7 @@ func _build() -> void:
 	lunch_pad.add_child(_lunch_view)
 	_pages["lunch"] = lunch_pad
 	var lh := Label.new()
-	_style_label(lh, 20, Color("#1c2430"))
+	_style_label(lh, 20, Kit.TEXT_INK)
 	lh.text = "Obiady do biura — dostawa na recepcję (piętro 4)"
 	_lunch_view.add_child(lh)
 	_style_label(_lunch_status, 15, Kit.ACCENT)
@@ -663,10 +664,10 @@ func _build() -> void:
 	icon.custom_minimum_size = Vector2(0, 72)
 	icon.draw.connect(func(): _draw_lock(icon))
 	_lock_view.add_child(icon)
-	_style_label(_lock_owner, 26, Color("#1c2430"))
+	_style_label(_lock_owner, 26, Kit.TEXT_INK)
 	_lock_owner.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_lock_view.add_child(_lock_owner)
-	_style_label(_lock_hint, 16, Color("#5a6475"))
+	_style_label(_lock_hint, 16, Kit.TEXT_MUTED)
 	_lock_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_lock_view.add_child(_lock_hint)
 	var brow := HBoxContainer.new()
@@ -679,9 +680,9 @@ func _build() -> void:
 
 func _draw_lock(c: Control) -> void:
 	var cx := c.size.x / 2
-	c.draw_arc(Vector2(cx, 30), 14, PI, TAU, 16, Color("#5a6475"), 6)
-	c.draw_line(Vector2(cx - 14, 30), Vector2(cx - 14, 38), Color("#5a6475"), 6)
-	c.draw_line(Vector2(cx + 14, 30), Vector2(cx + 14, 38), Color("#5a6475"), 6)
+	c.draw_arc(Vector2(cx, 30), 14, PI, TAU, 16, Kit.TEXT_MUTED, 6)
+	c.draw_line(Vector2(cx - 14, 30), Vector2(cx - 14, 38), Kit.TEXT_MUTED, 6)
+	c.draw_line(Vector2(cx + 14, 30), Vector2(cx + 14, 38), Kit.TEXT_MUTED, 6)
 	c.draw_rect(Rect2(cx - 24, 36, 48, 34), Color("#e0a82e"))
 	c.draw_rect(Rect2(cx - 3, 46, 6, 12), Color("#7a5a10"))
 
@@ -813,9 +814,9 @@ func _desk_icon(caption: String, kind: String) -> Button:
 	var b := Button.new()
 	b.flat = true
 	b.focus_mode = Control.FOCUS_NONE
-	b.custom_minimum_size = Vector2(90, 74)
+	b.custom_minimum_size = Vector2(104, 76)
 	var pic := Control.new()
-	pic.position = Vector2(3, 0)
+	pic.position = Vector2(10, 0)
 	pic.size = Vector2(84, 50)
 	pic.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	pic.draw.connect(func(): Desktop.draw_icon(pic, kind))
@@ -823,8 +824,8 @@ func _desk_icon(caption: String, kind: String) -> Button:
 	var l := Label.new()
 	Kit.style_label(l, 15, Color.WHITE)
 	l.text = caption
-	l.position = Vector2(0, 50)
-	l.size = Vector2(90, 22)
+	l.position = Vector2(0, 52)
+	l.size = Vector2(104, 22)
 	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	l.add_theme_constant_override("shadow_offset_y", 1)
 	l.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.45))
@@ -857,7 +858,7 @@ func _start_menu(id: int) -> void:
 
 func _mini_label(text: String) -> Label:
 	var l := Label.new()
-	_style_label(l, 14, Color("#6a7383"))
+	_style_label(l, 14, Kit.TEXT_MUTED)
 	l.text = text
 	return l
 
@@ -952,7 +953,7 @@ func on_company(p: Dictionary) -> void:
 		_render_company()
 
 
-func _co_label(text: String, size: int, color := Color("#1c2430"), wrap := false) -> Label:
+func _co_label(text: String, size: int, color := Kit.TEXT_INK, wrap := false) -> Label:
 	var l := Label.new()
 	_style_label(l, size, color)
 	l.text = text
@@ -969,8 +970,8 @@ func _co_edit(key: String, value: String, max_len: int, width: int) -> LineEdit:
 	e.max_length = max_len
 	e.custom_minimum_size = Vector2(width, 32)
 	e.add_theme_font_size_override("font_size", 14)
-	e.add_theme_color_override("font_color", Color("#1c2430"))
-	e.add_theme_color_override("font_placeholder_color", Color("#8a93a3"))
+	e.add_theme_color_override("font_color", Kit.TEXT_INK)
+	e.add_theme_color_override("font_placeholder_color", Kit.TEXT_MUTED)
 	e.add_theme_stylebox_override("normal", Kit.box("input"))
 	e.add_theme_stylebox_override("focus", Kit.box("input_focus"))
 	e.text_changed.connect(func(t: String): _co_drafts[key] = t)
@@ -993,7 +994,7 @@ func _position_card(o: Dictionary) -> Control:
 	var title := _co_edit(tkey, o.title, 40, 240)
 	r1.add_child(title)
 	var rename := _button("Zmień nazwę", false)
-	rename.add_theme_color_override("font_color", Color("#1c2430"))
+	rename.add_theme_color_override("font_color", Kit.TEXT_INK)
 	rename.pressed.connect(func():
 		_co_drafts.erase(tkey)
 		company_action.emit(Protocol.CO_SET_TITLE, id, 0, title.text.strip_edges()))
@@ -1012,16 +1013,16 @@ func _position_card(o: Dictionary) -> Control:
 	r2.add_theme_constant_override("separation", 8)
 	box.add_child(r2)
 	var minus := _button("−", false)
-	minus.add_theme_color_override("font_color", Color("#1c2430"))
+	minus.add_theme_color_override("font_color", Kit.TEXT_INK)
 	minus.disabled = places == 0
 	minus.pressed.connect(func(): company_action.emit(Protocol.CO_SET_PLACES, id, places - 1, ""))
 	r2.add_child(minus)
-	var n := _co_label("%d miejsc" % places if places != 1 else "1 miejsce", 15, Color("#16a085") if places else Color("#8a93a3"))
+	var n := _co_label("%d miejsc" % places if places != 1 else "1 miejsce", 15, Color("#16a085") if places else Kit.TEXT_MUTED)
 	n.custom_minimum_size = Vector2(80, 0)
 	n.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	r2.add_child(n)
 	var plus := _button("+", false)
-	plus.add_theme_color_override("font_color", Color("#1c2430"))
+	plus.add_theme_color_override("font_color", Kit.TEXT_INK)
 	plus.disabled = places >= Protocol.CO_MAX_PLACES
 	plus.pressed.connect(func(): company_action.emit(Protocol.CO_SET_PLACES, id, places + 1, ""))
 	r2.add_child(plus)
@@ -1030,7 +1031,7 @@ func _position_card(o: Dictionary) -> Control:
 	desc.placeholder_text = "Opis stanowiska"
 	r2.add_child(desc)
 	var save := _button("Zapisz opis", false)
-	save.add_theme_color_override("font_color", Color("#1c2430"))
+	save.add_theme_color_override("font_color", Kit.TEXT_INK)
 	save.pressed.connect(func():
 		_co_drafts.erase(key)
 		company_action.emit(Protocol.CO_SET_DESCRIPTION, id, 0, desc.text.strip_edges()))
@@ -1076,7 +1077,7 @@ func _new_position_card(count: int) -> Control:
 			_co_drafts.erase(k))
 	r2.add_child(add)
 	if count >= Protocol.CO_MAX_POSITIONS:
-		box.add_child(_co_label("Limit 10 stanowisk — usuń któreś, żeby dodać nowe.", 14, Color("#8a93a3")))
+		box.add_child(_co_label("Limit 10 stanowisk — usuń któreś, żeby dodać nowe.", 14, Kit.TEXT_MUTED))
 	return card
 
 
@@ -1123,7 +1124,7 @@ func _render_company() -> void:
 
 	_co_view.add_child(_co_label("Panel założyciela", 22))
 	var row := _co_row()
-	row.add_child(_co_label("Nazwa firmy:", 15, Color("#4a5566")))
+	row.add_child(_co_label("Nazwa firmy:", 15, Kit.TEXT_MUTED))
 	var name_edit := _co_edit("name", company_offers.name, 40, 360)
 	row.add_child(name_edit)
 	var rename := _button("Zmień", true)
@@ -1141,7 +1142,7 @@ func _render_company() -> void:
 	_co_view.add_child(_co_label("Kandydaci po rozmowie", 18, Kit.ACCENT))
 	var cands: Array = company_people.get("candidates", [])
 	if cands.is_empty():
-		_co_view.add_child(_co_label("Nikt nie czeka. Kandydaci, o których nie zdecydujesz w 30 min, są zatrudniani automatycznie.", 14, Color("#8a93a3"), true))
+		_co_view.add_child(_co_label("Nikt nie czeka. Kandydaci, o których nie zdecydujesz w 30 min, są zatrudniani automatycznie.", 14, Kit.TEXT_MUTED, true))
 	for c in cands:
 		var pid: int = c.id
 		row = _co_row()
@@ -1158,7 +1159,7 @@ func _render_company() -> void:
 	_co_view.add_child(_co_label("Zespół", 18, Kit.ACCENT))
 	var staff: Array = company_people.get("staff", [])
 	if staff.is_empty():
-		_co_view.add_child(_co_label("Na razie tylko Ty.", 14, Color("#8a93a3")))
+		_co_view.add_child(_co_label("Na razie tylko Ty.", 14, Kit.TEXT_MUTED))
 	for s in staff:
 		var pid: int = s.id
 		row = _co_row()
@@ -1170,7 +1171,7 @@ func _render_company() -> void:
 		l.custom_minimum_size = Vector2(430, 0)
 		row.add_child(l)
 		if pid == my_id:
-			row.add_child(_co_label("(Ty)", 14, Color("#8a93a3")))
+			row.add_child(_co_label("(Ty)", 14, Kit.TEXT_MUTED))
 			continue
 		var fire := Kit.button("Zwolnij", false, true)
 		fire.pressed.connect(func(): company_action.emit(Protocol.CO_FIRE, pid, 0, ""))
@@ -1218,11 +1219,11 @@ func _render_lunch() -> void:
 		info.custom_minimum_size = Vector2(320, 0)
 		info.add_theme_constant_override("separation", 0)
 		var n := Label.new()
-		_style_label(n, 16, Color("#1c2430"))
+		_style_label(n, 16, Kit.TEXT_INK)
 		n.text = d.name
 		info.add_child(n)
 		var r := Label.new()
-		_style_label(r, 13, Color("#8a93a3"))
+		_style_label(r, 13, Kit.TEXT_MUTED)
 		r.text = "%s · ok. %d min" % [d.restaurant, d.eta]
 		info.add_child(r)
 		row.add_child(info)
@@ -1268,7 +1269,7 @@ func _render_calendar() -> void:
 		var row := HBoxContainer.new()
 		row.add_theme_constant_override("separation", 12)
 		var t := Label.new()
-		_style_label(t, 16, Color("#1c2430"))
+		_style_label(t, 16, Kit.TEXT_INK)
 		t.text = _hhmm(s.start)
 		t.custom_minimum_size = Vector2(60, 0)
 		row.add_child(t)
@@ -1284,7 +1285,7 @@ func _render_calendar() -> void:
 				b.pressed.connect(func(): book.emit(start, _cal_topic.get_selected_id()))
 				row.add_child(b)
 			Protocol.SLOT_TAKEN:
-				_style_label(st, 15, Color("#8a93a3"))
+				_style_label(st, 15, Kit.TEXT_MUTED)
 				st.text = "zajęte"
 				row.add_child(st)
 			Protocol.SLOT_MINE:
@@ -1362,7 +1363,7 @@ func _render_messages() -> void:
 		ch.queue_free()
 	if list.is_empty():
 		var l := Label.new()
-		_style_label(l, 15, Color("#8a93a3"))
+		_style_label(l, 15, Kit.TEXT_MUTED)
 		l.text = "Jeszcze nic tu nie ma. Napisz coś jako pierwszy!"
 		_messages.add_child(l)
 	for m in list:
@@ -1373,7 +1374,7 @@ func _render_messages() -> void:
 		who.text = m.nick + ("  (Ty)" if m.from == my_id else "")
 		box.add_child(who)
 		var text := Label.new()
-		_style_label(text, 16, Color("#1c2430"))
+		_style_label(text, 16, Kit.TEXT_INK)
 		text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		text.text = m.text
 		box.add_child(text)

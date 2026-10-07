@@ -364,13 +364,13 @@ func _render(name: String) -> void:
 # ----------------------------------------------------------------- browser
 
 func _render_browser(body: VBoxContainer) -> void:
-	var addr := _label("🔒  https://praca.example/oferty" if _browser_view == "list" else "🔒  https://praca.example/aplikuj", 13, Color("#4a5566"))
+	var addr := _label("🔒  https://praca.example/oferty" if _browser_view == "list" else "🔒  https://praca.example/aplikuj", 13, Kit.TEXT_MUTED)
 	body.add_child(addr)
 	if _browser_view == "form" and offers.has(_form_offer):
 		_render_form(body, offers[_form_offer])
 		return
 	body.add_child(_label("Praca od zaraz — najnowsze ogłoszenia", 26))
-	body.add_child(_label("Znajdź pracę marzeń (albo chociaż taką z owocowymi czwartkami).", 15, Color("#4a5566")))
+	body.add_child(_label("Znajdź pracę marzeń (albo chociaż taką z owocowymi czwartkami).", 15, Kit.TEXT_MUTED))
 	if not founded and not hired:
 		_render_found_card(body)
 	if offers.is_empty():
@@ -393,9 +393,9 @@ func _render_browser(body: VBoxContainer) -> void:
 		var dept := Departments.name_of(o.department, "")
 		var company: String = o.company + ("  ·  dział " + dept if dept != "" else "")
 		box.add_child(_label(company, 14, Color("#2e6bd9")))
-		box.add_child(_label(o.description, 15, Color("#4a5566")))
+		box.add_child(_label(o.description, 15, Kit.TEXT_MUTED))
 		if o.get("salary_max", 0) > 0:
-			box.add_child(_label("💰 %s brutto / mies." % _range_text(o), 15, Color("#1c2430")))
+			box.add_child(_label("💰 %s brutto / mies." % _range_text(o), 15, Kit.TEXT_INK))
 		if ours:
 			var free: int = o.get("vacancies", 0)
 			var places := "Stanowisko obsadzone" if free == 0 else ("Wolne miejsca: %d" % free)
@@ -417,14 +417,14 @@ func _render_form(body: VBoxContainer, o: Dictionary) -> void:
 	for row in [["Imię", nick], ["E-mail", profile.get("email", "")], ["Miejscowość", profile.get("city", "")],
 			["Wiek", str(profile.get("age", ""))], ["Płeć", g[clampi(profile.get("gender", 0), 0, 2)]]]:
 		var h := HBoxContainer.new()
-		var k := _label(row[0] + ":", 15, Color("#4a5566"))
+		var k := _label(row[0] + ":", 15, Kit.TEXT_MUTED)
 		k.custom_minimum_size = Vector2(130, 0)
 		h.add_child(k)
 		var v := _label(str(row[1]), 15)
 		v.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		h.add_child(v)
 		box.add_child(h)
-	box.add_child(_label("Dlaczego chcesz u nas pracować? (opcjonalnie)", 15, Color("#4a5566")))
+	box.add_child(_label("Dlaczego chcesz u nas pracować? (opcjonalnie)", 15, Kit.TEXT_MUTED))
 	if _motivation.get_parent():
 		_motivation.get_parent().remove_child(_motivation)
 	_motivation.custom_minimum_size = Vector2(0, 90)
@@ -432,7 +432,7 @@ func _render_form(body: VBoxContainer, o: Dictionary) -> void:
 	_motivation.wrap_mode = TextEdit.LINE_WRAPPING_BOUNDARY
 	box.add_child(_motivation)
 	# Expected pay and the form of employment (a mandate: students under 26).
-	box.add_child(_label("Oczekiwane wynagrodzenie (zł brutto / mies.) — widełki: %s" % _range_text(o), 15, Color("#4a5566")))
+	box.add_child(_label("Oczekiwane wynagrodzenie (zł brutto / mies.) — widełki: %s" % _range_text(o), 15, Kit.TEXT_MUTED))
 	var salary := SpinBox.new()
 	salary.min_value = 1000
 	salary.max_value = 100000
@@ -440,9 +440,9 @@ func _render_form(body: VBoxContainer, o: Dictionary) -> void:
 	salary.suffix = "zł"
 	salary.value = snappedf((o.get("salary_min", 6000) + o.get("salary_max", 9000)) / 2.0, 100)
 	salary.custom_minimum_size = Vector2(200, 0)
-	salary.get_line_edit().add_theme_color_override("font_color", Color("#1c2430"))
+	salary.get_line_edit().add_theme_color_override("font_color", Kit.TEXT_INK)
 	box.add_child(salary)
-	box.add_child(_label("Forma zatrudnienia", 15, Color("#4a5566")))
+	box.add_child(_label("Forma zatrudnienia", 15, Kit.TEXT_MUTED))
 	var form := OptionButton.new()
 	for f in [Protocol.EMPLOYMENT_CONTRACT, Protocol.EMPLOYMENT_B2B, Protocol.EMPLOYMENT_MANDATE]:
 		form.add_item(Protocol.EMPLOYMENT_NAMES[f], f)
@@ -451,7 +451,7 @@ func _render_form(body: VBoxContainer, o: Dictionary) -> void:
 	var student := CheckBox.new()
 	student.text = "Jestem studentem / studentką (umowa zlecenie: tylko studenci do 26 lat)"
 	for k in ["font_color", "font_hover_color", "font_pressed_color", "font_focus_color", "font_hover_pressed_color"]:
-		student.add_theme_color_override(k, Color("#1c2430"))
+		student.add_theme_color_override(k, Kit.TEXT_INK)
 	box.add_child(student)
 	var young: bool = int(profile.get("age", 99)) < Protocol.MANDATE_AGE
 	var mandate_ok := func() -> bool: return student.button_pressed and young
@@ -466,7 +466,7 @@ func _render_form(body: VBoxContainer, o: Dictionary) -> void:
 	consent.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	consent.custom_minimum_size = Vector2(300, 0)
 	for k in ["font_color", "font_hover_color", "font_pressed_color", "font_focus_color", "font_hover_pressed_color"]:
-		consent.add_theme_color_override(k, Color("#1c2430"))
+		consent.add_theme_color_override(k, Kit.TEXT_INK)
 	box.add_child(consent)
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 10)
@@ -516,7 +516,7 @@ func _render_mail(body: VBoxContainer) -> void:
 	ids.sort()
 	ids.reverse()
 	if ids.is_empty():
-		body.add_child(_label("Skrzynka odbiorcza jest pusta. Wyślij kilka zgłoszeń!", 17, Color("#4a5566")))
+		body.add_child(_label("Skrzynka odbiorcza jest pusta. Wyślij kilka zgłoszeń!", 17, Kit.TEXT_MUTED))
 		return
 	if _selected_mail < 0 or not mails.has(_selected_mail):
 		_selected_mail = ids[0]
@@ -544,7 +544,7 @@ func _render_mail(body: VBoxContainer) -> void:
 	var view := _card_in(h)
 	view.get_parent().size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	view.add_child(_label(m.subject, 20))
-	view.add_child(_label("Od: " + m.from, 14, Color("#4a5566")))
+	view.add_child(_label("Od: " + m.from, 14, Kit.TEXT_MUTED))
 	view.add_child(HSeparator.new())
 	view.add_child(_label(m.body, 16))
 	match m.action:
@@ -743,7 +743,7 @@ func _resend_actions(now: int) -> void:
 func _render_found_card(body: VBoxContainer) -> void:
 	var box := _card(body)
 	box.add_child(_label("Załóż własną firmę", 21, Color("#8e44ad")))
-	box.add_child(_label("Biuro w tym budynku czeka na założyciela. Nadaj firmie nazwę — od razu trafisz do zarządu, dostaniesz kartę, laptop i panel do zatrudniania ludzi.", 15, Color("#4a5566")))
+	box.add_child(_label("Biuro w tym budynku czeka na założyciela. Nadaj firmie nazwę — od razu trafisz do zarządu, dostaniesz kartę, laptop i panel do zatrudniania ludzi.", 15, Kit.TEXT_MUTED))
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 10)
 	box.add_child(row)

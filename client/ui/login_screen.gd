@@ -47,11 +47,12 @@ func _ready() -> void:
 	outer.custom_minimum_size = Vector2(420, 0)
 	center.add_child(outer)
 	var title := _label("Startup Sim", 44, Color.WHITE)
-	title.add_theme_constant_override("outline_size", 8)
-	title.add_theme_color_override("font_outline_color", Kit.ACCENT_LO)
+	title.add_theme_font_override("font", Kit.font_bold())
+	title.add_theme_constant_override("shadow_offset_y", 3)
+	title.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.35))
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	outer.add_child(title)
-	var sub := _label("Zaloguj się albo załóż konto — Twój postęp zapisuje się na serwerze.", 16, Color(1, 1, 1, 0.6))
+	var sub := _label("Zaloguj się albo załóż konto — Twój postęp zapisuje się na serwerze.", 16, Color(1, 1, 1, 0.85))
 	sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	sub.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	outer.add_child(sub)

@@ -6,8 +6,8 @@ extends HBoxContainer
 const Kit = preload("res://ui/ui_kit.gd")
 const Protocol = preload("res://net/protocol.gd")
 
-const INK := Color("#1c2430")
-const MUTED := Color("#6a7383")
+const INK := Kit.TEXT_INK
+const MUTED := Kit.TEXT_MUTED
 
 var box            # MailBox
 var trash_mode := false

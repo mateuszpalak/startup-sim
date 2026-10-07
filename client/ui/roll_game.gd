@@ -44,7 +44,7 @@ func _ready() -> void:
 	_panel.add_child(col)
 	Kit.style_label(_title, 22, Kit.TEXT_INK)
 	col.add_child(_title)
-	Kit.style_label(_hint, 16, Color("#4a5566"))
+	Kit.style_label(_hint, 16, Kit.TEXT_MUTED)
 	_hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	col.add_child(_hint)
 	_bar.custom_minimum_size = Vector2(480, 46)

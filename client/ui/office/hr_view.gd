@@ -9,8 +9,8 @@ const Departments = preload("res://net/departments.gd")
 signal action(action: int, arg: int)
 
 const STATUS := {1: "zaakceptowany", 2: "odrzucony", 3: "anulowany", 4: "wykorzystany"}
-const TEXT := Color("#1c2430")
-const DIM := Color("#4a5566")
+const TEXT := Kit.TEXT_INK
+const DIM := Kit.TEXT_MUTED
 
 var info := {}
 var tab := "contract"

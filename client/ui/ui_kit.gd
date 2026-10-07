@@ -206,6 +206,8 @@ static func box(kind: String) -> StyleBox:
 			sb = _flat(Color(DARK, 0.78), R_LG, 16, 10, Color(1, 1, 1, 0.08), 1, 10)
 		"glass":
 			sb = _flat(Color(DARK, 0.84), R_XL, 22, 18, Color(1, 1, 1, 0.1), 1, 24, Vector2(0, 8))
+		"alarm":
+			sb = _flat(Color(RED, 0.9), R_LG, 20, 10, Color(1, 1, 1, 0.3), 1, 12)
 		"paper":
 			sb = _flat(PAPER, R_XL, 22, 18, Color(1, 1, 1, 0.9), 1, 24, Vector2(0, 8))
 		"window":
@@ -604,6 +606,28 @@ static func draw_icon(ci: CanvasItem, name: String, c: Vector2, s: float, col: C
 				var a := -PI / 2 + TAU * i / 10.0
 				sp.append(Vector2(cos(a), sin(a)) * (9.0 if i % 2 == 0 else 4.0))
 			line.call(sp)
+		"lock":
+			box.call(-7, -2, 14, 11)
+			ring.call(Vector2(0, -2), 4.5, PI, TAU)
+			line.call([Vector2(0, 2.5), Vector2(0, 5)])
+		"book":
+			line.call([Vector2(0, -6), Vector2(0, 8)])
+			line.call([Vector2(0, -6), Vector2(-4, -8), Vector2(-9, -8), Vector2(-9, 6), Vector2(-4, 6), Vector2(0, 8), Vector2(4, 6), Vector2(9, 6), Vector2(9, -8), Vector2(4, -8), Vector2(0, -6)])
+		"arrow":
+			line.call([Vector2(-8, 0), Vector2(8, 0)])
+			line.call([Vector2(3, -5), Vector2(8, 0), Vector2(3, 5)])
+		"down":
+			line.call([Vector2(0, -8), Vector2(0, 7)])
+			line.call([Vector2(-5, 2), Vector2(0, 7), Vector2(5, 2)])
+		"hand":
+			line.call([Vector2(-5, 9), Vector2(-8, 1), Vector2(-7, -1), Vector2(-4, 2), Vector2(-4, -8), Vector2(-2, -9), Vector2(0, -8), Vector2(0, -1)])
+			line.call([Vector2(0, -6), Vector2(2, -7), Vector2(4, -6), Vector2(4, -1)])
+			line.call([Vector2(4, -4), Vector2(6, -5), Vector2(8, -4), Vector2(8, 4), Vector2(5, 9)])
+		"cig":
+			line.call([Vector2(-9, 3), Vector2(7, 3), Vector2(7, 7), Vector2(-9, 7), Vector2(-9, 3)])
+			line.call([Vector2(2, 3), Vector2(2, 7)])
+			ring.call(Vector2(7, -3), 2.5, PI * 0.5, PI * 1.6)
+			ring.call(Vector2(4, -6), 2.5, -PI * 0.4, PI * 0.6)
 		_:
 			ci.draw_circle(c, 3 * k, col)
 

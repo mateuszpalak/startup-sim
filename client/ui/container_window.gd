@@ -61,6 +61,7 @@ func _ready() -> void:
 	col.add_child(_buttons)
 	col.add_child(Kit.label("Przeciągnij myszką (albo kliknij), żeby wyjąć lub włożyć · Esc zamknij", 14, Kit.TEXT_MUTED))
 	_panel.resized.connect(_place)
+	_panel.minimum_size_changed.connect(_place.call_deferred)
 	get_viewport().size_changed.connect(_place)
 
 
@@ -134,6 +135,7 @@ func _fill() -> void:
 		return
 	_sig = sig
 	for c in _grid.get_children() + _inv.get_children() + _buttons.get_children():
+		c.get_parent().remove_child(c)  # out now: the panel must not measure them
 		c.queue_free()
 	var slots: Array = state.get("slots", [])
 	for i in maxi(slots.size(), state.get("capacity", 0)):
@@ -197,7 +199,8 @@ func _slot(kind: int, count: int, label: String, from: String, index: int) -> Co
 
 func _draw_slot(box: Control, kind: int, count: int, from: String, index: int) -> void:
 	var hover: bool = box.get_meta("hover", false) and kind != 0
-	Kit.box("slot_active" if hover else "slot").draw(box.get_canvas_item(), Rect2(Vector2.ZERO, box.size))
+	Kit.draw_rrect(box, Rect2(Vector2.ZERO, box.size), Color("#fff1e9") if hover else Kit.CARD_LO, Kit.R_MD,
+		Kit.ACCENT if hover else Color(Kit.TEXT_INK, 0.08), 2)
 	if kind != 0:
 		ItemIcons.draw(box, kind, Rect2(Vector2(8, 6), Vector2.ONE * (box.size.x - 16)))
 		if count == 0:  # none left: a faded picture
@@ -205,13 +208,12 @@ func _draw_slot(box: Control, kind: int, count: int, from: String, index: int) -
 	var f := Kit.font()
 	if from == "inv":
 		var cap := "ręce" if index == 0 else str(index)
-		box.draw_string_outline(f, Vector2(6, box.size.y - 6), cap, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, 4, Kit.INK)
-		box.draw_string(f, Vector2(6, box.size.y - 6), cap, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Kit.GOLD)
+		box.draw_string(Kit.font_bold(), Vector2(0, box.size.y - 6), cap, HORIZONTAL_ALIGNMENT_CENTER, box.size.x, 12, Kit.TEXT_MUTED)
 	elif kind != 0 and (count != 1 or which not in [Protocol.CONTAINER_FRIDGE, Protocol.CONTAINER_BIN]):
 		var n := "×%d" % count
 		var at := Vector2(box.size.x - 8 - f.get_string_size(n, HORIZONTAL_ALIGNMENT_LEFT, -1, 16).x, box.size.y - 6)
-		box.draw_string_outline(f, at, n, HORIZONTAL_ALIGNMENT_LEFT, -1, 16, 4, Kit.INK)
-		box.draw_string(f, at, n, HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Kit.GOLD)
+		Kit.draw_rrect(box, Rect2(at + Vector2(-5, -15), Vector2(f.get_string_size(n, HORIZONTAL_ALIGNMENT_LEFT, -1, 14).x + 10, 19)), Kit.ACCENT, 9)
+		box.draw_string(Kit.font_bold(), at + Vector2(0, -1), n, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color.WHITE)
 
 
 func _preview(kind: int) -> Control:

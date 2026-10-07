@@ -62,6 +62,7 @@ func toggle() -> void:
 	if visible:
 		_place.call_deferred()
 		_to_bottom.call_deferred()
+		(func(): _place(); Kit.pop_in(self, 0.96, 0.2)).call_deferred()
 
 
 func _to_bottom() -> void:

@@ -10,7 +10,7 @@ const Kit = preload("res://ui/ui_kit.gd")
 
 const START := "https://www.onet.pl/"
 const SEARCH := "https://duckduckgo.com/?q="
-const TEXT := Color("#1c2430")
+const TEXT := Kit.TEXT_INK
 
 var url := START
 var _addr := LineEdit.new()

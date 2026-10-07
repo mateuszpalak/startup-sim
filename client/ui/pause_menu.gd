@@ -23,7 +23,7 @@ func _ready() -> void:
 	visible = false
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	get_viewport().size_changed.connect(_fit)
-	_dim.color = Color(0.05, 0.03, 0.02, 0.55)
+	_dim.color = Color(0.08, 0.06, 0.12, 0.5)
 	add_child(_dim)
 	_card.add_theme_stylebox_override("panel", Kit.box("paper"))
 	add_child(_card)
@@ -60,6 +60,9 @@ func _show(what: Control) -> void:
 func open() -> void:
 	_show(_menu)
 	visible = true
+	_dim.modulate.a = 0.0
+	create_tween().tween_property(_dim, "modulate:a", 1.0, 0.2)
+	(func(): _fit(); Kit.pop_in(_card)).call_deferred()
 
 
 func close() -> void:
