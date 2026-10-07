@@ -44,6 +44,8 @@ const SmokeView = preload("res://game/smoke_view.gd")
 const LightView = preload("res://game/light_view.gd")
 const Settings = preload("res://ui/settings.gd")
 const Ink = preload("res://ui/ink_ui.gd")
+const Touch = preload("res://touch/touch.gd")
+const TouchControls = preload("res://touch/touch_controls.gd")
 
 const ZOOM := 3.0
 ## Remote players are rendered this far in the past (2 snapshots at 20 Hz).
@@ -75,6 +77,9 @@ var overlay := DebugOverlay.new()
 var status_layer := CanvasLayer.new()
 var status_label := Label.new()
 var hint_label := Label.new()
+## The hint as the game words it (with "[E] ..."; the label shows it without
+## keys on a touch screen).
+var hint_text := ""
 var log_label := Label.new()
 var _log: Array = []  # [msec, text]
 var kinds := {}          # id -> entity kind (player / NPC)
@@ -101,6 +106,7 @@ var elevator_doors := {} # floor -> Array of ElevatorDoorView
 var lifts := []
 var ride_mask := RideMask.new()
 var clock_label := Label.new()
+var clock_panel: Control = null
 var daylight := CanvasModulate.new()   # time-of-day tint of the world
 var game_minute := 8 * 60
 var weather := Protocol.WEATHER_SUNNY
@@ -140,6 +146,9 @@ var _shelf_at := Vector2.ZERO     # where the shelf window was opened (walk away
 var container := ContainerWindow.new()
 var _container_at := Vector2.ZERO
 var _container_closed_ms := -10000
+## On-screen controls (touch screens only, touch/touch_controls.gd).
+var touch: Control = null
+var touch_layer := CanvasLayer.new()
 var coffee := CoffeeWindow.new()  # the coffee machine's panel
 var _coffee_at := Vector2.ZERO
 var _coffee_closed_ms := -10000
@@ -329,6 +338,7 @@ func setup(p_net, p_building, welcome: Dictionary, p_nick: String, args: Diction
 	Ink.style_label(clock_label, 20, Ink.TEXT)
 	cp.add_child(clock_label)
 	status_layer.add_child(cp)
+	clock_panel = cp
 	add_child(daylight)
 	mood_layer.layer = 4  # over the world, under the weather and the HUD
 	add_child(mood_layer)
@@ -429,6 +439,13 @@ func setup(p_net, p_building, welcome: Dictionary, p_nick: String, args: Diction
 			if not gadget.lift:
 				gadget.close())  # (the lift's panel: the server closes it, or shows it again)
 	screen_layer.add_child(screen)
+	if Touch.active:
+		touch_layer.layer = 13  # over the HUD and the computer (its close button)
+		add_child(touch_layer)
+		touch = TouchControls.new()
+		touch.game = self
+		touch_layer.add_child(touch)
+		hint_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_show_floor(0)
 	set_zoom_level.call_deferred(float(args["zoom"]) if args.has("zoom") else Settings.zoom)
 
@@ -538,9 +555,24 @@ func _sample_input(delta: float) -> int:
 			_autowalk_bits = [0, 1, 2, 4, 8, 5, 9, 6, 10][randi() % 9]
 			_autowalk_timer = randf_range(0.3, 1.5)
 		return _autowalk_bits
-	if not get_window().has_focus():
+	if not get_window().has_focus() and touch == null:
 		return 0
+	return player_bits()
+
+
+## Keys held (or the touch joystick / buttons, which press the same keys)
+## -> input bits.
+func player_bits() -> int:
 	var b := 0
+	var sd: Vector2i = touch.move_dir() if touch else Vector2i.ZERO
+	if sd.y < 0:
+		b |= Movement.IN_UP
+	elif sd.y > 0:
+		b |= Movement.IN_DOWN
+	if sd.x < 0:
+		b |= Movement.IN_LEFT
+	elif sd.x > 0:
+		b |= Movement.IN_RIGHT
 	if Input.is_physical_key_pressed(KEY_W) or Input.is_physical_key_pressed(KEY_UP):
 		b |= Movement.IN_UP
 	if Input.is_physical_key_pressed(KEY_S) or Input.is_physical_key_pressed(KEY_DOWN):
@@ -739,6 +771,8 @@ func _update_media() -> void:
 
 func _process(delta: float) -> void:
 	_update_media()
+	if Touch.active:
+		_touch_layout()
 	# Fire alarm: the screen pulses red.
 	var pulse := 0.5 + 0.5 * sin(Time.get_ticks_msec() / 1000.0 * TAU * 1.5)
 	alarm_tint.color.a = 0.16 * pulse if fire_alarm else 0.0
@@ -1108,18 +1142,96 @@ func _reconcile(server_body: Dictionary, ack: int) -> void:
 func window_open() -> bool:
 	return screen.visible or coffee.visible or gadget.visible or shelf_window.visible or container.visible or dialog.visible \
 		or roll_game.visible or brush_game.visible \
-		or chat_box.visible or log_history.visible
+		or chat_box.visible or log_history.visible or action_menu.visible or door_plaque.visible
 
 
 ## Settings changed in the Esc menu.
 func apply_settings() -> void:
 	set_zoom_level(Settings.zoom)
+	if touch:
+		touch.layout()
 
 
 ## Camera zoom (mouse wheel, + / -): a multiplier of ZOOM.
 const ZOOM_MIN := 0.6
 const ZOOM_MAX := 2.0
 var zoom_level := 1.0
+
+
+## Touch screens: the HUD inside the safe area, the journal lines above the
+## joystick, the hint above the inventory bar (wrapping on a narrow screen).
+func _touch_layout() -> void:
+	var vs := get_viewport().get_visible_rect().size
+	var sr := Touch.safe_rect(get_viewport())
+	if clock_panel:
+		clock_panel.position = sr.position + Vector2(16, 14)
+	status_label.position = Vector2((vs.x - status_label.size.x) / 2, sr.position.y + (124 if Touch.narrow(get_viewport()) else 24))
+	log_label.size = Vector2(minf(420, vs.x * 0.42), 180)
+	log_label.position = Vector2(sr.position.x + 16, sr.end.y - 180 - 200)
+	var w := minf(560.0, sr.size.x - 24)
+	hint_label.custom_minimum_size.x = w
+	hint_label.size = Vector2(w, 0)
+	hint_label.reset_size()
+	hint_label.position = Vector2((vs.x - w) / 2, hud.top() - hint_label.size.y - 8)
+
+
+## Touch: the joystick (or the action button) takes over from a tap-walk.
+func touch_walk_cancel() -> void:
+	goto_legs.clear()
+	_goto_path.clear()
+
+
+## Touch: a tap on the world (screen point). On a person or a piece of
+## furniture: walk up to it and press E; on the floor: walk there.
+func touch_tap_world(sp: Vector2) -> void:
+	if not have_state or input_blocked or me.status in Protocol.ACT_STUCK:
+		return
+	var map = building.get_floor(pred.floor)
+	var wp: Vector2 = world.get_global_transform_with_canvas().affine_inverse() * sp
+	var me_px := Movement.to_px(pred.pos)
+	var me_tile := Movement.tile_of_pos(pred.pos)
+	var target := Vector2i(-1, -1)
+	var interact := false
+	# Somebody under the finger (people stand on their feet: aim a bit up).
+	var best := 12.0
+	for id in remotes:
+		var r = remotes[id]
+		var d: float = minf(r.position.distance_to(wp), (r.position - Vector2(0, 8)).distance_to(wp))
+		if r.visible and d < best:
+			best = d
+			target = Vector2i(floori(r.position.x / 16.0), floori(r.position.y / 16.0))
+			interact = true
+	if not interact:
+		var t := Vector2i((wp / 16.0).floor())
+		if t.x < 0 or t.y < 0 or t.x >= map.width or t.y >= map.height:
+			return
+		target = t
+		interact = map.is_blocked(t.x, t.y)  # furniture (or a wall: walks up, E does nothing)
+	touch_walk_cancel()
+	goto_delay = 0.0
+	if touch:
+		touch.flash_at(sp)
+	if not interact:
+		goto_legs = ["%d,%d" % [target.x, target.y]]
+		return
+	if Vector2(target * 16 + Vector2i(8, 8)).distance_to(me_px) <= 26.0:
+		goto_legs = ["E"]  # already next to it
+		return
+	# The free tile next to it closest to us.
+	var best_t := Vector2i(-1, -1)
+	var best_d := INF
+	for dy in [-1, 0, 1]:
+		for dx in [-1, 0, 1]:
+			var n: Vector2i = target + Vector2i(dx, dy)
+			if n.x < 0 or n.y < 0 or n.x >= map.width or n.y >= map.height or map.is_blocked(n.x, n.y):
+				continue
+			var dd := Vector2(n - me_tile).length() + (0.5 if dx != 0 and dy != 0 else 0.0)
+			if dd < best_d:
+				best_d = dd
+				best_t = n
+	if best_t.x < 0:
+		return
+	goto_legs = ["%d,%d" % [best_t.x, best_t.y], "E"]
 
 
 func set_zoom_level(z: float) -> void:
@@ -1186,7 +1298,7 @@ func _actions_here() -> Array:
 	var out := []
 	var add := func(key: String, text: String, run: Callable, icon: Variant = "") -> void:
 		out.append({"key": key, "text": text, "run": run, "icon": icon})
-	var hint: String = hint_label.text if hint_label.visible else ""
+	var hint: String = hint_text if hint_label.visible else ""
 	if hint.begins_with("[E] "):
 		var what := hint.substr(4).get_slice("  ·  ", 0)
 		add.call("E", what, _menu_interact, "hand")
@@ -1277,6 +1389,7 @@ func _item_action(action: int, slot: int) -> void:
 ## gate that needs a pass.
 func _update_hint() -> void:
 	var text := ""
+	hint_text = ""
 	plaque_here = 0
 	if me.status == Protocol.ACT_HELD:
 		hint_label.text = "Zatrzymano cię — chwilę stoisz w miejscu…"
@@ -1445,8 +1558,16 @@ func _update_hint() -> void:
 		door_plaque.close()  # walked off
 	if text == "" and voice.whisper_to >= 0:
 		text = "[V] mów · [B] szept: %s" % nicks.get(voice.whisper_to, "?")
-	hint_label.text = text
+	hint_text = text
+	hint_label.text = _touch_words(text) if touch else text
 	hint_label.visible = text != ""
+
+
+## Touch screens: no keys in the hint ("[E] Usiądź" -> "Usiądź", the hand
+## button does it).
+static func _touch_words(text: String) -> String:
+	var re := RegEx.create_from_string("\\[[^\\]]{1,5}\\] ")
+	return re.sub(text.replace("[V] mów · [B] szept", "Mów / Szept"), "", true)
 
 
 ## Outdoors: rain / fog on screen, an umbrella if you carry one, a darker

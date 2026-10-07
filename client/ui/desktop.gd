@@ -5,6 +5,7 @@
 extends Control
 
 const Ink = preload("res://ui/ink_ui.gd")
+const Touch = preload("res://touch/touch.gd")
 
 const Protocol = preload("res://net/protocol.gd")
 const PlayerView = preload("res://game/player_view.gd")
@@ -50,6 +51,7 @@ var _root := Control.new()
 var _windows := {}        # name -> window PanelContainer
 var _body := {}           # name -> VBoxContainer (window content)
 var _taskbar := HBoxContainer.new()
+var _bar: PanelContainer = null
 var _clock := Label.new()
 var game_day := 0          # from the server's Clock (0 = not known yet)
 var game_minute := 0
@@ -73,11 +75,27 @@ func _ready() -> void:
 	visibility_changed.connect(_fit)
 	_fit()
 	_build_desktop()
+	_fit()
 
 
 func _fit() -> void:
 	position = Vector2.ZERO
 	size = get_viewport_rect().size
+	if Touch.active and _bar and _bar.is_inside_tree():  # the taskbar clear of the notch / home bar
+		var sr := Touch.safe_rect(get_viewport())
+		_bar.offset_left = sr.position.x
+		_bar.offset_right = sr.end.x - size.x
+		_bar.offset_bottom = sr.end.y - size.y
+		_bar.offset_top = _bar.offset_bottom - 60
+
+
+func _taskbar_top() -> float:
+	return size.y + _bar.offset_top if _bar else size.y - 52
+
+
+## A phone held upright: side-by-side layouts stack.
+func _narrow() -> bool:
+	return Touch.active and get_viewport_rect().size.x < 700
 
 
 func set_profile(p_nick: String, p_profile: Dictionary) -> void:
@@ -123,6 +141,8 @@ func _build_desktop() -> void:
 
 	var icons := VBoxContainer.new()
 	icons.position = Vector2(24, 24)
+	if Touch.active:
+		icons.position += Touch.safe_rect(get_viewport()).position
 	icons.add_theme_constant_override("separation", 18)
 	_root.add_child(icons)
 	icons.add_child(_icon("Przeglądarka", "browser", func(): _open_window("browser")))
@@ -147,6 +167,7 @@ func _build_desktop() -> void:
 	bar.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
 	bar.offset_top = -52
 	_root.add_child(bar)
+	_bar = bar
 	var row := HBoxContainer.new()
 	bar.add_child(row)
 	var start_btn := Ink.button("◆ StartOS")
@@ -155,7 +176,16 @@ func _build_desktop() -> void:
 	row.add_child(start_btn)
 	_taskbar.add_theme_constant_override("separation", 6)
 	_taskbar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	row.add_child(_taskbar)
+	if Touch.active:  # many windows on a narrow screen: the buttons scroll, the clock stays
+		var sc := ScrollContainer.new()
+		sc.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		sc.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+		sc.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_NEVER
+		sc.add_child(_taskbar)
+		row.add_child(sc)
+		start_btn.custom_minimum_size.y = 48
+	else:
+		row.add_child(_taskbar)
 	_clock.add_theme_font_size_override("font_size", 15)
 	_clock.add_theme_color_override("font_color", Color(1, 1, 1, 0.85))
 	row.add_child(_clock)
@@ -341,6 +371,10 @@ func _open_window(name: String) -> void:
 		tl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		trow.add_child(tl)
 		var close := Ink.button("X", false, true)
+		if Touch.active:
+			close.custom_minimum_size = Vector2(48, 44)
+			tl.autowrap_mode = TextServer.AUTOWRAP_OFF
+			tl.clip_text = true
 		close.pressed.connect(func(): _close_window(name))
 		trow.add_child(close)
 		title_bar.gui_input.connect(func(ev): _drag(win, ev))
@@ -363,10 +397,16 @@ func _open_window(name: String) -> void:
 		win.size = wsize
 		var offset: Vector2 = {"browser": Vector2(0, 0), "mail": Vector2(40, 24), "interview": Vector2(80, 12)}[name]
 		win.position = Vector2(140, 20) + offset
+		if Touch.active:  # a small screen: every window full size, switched on the taskbar
+			var sr := Touch.safe_rect(get_viewport())
+			win.position = sr.position + Vector2(6, 6)
+			win.size = Vector2(sr.size.x - 12, _taskbar_top() - sr.position.y - 12)
 		_root.add_child(win)
 		_windows[name] = win
 		_body[name] = body
 		var tbtn := Ink.button({"browser": "Przeglądarka", "mail": "Poczta", "interview": "Rozmowa"}[name])
+		if Touch.active:
+			tbtn.custom_minimum_size.y = 48
 		tbtn.pressed.connect(func(): _focus(name))
 		tbtn.name = "task_" + name
 		_taskbar.add_child(tbtn)
@@ -394,7 +434,7 @@ func _focus(name: String) -> void:
 
 
 func _drag(win: Control, ev: InputEvent) -> void:
-	if ev is InputEventMouseMotion and ev.button_mask & MOUSE_BUTTON_MASK_LEFT:
+	if not Touch.active and ev is InputEventMouseMotion and ev.button_mask & MOUSE_BUTTON_MASK_LEFT:
 		win.position += ev.relative
 	elif ev is InputEventMouseButton and ev.pressed:
 		_root.move_child(win, -1)
@@ -501,6 +541,9 @@ func _render_form(body: VBoxContainer, o: Dictionary) -> void:
 	box.add_child(form)
 	var student := CheckBox.new()
 	student.text = "Jestem studentem / studentką (umowa zlecenie: tylko studenci do 26 lat)"
+	if Touch.active:
+		student.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		student.custom_minimum_size = Vector2(240, 0)
 	for k in ["font_color", "font_hover_color", "font_pressed_color", "font_focus_color", "font_hover_pressed_color"]:
 		student.add_theme_color_override(k, Color("#1c2430"))
 	box.add_child(student)
@@ -515,7 +558,7 @@ func _render_form(body: VBoxContainer, o: Dictionary) -> void:
 	var consent := CheckBox.new()
 	consent.text = "Wyrażam zgodę na przetwarzanie moich danych i mojej osoby w procesie rekrutacji."
 	consent.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	consent.custom_minimum_size = Vector2(300, 0)
+	consent.custom_minimum_size = Vector2(240 if Touch.active else 300, 0)
 	for k in ["font_color", "font_hover_color", "font_pressed_color", "font_focus_color", "font_hover_pressed_color"]:
 		consent.add_theme_color_override(k, Color("#1c2430"))
 	box.add_child(consent)
@@ -571,11 +614,12 @@ func _render_mail(body: VBoxContainer) -> void:
 		return
 	if _selected_mail < 0 or not mails.has(_selected_mail):
 		_selected_mail = ids[0]
-	var h := HBoxContainer.new()
+	var h := BoxContainer.new()
+	h.vertical = _narrow()  # an upright phone: the list over the mail
 	h.add_theme_constant_override("separation", 14)
 	body.add_child(h)
 	var list := VBoxContainer.new()
-	list.custom_minimum_size = Vector2(250, 0)
+	list.custom_minimum_size = Vector2(0 if _narrow() else 250, 0)
 	h.add_child(list)
 	for id in ids:
 		var m: Dictionary = mails[id]
@@ -583,7 +627,7 @@ func _render_mail(body: VBoxContainer) -> void:
 		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
 		b.text = ("● " if unread.has(id) else "   ") + m.from + "\n   " + m.subject
 		b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		b.custom_minimum_size = Vector2(250, 0)
+		b.custom_minimum_size = Vector2(0 if _narrow() else 250, 52 if Touch.active else 0)
 		b.toggle_mode = true
 		b.button_pressed = id == _selected_mail
 		var mid: int = id
@@ -639,7 +683,7 @@ func _video_tile(parent: Container, who: String, look: int, appearance: Dictiona
 	s.border_color = Ink.INK
 	s.set_border_width_all(Ink.LINE)
 	tile.add_theme_stylebox_override("panel", s)
-	tile.custom_minimum_size = Vector2(230, 170)
+	tile.custom_minimum_size = Vector2(150, 110) if _narrow() else Vector2(230, 170)
 	var stage := Control.new()
 	stage.clip_contents = true
 	tile.add_child(stage)
@@ -671,7 +715,7 @@ func _show_question(p: Dictionary, key: String) -> void:
 	for c in body.get_children():
 		c.queue_free()
 	body.add_child(_label("Rozmowa online: %s" % offers.get(_interview_offer, {}).get("title", "rekrutacja"), 20))
-	var tiles := HBoxContainer.new()
+	var tiles: Container = HFlowContainer.new() if Touch.active else HBoxContainer.new()
 	tiles.add_theme_constant_override("separation", 12)
 	_video_tile(tiles, "Kasia, HR — %s" % (company if company != "" else "Startup Sim"), PlayerView.LOOK_OFFICE, {}, 7)
 	_video_tile(tiles, nick + " (Ty)", PlayerView.LOOK_PLAYER, profile.get("appearance", {}), 1)
@@ -802,7 +846,7 @@ func _render_found_card(body: VBoxContainer) -> void:
 	edit.placeholder_text = "Nazwa firmy, np. Pixel Pierogi sp. z o.o."
 	edit.text = _found_name
 	edit.max_length = 40
-	edit.custom_minimum_size = Vector2(380, 36)
+	edit.custom_minimum_size = Vector2(160, 48) if Touch.active else Vector2(380, 36)
 	edit.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	edit.text_changed.connect(func(t: String): _found_name = t)
 	row.add_child(edit)
@@ -890,5 +934,5 @@ func _card_in(parent: Container) -> VBoxContainer:
 
 func _button(text: String, primary := true) -> Button:
 	var b := Ink.button(text, primary)
-	b.custom_minimum_size = Vector2(0, 36)
+	b.custom_minimum_size = Vector2(0, 50 if Touch.active else 36)
 	return b

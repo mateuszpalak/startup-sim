@@ -72,8 +72,9 @@
 
 ## Ekran dotykowy (iPhone, iPad)
 
-Tylko w wersji 3D (`client3d/`). Na telefonie i tablecie gra sama włącza
+W obu wersjach (2D i 3D). Na telefonie i tablecie gra sama włącza
 sterowanie dotykiem (na komputerze: `--touch`, wtedy mysz udaje palec).
+W wersji 2D dwa palce tylko przybliżają (kamera się nie obraca).
 
 | Gest / przycisk | Co robi |
 |---|---|
@@ -95,7 +96,9 @@ szczotka — szoruj palcem, pojemniki — stuknij albo przeciągnij przedmiot,
 winda — stuknij czytnik i piętro. Pola tekstowe otwierają klawiaturę
 ekranową, a okno z polem przesuwa się nad nią.
 
-![HUD na telefonie](../media/3d/dotyk.jpg)
+![HUD na telefonie (3D)](../media/3d/dotyk.jpg)
+
+![HUD na telefonie (2D)](../media/2d-touch/hud.jpg)
 
 W ustawieniach („Sterowanie dotykiem”): joystick po prawej, wielkość i
 widoczność przycisków.

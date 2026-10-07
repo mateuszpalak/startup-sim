@@ -11,6 +11,24 @@ stan z serwera, ponawia swoje akcje, gdy serwer ich nie odnotował, i znika,
 gdy przyjdą pierwsze snapshoty. Dopóki jest widoczny, postać nie
 dostaje inputu. Dział gracza widać przy nicku („Ala · IT”, po umowie) i w F3.
 
+**Dotyk** (`touch/`, port z `client3d/touch`): `touch.gd` — wykrycie
+(iOS / Android / `--touch[=phone|tablet]`), skala UI na telefonie (krótszy
+bok = 520 jednostek, tablet 720), bezpieczny obszar (`safe_rect`,
+`--safe-area=l,t,r,b`; do połączenia z `platform/platform.gd`),
+`place_center` (okno w bezpiecznym obszarze, zmniejszone do ekranu),
+`press` / `tap` (sztuczne klawisze), `say(klawiatura, palec)`;
+`touch_controls.gd` — joystick, E, F/Q/G, Tab, V/B, menu / czat / dziennik,
+✕ (Esc) przy oknach, stuknięcie w świat (`game.touch_tap_world`: punkt
+ekranu → świat przez `get_global_transform_with_canvas()`, osoba / mebel =
+podejdź i E), szczypanie = przybliżenie; `keyboard_lift.gd` — pole tekstowe
+nad klawiaturą ekranową (`--fake-keyboard=0.4`). Przyciski naciskają te same
+klawisze co klawiatura, więc gra ma jedną ścieżkę wejścia. Nowe okno: po
+ustawieniu pozycji `Touch.place_center(panel, get_viewport())`; menu przed
+grą przewijają się w `ui/touch_fit.gd`. Bez trybu dotykowego wygląd się nie
+zmienia. Zrzuty: scenariusze `touch_tour` / `touch_computer` /
+`touch_portal` / `touch_menus` (`--touch=phone --shots=/katalog`) →
+`docs/media/2d-touch/`; test: e2e `touch`.
+
 **Wydajność rysowania.** W Godocie drogie jest nagrywanie poleceń
 rysowania (`_draw` po `queue_redraw()`), a samo przesunięcie albo zmiana
 `modulate` gotowego elementu jest prawie darmowe. Dlatego:

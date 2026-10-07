@@ -8,6 +8,7 @@
 extends Control
 
 const Ink = preload("res://ui/ink_ui.gd")
+const Touch = preload("res://touch/touch.gd")
 
 ## The option picked (index; the last one = off).
 signal pick(choice: int)
@@ -44,6 +45,7 @@ func _place() -> void:
 	size = vs
 	_body.reset_size()
 	_body.position = ((vs - _body.size) / 2).floor()
+	Touch.place_center(_body, get_viewport())
 
 
 func open(p: Dictionary) -> void:
@@ -113,7 +115,7 @@ func _lift_panel(text: String) -> void:
 		var f := Ink.font()
 		var t := "Karta OK" if carded else "Przyłóż kartę"
 		reader.draw_string(f, Vector2(44, 28), t, HORIZONTAL_ALIGNMENT_LEFT, -1, 17, Color("#f4ead0"))
-		reader.draw_string(f, Vector2(44, 48), "czytnik (K)", HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color("#9aa0a8")))
+		reader.draw_string(f, Vector2(44, 48), Touch.say("czytnik (K)", "czytnik — stuknij"), HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color("#9aa0a8")))
 	reader.pressed.connect(func(): _pick(_options.size() - 1))
 	col.add_child(reader)
 	# Floor buttons, the top floor first.
@@ -220,7 +222,7 @@ func _remote() -> void:
 				_pick(choice))
 		row.add_child(name)
 		col.add_child(row)
-	var brand := _text("Startup TV  ·  Esc — odłóż pilota", 13, Color("#8d8d99"))
+	var brand := _text(Touch.say("Startup TV  ·  Esc — odłóż pilota", "Startup TV  ·  ✕ — odłóż pilota"), 13, Color("#8d8d99"))
 	brand.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	col.add_child(brand)
 
@@ -252,7 +254,7 @@ func _boombox() -> void:
 		k.alignment = HORIZONTAL_ALIGNMENT_LEFT
 		mid.add_child(k)
 	mid.add_child(_key("◼   Stop", Color("#8e2f25"), Vector2(260, 38), 6, _options.size() - 1, 17))
-	var hint := _text("Esc — odłóż", 13, Color("#4a4d55"))
+	var hint := _text(Touch.say("Esc — odłóż", "✕ — odłóż"), 13, Color("#4a4d55"))
 	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	mid.add_child(hint)
 	row.add_child(_speaker())

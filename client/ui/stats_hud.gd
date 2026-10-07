@@ -6,6 +6,7 @@
 extends Control
 
 const Ink = preload("res://ui/ink_ui.gd")
+const Touch = preload("res://touch/touch.gd")
 
 ## [name, true if high = bad, liquid colour, icon]
 const ROWS := [
@@ -35,6 +36,7 @@ var _tops: Array[Control] = []
 var _bodies: Array[Control] = []
 var _slosh := 0.0
 var _hover := -1
+var _hover_until := 0  # touch: a tapped badge shows its number this long
 var _coin := Control.new()
 var _note := Label.new()
 var _row := HBoxContainer.new()
@@ -57,6 +59,10 @@ func _ready() -> void:
 		var idx := i
 		b.draw.connect(func(): _draw_badge(b, idx))
 		b.mouse_entered.connect(func(): _set_hover(idx))
+		b.gui_input.connect(func(ev: InputEvent):
+				if ev is InputEventMouseButton and ev.pressed and ev.button_index == MOUSE_BUTTON_LEFT:
+					_set_hover(idx)  # a tap: the number (no hover on touch screens)
+					_hover_until = Time.get_ticks_msec() + 2200)
 		b.mouse_exited.connect(func():
 				if _hover == idx:
 					_set_hover(-1))
@@ -94,9 +100,22 @@ func _place() -> void:
 	position = Vector2.ZERO
 	size = vs
 	_row.reset_size()
-	_row.position = Vector2(vs.x - _row.size.x - 18, 14)
+	var sr := Touch.safe_rect(get_viewport())
+	_row.position = Vector2(sr.end.x - _row.size.x - 18, sr.position.y + 14)
+	_row.scale = Vector2.ONE
+	var h := _row.size.y
+	if Touch.active and not Touch.narrow(get_viewport()) and _row.size.x > sr.size.x - 380:
+		var k0 := (sr.size.x - 380) / _row.size.x  # beside the clock (top left): a bit smaller
+		_row.scale = Vector2(k0, k0)
+		_row.position.x = sr.end.x - _row.size.x * k0 - 12
+		h *= k0
+	elif Touch.narrow(get_viewport()):  # portrait: a row of its own under the clock
+		var k := minf(1.0, (sr.size.x - 24) / _row.size.x)
+		_row.scale = Vector2(k, k)
+		_row.position = Vector2(sr.end.x - _row.size.x * k - 12, sr.position.y + 66)
+		h *= k
 	_note.reset_size()
-	_note.position = Vector2(vs.x - _note.size.x - 18, _row.position.y + _row.size.y + 4)
+	_note.position = Vector2(sr.end.x - _note.size.x - 18, _row.position.y + h + 4)
 
 
 func update_stats(p: Dictionary) -> void:
@@ -135,6 +154,9 @@ func _set_hover(i: int) -> void:
 func _process(delta: float) -> void:
 	if not visible:
 		return
+	if _hover_until > 0 and Time.get_ticks_msec() > _hover_until:
+		_hover_until = 0
+		_set_hover(-1)
 	var t := Time.get_ticks_msec() / 1000.0
 	for i in _bodies.size():
 		var pulse := 1.0 + (0.06 * sin(t * 8.0) if badness(i) >= CRITICAL else 0.0)
