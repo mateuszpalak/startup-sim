@@ -10,9 +10,8 @@ const AX := [Vector3.RIGHT, Vector3.UP, Vector3.BACK]
 
 ## One triangle in local space.
 static func tri(b: MeshBatch, p: Vector3, q: Vector3, r: Vector3, n: Vector3, mat: String, col: Color) -> void:
-	var st: SurfaceTool = b._st(mat)
+	var st: SurfaceTool = b._st_at(mat, b.xf * p)
 	b._tri(st, b.xf * p, b.xf * q, b.xf * r, (b.xf.basis * n).normalized(), col, Vector2.ZERO)
-	b._counts[mat] += 3
 
 
 ## A box with all edges chamfered by `r` (flat bevels catch the light).

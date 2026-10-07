@@ -8,15 +8,18 @@ extends Node3D
 
 const Protocol = preload("res://net/protocol.gd")
 
-const RAIN_MAX := 5000
-const SPLASH_MAX := 900
+const Platform = preload("res://platform/platform.gd")
+
+## Drop counts from the quality profile (fewer on phones).
+var rain_max: int = Platform.quality().rain_max
+var splash_max: int = Platform.quality().splash_max
 
 var wv: Node3D   # world_view.gd
 var _rain := MultiMeshInstance3D.new()
 var _splash := MultiMeshInstance3D.new()
 var _rain_mat := ShaderMaterial.new()
 var _splash_mat := ShaderMaterial.new()
-var _amount := 0.0   # 0..1 of RAIN_MAX, eased
+var _amount := 0.0   # 0..1 of rain_max, eased
 var _wisps := GPUParticles3D.new()   # fog banks drifting low over the ground
 var _snap := true    # next update: no easing (first frame, previews)
 
@@ -26,7 +29,7 @@ func setup(p_wv: Node3D) -> void:
 	name = "Weather"
 	_rain_mat.shader = load("res://world3d/shaders/rain.gdshader")
 	_splash_mat.shader = load("res://world3d/shaders/splash.gdshader")
-	for pair in [[_rain, _rain_mat, RAIN_MAX], [_splash, _splash_mat, SPLASH_MAX]]:
+	for pair in [[_rain, _rain_mat, rain_max], [_splash, _splash_mat, splash_max]]:
 		var mi: MultiMeshInstance3D = pair[0]
 		var mm := MultiMesh.new()
 		mm.transform_format = MultiMesh.TRANSFORM_3D
@@ -87,7 +90,7 @@ func _setup_wisps() -> void:
 	var q := QuadMesh.new()
 	q.size = Vector2(7, 7)
 	q.material = mat
-	_wisps.amount = 120
+	_wisps.amount = Platform.quality().wisps
 	_wisps.lifetime = 24.0
 	_wisps.preprocess = 24.0
 	_wisps.local_coords = false
@@ -123,9 +126,9 @@ func update(delta: float, focus: Vector3) -> void:
 		_wisps.position = Vector3(focus.x, focus.y + 2.2, focus.z)
 		var dl: float = lerpf(0.25, 1.0, wv.lighting.day)
 		_wisps.draw_pass_1.material.albedo_color = Color(0.85 * dl, 0.87 * dl, 0.9 * dl, 0.4)
-	var n := int(_amount * RAIN_MAX)
+	var n := int(_amount * rain_max)
 	_rain.multimesh.visible_instance_count = n
-	_splash.multimesh.visible_instance_count = int(_amount * SPLASH_MAX)
+	_splash.multimesh.visible_instance_count = int(_amount * splash_max)
 	_rain.visible = n > 0
 	_splash.visible = n > 0
 	if n == 0:

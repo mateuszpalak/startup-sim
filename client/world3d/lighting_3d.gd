@@ -7,6 +7,7 @@ extends Node3D
 
 const Coords = preload("res://world3d/coords.gd")
 const Protocol = preload("res://net/protocol.gd")
+const Platform = preload("res://platform/platform.gd")
 
 ## Colours through the day: [minute, sun, sky top, horizon].
 const DAY_KEYS := [
@@ -78,7 +79,8 @@ func _setup_environment() -> void:
 	var sky := Sky.new()
 	_sky_mat.shader = load("res://world3d/shaders/sky.gdshader")
 	sky.sky_material = _sky_mat
-	sky.radiance_size = Sky.RADIANCE_SIZE_64
+	var q := Platform.quality()
+	sky.radiance_size = q.radiance_size
 	sky.process_mode = Sky.PROCESS_MODE_INCREMENTAL
 	e.sky = sky
 	e.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
@@ -88,7 +90,7 @@ func _setup_environment() -> void:
 	e.tonemap_mode = Environment.TONE_MAPPER_AGX
 	e.tonemap_exposure = 1.05
 	e.tonemap_white = 8.0
-	e.ssao_enabled = true
+	e.ssao_enabled = q.ssao and RenderingServer.get_current_rendering_method() != "mobile"
 	e.ssao_radius = 0.9
 	e.ssao_intensity = 2.6
 	e.ssao_power = 1.5
@@ -97,7 +99,7 @@ func _setup_environment() -> void:
 	e.ssil_enabled = false  # too costly at Retina resolution
 	e.ssil_radius = 3.0
 	e.ssil_intensity = 0.7
-	e.glow_enabled = true
+	e.glow_enabled = q.glow
 	e.glow_intensity = 0.5
 	e.glow_strength = 0.9
 	e.glow_bloom = 0.03
@@ -115,8 +117,9 @@ func _setup_environment() -> void:
 	sun.light_energy = 1.25
 	sun.shadow_enabled = true
 	sun.shadow_blur = 1.5
-	sun.directional_shadow_mode = DirectionalLight3D.SHADOW_PARALLEL_2_SPLITS
-	sun.directional_shadow_max_distance = 55.0
+	sun.directional_shadow_mode = DirectionalLight3D.SHADOW_PARALLEL_2_SPLITS if q.sun_shadow_splits > 1 \
+		else DirectionalLight3D.SHADOW_ORTHOGONAL
+	sun.directional_shadow_max_distance = q.sun_shadow_distance
 	sun.shadow_bias = 0.04
 	sun.shadow_normal_bias = 1.2
 	sun.rotation = Vector3(deg_to_rad(-52), deg_to_rad(-35), 0)
