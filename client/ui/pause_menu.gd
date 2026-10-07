@@ -80,9 +80,7 @@ func _fit() -> void:
 	_dim.size = vs
 	_card.reset_size()
 	_card.position = (vs - _card.size) / 2
-	if Touch.active:
-		var sr := Touch.safe_rect(get_viewport())
-		_card.position = (sr.position + (sr.size - _card.size) / 2).max(sr.position)
+	Touch.place_center(_card, get_viewport())
 
 
 func _input(event: InputEvent) -> void:

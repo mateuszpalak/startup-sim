@@ -41,8 +41,8 @@ func _place() -> void:
 	position = Vector2((vs.x - size.x) / 2, vs.y - 200)
 	if Touch.active:
 		var sr := Touch.safe_rect(get_viewport())
-		size.x = minf(560, sr.size.x - 24)
-		custom_minimum_size.x = size.x
+		custom_minimum_size.x = minf(560, sr.size.x - 24)
+		size.x = custom_minimum_size.x
 		position = Vector2(sr.position.x + (sr.size.x - size.x) / 2, sr.end.y - 200)
 
 

@@ -447,11 +447,12 @@ static func pop_in(n: CanvasItem, from_scale := 0.94, time := 0.18) -> void:
 		return
 	if n is Control:
 		(n as Control).pivot_offset = (n as Control).size / 2
+	var end: float = n.get_meta("fit_scale", 1.0)  # shrunk to fit a small screen (touch.gd)
 	n.modulate.a = 0.0
-	n.scale = Vector2(from_scale, from_scale)
+	n.scale = Vector2(from_scale, from_scale) * end
 	var t := n.create_tween().set_parallel()
 	t.tween_property(n, "modulate:a", 1.0, time).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-	t.tween_property(n, "scale", Vector2.ONE, time * 1.4).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	t.tween_property(n, "scale", Vector2.ONE * end, time * 1.4).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 
 
 ## Fade in (a toast, a hint).

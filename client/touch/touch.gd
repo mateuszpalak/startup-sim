@@ -130,9 +130,10 @@ static func place_center(c: Control, vp: Viewport) -> void:
 	if sz.x <= 0 or sz.y <= 0:
 		return
 	var s := minf(1.0, minf(sr.size.x / sz.x, sr.size.y / sz.y))
-	c.pivot_offset = Vector2.ZERO
+	c.pivot_offset = sz / 2  # (as Kit.pop_in has it)
 	c.scale = Vector2(s, s)
-	c.position = (sr.position + (sr.size - sz * s) / 2).floor()
+	c.set_meta("fit_scale", s)
+	c.position = (sr.get_center() - sz / 2).floor()
 
 
 ## Touch: the same words for the key or the finger.
@@ -142,4 +143,4 @@ static func say(keys: String, finger: String) -> String:
 
 ## Touch, a narrow (portrait) screen: the HUD stacks its top rows.
 static func narrow(vp: Viewport) -> bool:
-	return active and safe_rect(vp).size.x < 760
+	return active and safe_rect(vp).size.x < 1000
