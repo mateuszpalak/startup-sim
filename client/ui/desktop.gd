@@ -111,7 +111,9 @@ func _build_desktop() -> void:
 	var bg := TextureRect.new()
 	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
 	bg.texture = wallpaper()
-	bg.stretch_mode = TextureRect.STRETCH_SCALE
+	bg.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	bg.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	bg.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
 	bg.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
 	add_child(bg)
 	_root.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -172,38 +174,54 @@ func _build_desktop() -> void:
 
 ## The desktop wallpaper: a soft dusk sky, a few stars and a dark city
 ## skyline with lit windows (drawn small, smoothly scaled up).
+static var _wall: Texture2D
+
+
+## StartOS wallpaper: a soft dawn gradient over low-poly hills (the game's
+## 3D look), drawn once.
 static func wallpaper() -> Texture2D:
-	var w := 320
-	var h := 180
+	if _wall:
+		return _wall
+	var w := 480
+	var h := 270
 	var img := Image.create(w, h, false, Image.FORMAT_RGBA8)
-	var top := Color("#1f1a2e")
-	var mid := Color("#4a3552")
-	var low := Color("#b0706a")
+	var top := Color("#7fa9d9")
+	var mid := Color("#c9b6e0")
+	var low := Color("#f6c6a4")
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 11
+	# Hill ridges: heights at control points, linearly joined (facets).
+	var ridges := []
+	for layer in 3:
+		var pts := []
+		var x := 0.0
+		while x <= w + 60:
+			pts.append(Vector2(x, h * (0.58 + layer * 0.12) + rng.randf_range(-28, 18) + 6 * layer))
+			x += rng.randf_range(50, 110)
+		ridges.append(pts)
+	var hill_cols := [Color("#9c8fc4"), Color("#8a9fd0").lerp(Color("#7bb59a"), 0.5), Color("#6aa889")]
 	for y in h:
 		var t := float(y) / h
-		var c := top.lerp(mid, t / 0.6) if t < 0.6 else mid.lerp(low, (t - 0.6) / 0.4)
+		var sky := top.lerp(mid, t / 0.5) if t < 0.5 else mid.lerp(low, (t - 0.5) / 0.5)
 		for x in w:
+			var c := sky
+			var sun := Vector2(x, y).distance_to(Vector2(w * 0.7, h * 0.52))
+			c = c.lerp(Color("#fff1d6"), clampf(1.0 - sun / 70.0, 0, 1) * 0.9)
+			for layer in 3:
+				var pts: Array = ridges[layer]
+				for k in pts.size() - 1:
+					if pts[k].x <= x and x < pts[k + 1].x:
+						var a: Vector2 = pts[k]
+						var b: Vector2 = pts[k + 1]
+						var ry := lerpf(a.y, b.y, (x - a.x) / (b.x - a.x))
+						if y >= ry:
+							var shade := 0.06 if b.y < a.y else -0.03
+							c = hill_cols[layer].lightened(shade + (1.0 - (y - ry) / h) * 0.05)
+						break
 			img.set_pixel(x, y, c)
-	var rng := RandomNumberGenerator.new()
-	rng.seed = 7
-	for k in 60:
-		img.set_pixel(rng.randi_range(0, w - 1), rng.randi_range(0, h / 2), Color(1, 0.95, 0.85, rng.randf_range(0.3, 0.8)))
-	var x := 0
-	while x < w:
-		var bw := rng.randi_range(14, 34)
-		var bh := rng.randi_range(28, 80)
-		var shade := Color("#17121c").lightened(rng.randf_range(0.0, 0.06))
-		for yy in range(h - bh, h):
-			for xx in range(x, mini(x + bw, w)):
-				img.set_pixel(xx, yy, shade)
-		for wy in range(h - bh + 5, h - 3, 7):
-			for wx in range(x + 3, mini(x + bw - 3, w), 5):
-				if rng.randf() < 0.3:
-					for dy in 3:
-						for dx in 2:
-							img.set_pixel(mini(wx + dx, w - 1), mini(wy + dy, h - 1), Color("#e8b85a"))
-		x += bw + rng.randi_range(0, 4)
-	return ImageTexture.create_from_image(img)
+	_wall = ImageTexture.create_from_image(img)
+	return _wall
+
 
 func _icon(caption: String, kind: String, on_open: Callable) -> Control:
 	var b := Button.new()
@@ -219,99 +237,30 @@ func _icon(caption: String, kind: String, on_open: Callable) -> Control:
 	l.position = Vector2(0, 54)
 	l.size = Vector2(84, 22)
 	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	l.add_theme_constant_override("outline_size", 4)
-	l.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.6))
+	l.add_theme_constant_override("shadow_offset_y", 1)
+	l.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.45))
 	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	b.add_child(l)
 	return b
 
 
-## Desktop icons, hand-drawn like the rest of the game (ink outlines):
-## browser, mail, trash, chat, calendar, company, tasks.
+const APP_ICONS := {
+	"browser": ["globe", Color("#4a9be0")], "mail": ["mail", Color("#e8744f")], "trash": ["trash", Color("#8d8796")],
+	"chat": ["chat", Color("#3fae9e")], "calendar": ["calendar", Color("#e0524f")], "company": ["briefcase", Color("#9a78d8")],
+	"hr": ["user", Color("#e9a23b")], "terminal": ["terminal", Color("#34303c")], "tasks": ["check", Color("#5bb36a")]}
+
+
+## Desktop app icons: a rounded tile in the app's colour with a white line
+## icon (Kit.draw_icon): browser, mail, trash, chat, calendar, company, hr,
+## terminal, tasks.
 static func draw_icon(c: Control, kind: String) -> void:
-	var ink := Kit.INK
-	var o := Vector2(c.size.x / 2, 26)
-	match kind:
-		"browser":  # a globe
-			c.draw_circle(o, 19, ink)
-			c.draw_circle(o, 16.5, Color("#5b8fc2"))
-			var land := PackedVector2Array([o + Vector2(-9, -8), o + Vector2(-2, -11), o + Vector2(3, -5), o + Vector2(-1, 1), o + Vector2(-8, 0)])
-			c.draw_colored_polygon(land, Color("#7a9a4a"))
-			var land2 := PackedVector2Array([o + Vector2(4, 3), o + Vector2(12, 1), o + Vector2(11, 9), o + Vector2(5, 11)])
-			c.draw_colored_polygon(land2, Color("#7a9a4a"))
-			c.draw_arc(o, 16.5, 0, TAU, 32, ink, 2.0, true)
-			c.draw_line(o + Vector2(-16, 0), o + Vector2(16, 0), Color(ink, 0.5), 1.2, true)
-			c.draw_arc(o + Vector2(0, 0), 16.5, PI * 1.5, PI * 2.5, 16, Color(ink, 0.35), 1.2, true)
-			c.draw_arc(o + Vector2(-5, -5), 5, PI * 1.1, PI * 1.5, 6, Color(1, 1, 1, 0.5), 2.0, true)
-		"mail":  # an envelope
-			var r := Rect2(o + Vector2(-20, -13), Vector2(40, 27))
-			c.draw_rect(r.grow(1.5), ink)
-			c.draw_rect(r, Color("#efe4c8"))
-			c.draw_polyline(PackedVector2Array([r.position, o + Vector2(0, 2), Vector2(r.end.x, r.position.y)]), ink, 2.0, true)
-			c.draw_circle(o + Vector2(0, 2), 4, Color("#a8402f"))  # wax seal
-			c.draw_arc(o + Vector2(0, 2), 4, 0, TAU, 12, ink, 1.2, true)
-		"trash":  # a bin
-			var body := PackedVector2Array([o + Vector2(-13, -8), o + Vector2(13, -8), o + Vector2(10, 18), o + Vector2(-10, 18)])
-			c.draw_colored_polygon(body, Color("#9aa3a0"))
-			var closed := body.duplicate()
-			closed.append(body[0])
-			c.draw_polyline(closed, ink, 2.0, true)
-			for k in [-5.0, 0.0, 5.0]:
-				c.draw_line(o + Vector2(k, -4), o + Vector2(k * 0.8, 15), Color(ink, 0.6), 1.5, true)
-			var lid := Rect2(o + Vector2(-16, -14), Vector2(32, 5))
-			c.draw_rect(lid.grow(1.2), ink)
-			c.draw_rect(lid, Color("#b7bfbc"))
-			c.draw_rect(Rect2(o + Vector2(-4, -18), Vector2(8, 4)), ink)
-		"chat":  # two speech bubbles
-			for b in [[Vector2(-7, -5), Color("#f2e7cb")], [Vector2(7, 5), Color("#9fd0c0")]]:
-				var r := Rect2(o + b[0] - Vector2(13, 9), Vector2(26, 18))
-				c.draw_rect(r.grow(1.5), ink)
-				c.draw_rect(r, b[1])
-				var tail := PackedVector2Array([r.position + Vector2(5, 18), r.position + Vector2(3, 24), r.position + Vector2(11, 18)])
-				c.draw_colored_polygon(tail, ink)
-				for k in 3:
-					c.draw_circle(r.get_center() + Vector2(-6 + k * 6, 0), 1.6, ink)
-		"calendar":  # a desk calendar with a red header
-			var r := Rect2(o + Vector2(-17, -16), Vector2(34, 32))
-			c.draw_rect(r.grow(1.5), ink)
-			c.draw_rect(r, Color("#f4ead0"))
-			c.draw_rect(Rect2(r.position, Vector2(34, 9)), Color("#a8402f"))
-			for gy in 3:
-				for gx in 4:
-					c.draw_rect(Rect2(r.position + Vector2(3 + gx * 8, 12 + gy * 6), Vector2(5, 3)), Color(ink, 0.55))
-			c.draw_rect(Rect2(r.position + Vector2(19, 18), Vector2(5, 3)), Color("#a8402f"))
-		"company":  # an office building
-			var r := Rect2(o + Vector2(-13, -19), Vector2(26, 38))
-			c.draw_rect(r.grow(1.5), ink)
-			c.draw_rect(r, Color("#c9b48a"))
-			for wy in 5:
-				for wx in 3:
-					c.draw_rect(Rect2(r.position + Vector2(3 + wx * 8, 3 + wy * 7), Vector2(4, 4)), Color("#e8b85a") if (wx + wy) % 3 else Color(ink, 0.7))
-			c.draw_rect(Rect2(o + Vector2(-3, 11), Vector2(6, 8)), ink)
-		"hr":  # a folder with a document and a stamp
-			var f := Rect2(o + Vector2(-20, -12), Vector2(40, 30))
-			c.draw_rect(Rect2(f.position + Vector2(0, -5), Vector2(16, 7)), Color("#d9a13a"))
-			c.draw_rect(f, Color("#e8b85a"))
-			c.draw_rect(f, ink, false, 2.0)
-			c.draw_rect(Rect2(o + Vector2(-12, -8), Vector2(22, 20)), Color("#fbf8ef"))
-			for k in 3:
-				c.draw_line(o + Vector2(-9, -3 + k * 5), o + Vector2(6, -3 + k * 5), Color(ink, 0.6), 1.2)
-			c.draw_circle(o + Vector2(10, 10), 5, Color("#c0392b"))
-		"terminal":  # a dark window with a prompt
-			var t := Rect2(o + Vector2(-22, -16), Vector2(44, 34))
-			c.draw_rect(t, Color("#1e1f29"))
-			c.draw_rect(t, ink, false, 2.0)
-			c.draw_line(o + Vector2(-16, -6), o + Vector2(-9, -1), Color("#8be9fd"), 2.2, true)
-			c.draw_line(o + Vector2(-9, -1), o + Vector2(-16, 4), Color("#8be9fd"), 2.2, true)
-			c.draw_rect(Rect2(o + Vector2(-5, 3), Vector2(10, 3)), Color("#e6e6e6"))
-		"tasks":  # a board with three columns of cards
-			var r := Rect2(o + Vector2(-19, -15), Vector2(38, 30))
-			c.draw_rect(r.grow(1.5), ink)
-			c.draw_rect(r, Color("#f4ead0"))
-			var cols := [Color("#e0a82e"), Color("#5b8fc2"), Color("#6f8f3e")]
-			for k in 3:
-				for n in 3 - k:
-					c.draw_rect(Rect2(r.position + Vector2(3 + k * 12, 4 + n * 8), Vector2(9, 6)), cols[k])
+	var spec: Array = APP_ICONS.get(kind, ["star", Kit.ACCENT])
+	var o := Vector2(c.size.x / 2, 25)
+	var r := Rect2(o - Vector2(23, 23), Vector2(46, 46))
+	Kit.draw_rrect(c, Rect2(r.position + Vector2(0, 3), r.size), Color(0, 0, 0, 0.18), 13)
+	Kit.draw_rrect(c, r, spec[1], 13)
+	Kit.draw_rrect(c, Rect2(r.position, Vector2(r.size.x, r.size.y * 0.5)), Color(1, 1, 1, 0.12), 13)
+	Kit.draw_icon(c, spec[0], o, 12.5, Color.WHITE, 2.4)
 
 func _process(_d: float) -> void:
 	if not visible:
@@ -334,13 +283,13 @@ func _open_window(name: String) -> void:
 		col.add_theme_constant_override("separation", 0)
 		win.add_child(col)
 		var title_bar := PanelContainer.new()
-		title_bar.add_theme_stylebox_override("panel", Kit.box("title"))
+		title_bar.add_theme_stylebox_override("panel", Kit.box("window_bar"))
 		var trow := HBoxContainer.new()
 		title_bar.add_child(trow)
-		var tl := _label(TITLES[name] % [profile.get("email", "")] if name == "mail" else TITLES[name], 16, Color.WHITE)
+		var tl := _label(TITLES[name] % [profile.get("email", "")] if name == "mail" else TITLES[name], 16, Kit.TEXT_INK)
 		tl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		trow.add_child(tl)
-		var close := Kit.button("X", false, true)
+		var close := Kit.icon_button("close", "Zamknij", true, 28.0)
 		close.pressed.connect(func(): _close_window(name))
 		trow.add_child(close)
 		title_bar.gui_input.connect(func(ev): _drag(win, ev))

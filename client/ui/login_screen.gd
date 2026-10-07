@@ -36,7 +36,7 @@ func _ready() -> void:
 	visibility_changed.connect(_on_shown)
 	_fit()
 	var bg := ColorRect.new()
-	bg.color = Color("#1e2230")
+	bg.color = Color(0.1, 0.08, 0.14, 0.35)  # over the 3D backdrop
 	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(bg)
 	var center := CenterContainer.new()

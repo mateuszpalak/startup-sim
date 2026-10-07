@@ -28,6 +28,7 @@ func run() -> void:
 	# A container next to own things (the "inventory").
 	g.container.set_inventory([{"kind": Item.LAPTOP, "id": 1, "label": "IT"}, {"kind": 0, "label": ""},
 		{"kind": 0, "label": ""}, {"kind": 0, "label": ""}])
+	g._container_at = Movement.to_px(g.pred.pos)
 	g.container.show_container({"which": Protocol.CONTAINER_FRIDGE, "milk": 6, "capacity": 12,
 		"slots": [{"kind": Item.COFFEE, "count": 2, "label": ""}]})
 	await shot("inventory")

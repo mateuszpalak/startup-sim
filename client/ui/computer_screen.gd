@@ -10,6 +10,7 @@ extends Control
 const Protocol = preload("res://net/protocol.gd")
 const ItemArt = preload("res://game/item_art.gd")
 const Kit = preload("res://ui/ui_kit.gd")
+const ItemIcons = preload("res://ui/item_icons.gd")
 const Desktop = preload("res://ui/desktop.gd")
 const OsWindow = preload("res://ui/office/os_window.gd")
 const KanbanView = preload("res://ui/office/kanban_view.gd")
@@ -389,7 +390,9 @@ func _build() -> void:
 	var wall := TextureRect.new()
 	wall.set_anchors_preset(Control.PRESET_FULL_RECT)
 	wall.texture = Desktop.wallpaper()
-	wall.stretch_mode = TextureRect.STRETCH_SCALE
+	wall.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	wall.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	wall.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
 	wall.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_desk.add_child(wall)
 	var icons := VBoxContainer.new()
@@ -414,7 +417,7 @@ func _build() -> void:
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 8)
 	bar.add_child(row)
-	_start.text = "◆ StartOS"
+	_start.text = "StartOS"
 	_start.flat = false
 	for st in ["normal", "hover", "pressed", "focus"]:
 		_start.add_theme_stylebox_override(st, Kit.button_box(st if st != "focus" else "normal", true))
@@ -823,8 +826,8 @@ func _desk_icon(caption: String, kind: String) -> Button:
 	l.position = Vector2(0, 50)
 	l.size = Vector2(90, 22)
 	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	l.add_theme_constant_override("outline_size", 4)
-	l.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.6))
+	l.add_theme_constant_override("shadow_offset_y", 1)
+	l.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.45))
 	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	b.add_child(l)
 	var badge := Label.new()
@@ -1209,7 +1212,7 @@ func _render_lunch() -> void:
 		var icon := Control.new()
 		icon.custom_minimum_size = Vector2(32, 32)
 		var k: int = d.kind
-		icon.draw.connect(func(): ItemArt.draw(icon, k, Vector2.ZERO, 2.0))
+		icon.draw.connect(func(): ItemIcons.draw(icon, k, Rect2(Vector2.ZERO, Vector2.ONE * 16.0 * (2.0))))
 		row.add_child(icon)
 		var info := VBoxContainer.new()
 		info.custom_minimum_size = Vector2(320, 0)

@@ -6,6 +6,7 @@
 extends Control
 
 const Kit = preload("res://ui/ui_kit.gd")
+const ItemIcons = preload("res://ui/item_icons.gd")
 const ItemArt = preload("res://game/item_art.gd")
 const Protocol = preload("res://net/protocol.gd")
 
@@ -198,7 +199,7 @@ func _draw_slot(box: Control, kind: int, count: int, from: String, index: int) -
 	var hover: bool = box.get_meta("hover", false) and kind != 0
 	Kit.box("slot_active" if hover else "slot").draw(box.get_canvas_item(), Rect2(Vector2.ZERO, box.size))
 	if kind != 0:
-		ItemArt.draw(box, kind, Vector2(10, 8), (box.size.x - 20) / 16.0)
+		ItemIcons.draw(box, kind, Rect2(Vector2(8, 6), Vector2.ONE * (box.size.x - 16)))
 		if count == 0:  # none left: a faded picture
 			box.draw_rect(Rect2(Vector2(4, 4), box.size - Vector2(8, 8)), Color(Kit.PAPER_HI, 0.65))
 	var f := Kit.font()
@@ -216,7 +217,7 @@ func _draw_slot(box: Control, kind: int, count: int, from: String, index: int) -
 func _preview(kind: int) -> Control:
 	var c := Control.new()
 	c.size = SLOT
-	c.draw.connect(func(): ItemArt.draw(c, kind, Vector2(-SLOT.x / 2 + 10, -SLOT.y / 2 + 8), (SLOT.x - 20) / 16.0))
+	c.draw.connect(func(): ItemIcons.draw(c, kind, Rect2(-SLOT / 2 + Vector2(8, 6), SLOT - Vector2(16, 16))))
 	return c
 
 

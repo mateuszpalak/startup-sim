@@ -205,13 +205,19 @@ static func box(kind: String) -> StyleBox:
 		"hud":
 			sb = _flat(Color(DARK, 0.78), R_LG, 16, 10, Color(1, 1, 1, 0.08), 1, 10)
 		"paper":
-			sb = _flat(Color(PAPER, 0.97), R_XL, 22, 18, Color(1, 1, 1, 0.9), 1, 24, Vector2(0, 8))
+			sb = _flat(PAPER, R_XL, 22, 18, Color(1, 1, 1, 0.9), 1, 24, Vector2(0, 8))
+		"window":
+			sb = _flat(PAPER, R_XL, 0, 0, Color(1, 1, 1, 0.9), 1, 24, Vector2(0, 8))
 		"card":
 			sb = _flat(CARD, R_MD, 14, 12, Color(TEXT_INK, 0.07), 1)
 		"card_hover":
 			sb = _flat(Color("#fff3ec"), R_MD, 14, 12, Color(ACCENT, 0.45), 1)
 		"title":
 			sb = _flat(ACCENT, R_MD, 14, 8)
+		"window_bar":
+			sb = _flat(Color(PAPER_LO, 0.55), R_XL, 18, 8)
+			sb.corner_radius_bottom_left = 0
+			sb.corner_radius_bottom_right = 0
 		"input":
 			sb = _flat(CARD, R_MD, 12, 8, Color(TEXT_INK, 0.14), 2)
 		"input_focus":
@@ -598,3 +604,58 @@ static func draw_icon(ci: CanvasItem, name: String, c: Vector2, s: float, col: C
 			line.call(sp)
 		_:
 			ci.draw_circle(c, 3 * k, col)
+
+
+# ---------------------------------------------------------------- key caps
+
+## A key cap ("E", "1–3", "Esc") with its top-left at `at`; returns its width.
+static func draw_keycap(ci: CanvasItem, at: Vector2, key: String, fsize := 14, light := true) -> float:
+	var f := font_bold()
+	var tw := f.get_string_size(key, HORIZONTAL_ALIGNMENT_LEFT, -1, fsize).x
+	var h := fsize + 10.0
+	var w := maxf(h, tw + 12)
+	var r := Rect2(at, Vector2(w, h))
+	draw_rrect(ci, Rect2(r.position + Vector2(0, 2), r.size), Color(0, 0, 0, 0.25), 6)
+	draw_rrect(ci, r, Color(CARD, 0.95) if light else DARK_HI, 6)
+	ci.draw_string(f, Vector2(at.x, at.y + h / 2 + fsize * 0.36), key, HORIZONTAL_ALIGNMENT_CENTER, w, fsize, TEXT_INK if light else TEXT)
+	return w
+
+
+## Key caps with captions in a row: [[key, text], ...]; returns the width
+## (draws nothing with `measure`).
+static func draw_key_hints(ci: CanvasItem, at: Vector2, hints: Array, fsize := 14, col := TEXT, measure := false) -> float:
+	var f := font()
+	var x := at.x
+	for i in hints.size():
+		var key: String = hints[i][0]
+		var text: String = hints[i][1]
+		var kw := f.get_string_size(key, HORIZONTAL_ALIGNMENT_LEFT, -1, fsize).x + 12
+		kw = maxf(kw, fsize + 10.0)
+		if not measure:
+			draw_keycap(ci, Vector2(x, at.y), key, fsize)
+		x += kw + 6
+		if not measure:
+			ci.draw_string(f, Vector2(x, at.y + (fsize + 10) / 2.0 + fsize * 0.36), text, HORIZONTAL_ALIGNMENT_LEFT, -1, fsize, col)
+		x += f.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, fsize).x + (18 if i < hints.size() - 1 else 0)
+	return x - at.x
+
+
+## A round icon-only button (close, back...): `icon` from draw_icon.
+static func icon_button(icon: String, tip := "", danger := false, d := 30.0) -> Button:
+	var b := Button.new()
+	b.flat = true
+	b.focus_mode = Control.FOCUS_NONE
+	b.tooltip_text = tip
+	b.custom_minimum_size = Vector2(d, d)
+	b.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	for st in ["normal", "hover", "pressed", "focus", "disabled"]:
+		b.add_theme_stylebox_override(st, StyleBoxEmpty.new())
+	b.draw.connect(func():
+		var c := b.size / 2
+		var hot := b.is_hovered()
+		var bg := (RED if danger else ACCENT) if hot else Color(TEXT_INK, 0.08)
+		b.draw_circle(c, d / 2, bg, true, -1.0, true)
+		draw_icon(b, icon, c, d * 0.24, Color.WHITE if hot else TEXT_INK, 2.0))
+	b.mouse_entered.connect(b.queue_redraw)
+	b.mouse_exited.connect(b.queue_redraw)
+	return b

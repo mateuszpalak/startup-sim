@@ -6,6 +6,7 @@
 extends Control
 
 const Kit = preload("res://ui/ui_kit.gd")
+const ItemIcons = preload("res://ui/item_icons.gd")
 const ItemArt = preload("res://game/item_art.gd")
 const Protocol = preload("res://net/protocol.gd")
 
@@ -151,7 +152,7 @@ func _draw_machine() -> void:
 	c.draw_rect(Rect2(118, 68, 14, 12), Color("#5d6068"))
 	c.draw_rect(Rect2(86, 168, 78, 8), Color("#5d6068"))
 	if busy > 0:
-		ItemArt.draw(c, ItemArt.COFFEE, Vector2(101, 108), 3.0)
+		ItemIcons.draw(c, ItemArt.COFFEE, Rect2(Vector2(101, 108), Vector2.ONE * 16.0 * (3.0)))
 		for k in 3:  # steam
 			var x := 110.0 + k * 9.0
 			var t := Time.get_ticks_msec() / 200.0 + k

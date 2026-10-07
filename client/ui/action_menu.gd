@@ -4,6 +4,7 @@
 extends Control
 
 const Kit = preload("res://ui/ui_kit.gd")
+const ItemIcons = preload("res://ui/item_icons.gd")
 const ItemArt = preload("res://game/item_art.gd")
 
 const TILE := Vector2(132, 124)
@@ -76,7 +77,7 @@ func _draw_tile(b: Button, i: int, a: Dictionary) -> void:
 	var icon: Variant = a.get("icon", "")
 	var c := Vector2(b.size.x / 2, 44)
 	if icon is int and icon != 0:
-		ItemArt.draw(b, icon, c - Vector2(24, 24), 3.0)
+		ItemIcons.draw(b, icon, Rect2(c - Vector2(24, 24), Vector2.ONE * 16.0 * (3.0)))
 		if a.key == "Q":
 			_arrow_down(b, c + Vector2(26, 6))
 	else:

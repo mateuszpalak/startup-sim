@@ -12,21 +12,21 @@ var _title := Label.new()
 
 
 func setup(title: String, body: Control, pad := 12) -> void:
-	add_theme_stylebox_override("panel", Kit.box("paper"))
+	add_theme_stylebox_override("panel", Kit.box("window"))
 	var col := VBoxContainer.new()
 	col.add_theme_constant_override("separation", 0)
 	add_child(col)
 	var bar := PanelContainer.new()
-	bar.add_theme_stylebox_override("panel", Kit.box("title"))
+	bar.add_theme_stylebox_override("panel", Kit.box("window_bar"))
 	col.add_child(bar)
 	var row := HBoxContainer.new()
 	bar.add_child(row)
-	Kit.style_label(_title, 16, Color.WHITE)
+	Kit.style_label(_title, 16, Kit.TEXT_INK)
+	_title.add_theme_font_override("font", Kit.font_bold())
 	_title.text = title
 	_title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	row.add_child(_title)
-	var x := Kit.button("X", false, true)
-	x.focus_mode = Control.FOCUS_NONE
+	var x := Kit.icon_button("close", "Zamknij", true, 28.0)
 	x.pressed.connect(func(): closed.emit())
 	row.add_child(x)
 	bar.gui_input.connect(_drag)

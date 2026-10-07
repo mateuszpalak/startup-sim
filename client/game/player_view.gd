@@ -90,18 +90,24 @@ func setup(seed_id: int, nick: String, zoom: float) -> void:
 	set_seed(seed_id)
 	nick_label.text = nick
 	var ls := LabelSettings.new()
-	ls.font = Kit.font()
-	ls.font_size = 20
-	ls.font_color = Kit.PAPER_HI
-	ls.outline_size = 6
-	ls.outline_color = Kit.INK
+	ls.font = Kit.font_bold()
+	ls.font_size = 15
+	ls.font_color = Kit.TEXT
 	nick_label.label_settings = ls
+	var pill := StyleBoxFlat.new()
+	pill.bg_color = Color(Kit.DARK, 0.62)
+	pill.set_corner_radius_all(11)
+	pill.anti_aliasing = true
+	pill.content_margin_left = 9
+	pill.content_margin_right = 9
+	pill.content_margin_top = 1
+	pill.content_margin_bottom = 2
+	nick_label.add_theme_stylebox_override("normal", pill)
 	nick_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	nick_label.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
 	# Render the label at screen resolution regardless of camera zoom.
 	nick_label.scale = Vector2.ONE / zoom
-	nick_label.size = Vector2(200, 24)
-	nick_label.position = Vector2(-100 / zoom, HEAD_TOP - 24 / zoom)
+	_fit_nick()
 	if nick_label.get_parent() == null:
 		add_child(_tag)
 		_tag.add_child(nick_label)
@@ -201,7 +207,17 @@ func _build_bubble() -> void:
 
 
 func set_nick(nick: String) -> void:
-	nick_label.text = nick
+	if nick_label.text != nick:
+		nick_label.text = nick
+		_fit_nick()
+
+
+## The nick pill: as wide as the nick, centred over the head.
+func _fit_nick() -> void:
+	nick_label.size = Vector2.ZERO
+	var sz := nick_label.get_combined_minimum_size()
+	nick_label.size = sz
+	nick_label.position = Vector2(-sz.x / 2 / _zoom, HEAD_TOP - (sz.y + 2) / _zoom)
 
 
 ## Show a speech bubble above the head for a few seconds.
@@ -265,7 +281,7 @@ func set_facing(f: int) -> void:
 func set_zoom(zoom: float) -> void:
 	_zoom = zoom
 	nick_label.scale = Vector2.ONE / zoom
-	nick_label.position = Vector2(-100 / zoom, HEAD_TOP - 24 / zoom)
+	_fit_nick()
 	bubble.scale = Vector2.ONE / zoom
 	if bubble.visible:
 		_place_bubble()

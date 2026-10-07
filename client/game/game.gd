@@ -287,41 +287,48 @@ func setup(p_net, p_building, welcome: Dictionary, p_nick: String, args: Diction
 
 	status_layer.layer = 11
 	add_child(status_layer)
-	status_label.set_anchors_preset(Control.PRESET_CENTER_TOP)
-	status_label.position = Vector2(-200, 24)
-	status_label.size = Vector2(400, 40)
-	status_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	status_label.add_theme_font_size_override("font_size", 24)
-	status_label.add_theme_constant_override("outline_size", 6)
-	status_label.add_theme_color_override("font_outline_color", Color.BLACK)
-	status_label.visible = false
-	status_layer.add_child(status_label)
-	hint_label.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
-	hint_label.position = Vector2(-250, -214)  # above the inventory bar
-	hint_label.size = Vector2(500, 36)
-	hint_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	hint_label.add_theme_font_size_override("font_size", 20)
-	hint_label.add_theme_constant_override("outline_size", 6)
-	hint_label.add_theme_color_override("font_outline_color", Color.BLACK)
-	hint_label.visible = false
-	status_layer.add_child(hint_label)
+	# HUD text as glass chips (ui_kit): the status at the top, the hint above
+	# the inventory bar, the log bottom left, the clock top left.
+	for l in [status_label, hint_label]:
+		l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		l.add_theme_stylebox_override("normal", Kit.box("hud"))
+		l.visible = false
+		l.resized.connect(_fit_hud_text)
+		status_layer.add_child(l)
+	Kit.style_label(status_label, 22, Kit.TEXT)
+	Kit.style_label(hint_label, 18, Kit.TEXT)
+	get_viewport().size_changed.connect(_fit_hud_text)
 	log_label.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
 	log_label.position = Vector2(16, -236)
 	log_label.size = Vector2(470, 220)
 	log_label.vertical_alignment = VERTICAL_ALIGNMENT_BOTTOM
 	log_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	log_label.add_theme_font_size_override("font_size", 16)
-	log_label.add_theme_constant_override("line_spacing", 2)
-	log_label.add_theme_constant_override("outline_size", 5)
-	log_label.add_theme_color_override("font_outline_color", Color.BLACK)
+	Kit.style_label(log_label, 15, Kit.TEXT)
+	log_label.add_theme_constant_override("line_spacing", 3)
+	log_label.add_theme_constant_override("outline_size", 6)
+	log_label.add_theme_color_override("font_outline_color", Color(Kit.DARK, 0.55))
+	log_label.add_theme_constant_override("shadow_offset_y", 1)
+	log_label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.35))
 	status_layer.add_child(log_label)
 	status_layer.add_child(hud)
 	hud.slot_clicked.connect(_pocket_key)
 	status_layer.add_child(stats_hud)
 	var cp := Kit.panel("hud")
-	cp.position = Vector2(16, 16)
-	Kit.style_label(clock_label, 20, Kit.TEXT)
-	cp.add_child(clock_label)
+	cp.position = Vector2(16, 14)
+	var crow := HBoxContainer.new()
+	crow.add_theme_constant_override("separation", 10)
+	cp.add_child(crow)
+	var wicon := Control.new()
+	wicon.custom_minimum_size = Vector2(28, 28)
+	wicon.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	wicon.draw.connect(func():
+		var night := game_minute < 6 * 60 or game_minute >= 20 * 60
+		var ic: String = {2: "cloud", 3: "rain", 4: "rain", 5: "fog"}.get(weather, "moon" if night else "sun")
+		Kit.draw_icon(wicon, ic, Vector2(14, 14), 12.0, Kit.GOLD if ic in ["sun", "moon"] else Kit.TEXT, 2.2))
+	clock_label.draw.connect(wicon.queue_redraw)
+	crow.add_child(wicon)
+	Kit.style_label(clock_label, 18, Kit.TEXT)
+	crow.add_child(clock_label)
 	status_layer.add_child(cp)
 	add_child(daylight)
 	mood_layer.layer = 4  # over the world, under the weather and the HUD
@@ -738,8 +745,21 @@ func _update_media() -> void:
 	boombox.volume_db = -4.0 if boombox_music.floor == floor_index else -80.0
 
 
+## The status and hint chips: sized to their text, centred.
+func _fit_hud_text() -> void:
+	var vs := get_viewport().get_visible_rect().size
+	for l in [status_label, hint_label]:
+		var want: Vector2 = l.get_combined_minimum_size()
+		if l.size != want:
+			l.size = want
+	status_label.position = Vector2((vs.x - status_label.size.x) / 2, 24)
+	hint_label.position = Vector2((vs.x - hint_label.size.x) / 2, hud.top() - hint_label.size.y - 10)
+
+
 func _process(delta: float) -> void:
 	_update_media()
+	if hint_label.visible or status_label.visible:
+		_fit_hud_text()
 	# Fire alarm: the screen pulses red.
 	var pulse := 0.5 + 0.5 * sin(Time.get_ticks_msec() / 1000.0 * TAU * 1.5)
 	alarm_tint.color.a = 0.16 * pulse if fire_alarm else 0.0
@@ -864,7 +884,7 @@ func _on_packet(p: Dictionary) -> void:
 			screen.on_computer(p)
 		Protocol.T_NOTICE:
 			notices.push(p.icon, p.text)
-			log_history.add("[%02d:%02d] %s %s" % [game_minute / 60, game_minute % 60, Notices.ICONS.get(p.icon, "•"), p.text])
+			log_history.add("[%02d:%02d] %s %s" % [game_minute / 60, game_minute % 60, Notices.SYMBOLS.get(p.icon, "•"), p.text])
 			if Audio.inst:
 				Audio.inst.play("notify", -8.0)
 		Protocol.T_MEDIA:

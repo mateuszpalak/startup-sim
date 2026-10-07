@@ -3,6 +3,7 @@
 extends Control
 
 const Kit = preload("res://ui/ui_kit.gd")
+const ItemIcons = preload("res://ui/item_icons.gd")
 
 const ItemArt = preload("res://game/item_art.gd")
 
@@ -59,7 +60,7 @@ func show_shelf(p: Dictionary) -> void:
 		var icon := Control.new()
 		icon.custom_minimum_size = Vector2(32, 32)
 		var kind: int = g.kind
-		icon.draw.connect(func(): ItemArt.draw(icon, kind, Vector2(0, 0), 2.0))
+		icon.draw.connect(func(): ItemIcons.draw(icon, kind, Rect2(Vector2(0, 0), Vector2.ONE * 16.0 * (2.0))))
 		row.add_child(icon)
 		var name := Label.new()
 		name.text = "%d. %s" % [i + 1, g.name]

@@ -146,7 +146,7 @@ func _build_pane() -> void:
 	_p_title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_p_title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	top.add_child(_p_title)
-	var x := Kit.button("X")
+	var x := Kit.icon_button("close", "Zamknij")
 	x.pressed.connect(func(): _open(0))
 	top.add_child(x)
 	v.add_child(top)

@@ -28,6 +28,7 @@ const Settings = preload("res://ui/settings.gd")
 const Audio = preload("res://audio/audio.gd")
 const AuthClient = preload("res://net/auth_client.gd")
 const LoginScreen = preload("res://ui/login_screen.gd")
+const TitleBackdrop = preload("res://ui/title_backdrop_3d.gd")
 
 const BUILDING_PATH := "res://maps/building.json"
 
@@ -52,6 +53,7 @@ var updates := Updates.new()
 var update_layer := CanvasLayer.new()   # "a new version" over every screen
 var login_layer := CanvasLayer.new()
 var login := LoginScreen.new()
+var backdrop: Node = null   # the live 3D world behind the menus
 ## The logged-in account: {address, nick, ticket, refresh, key} ({} = a
 ## guest). `key` seals the game packets; it only ever comes over HTTPS.
 var session := {}
@@ -267,6 +269,9 @@ func _on_connected(welcome: Dictionary) -> void:
 	start.get_parent().visible = false
 	get_viewport().gui_release_focus()  # the nick field must not keep eating keys
 	get_window().title = "Startup Sim — %s" % net.nick
+	if backdrop:
+		backdrop.free()
+		backdrop = null
 	game = Game.new()
 	for c in get_children():
 		if c.has_method("next_input"):
@@ -321,6 +326,7 @@ func _on_packet(p: Dictionary) -> void:
 func _process(_d: float) -> void:
 	if args.has("perf"):
 		_perf_report()
+	_update_backdrop()
 	if game:
 		game.input_blocked = portal.visible or day_screen.blocking() or pause.visible  # no walking under the menu
 	# Music: the menu tune on the title / character screens, a calm one at
@@ -339,6 +345,22 @@ var _perf_proc := 0.0
 var _perf_phys := 0.0
 var _perf_draws := {}   # script / class -> redraws in this period
 var _perf_hooked := {}  # instance id -> true
+
+
+## The 3D world behind the title / login / character screens: built while
+## one of them shows and no game runs (not headless, it costs a map build).
+func _update_backdrop() -> void:
+	var want: bool = game == null and building.error == "" and DisplayServer.get_name() != "headless" \
+		and (title_layer.visible or login_layer.visible or start.get_parent().visible)
+	if want and backdrop == null:
+		backdrop = TitleBackdrop.new(building)
+		backdrop.mood = int(args.get("title-mood", "-1"))  # dev: a fixed look for screenshots
+		backdrop.shot = int(args.get("title-shot", "-1"))
+		add_child(backdrop)
+		move_child(backdrop, 0)
+	elif not want and backdrop != null:
+		backdrop.queue_free()
+		backdrop = null
 
 
 func _perf_hook(n: Node) -> void:

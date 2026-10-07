@@ -5,6 +5,7 @@
 extends Control
 
 const Kit = preload("res://ui/ui_kit.gd")
+const ItemIcons = preload("res://ui/item_icons.gd")
 const ItemArt = preload("res://game/item_art.gd")
 
 signal answer(id: int, choice: int)
@@ -110,7 +111,7 @@ func _item_slot(kind: int, i: int, text: String) -> Control:
 	box.pressed.connect(func(): _choose(i))
 	box.draw.connect(func():
 		Kit.box("slot_active" if box.is_hovered() else "slot").draw(box.get_canvas_item(), Rect2(Vector2.ZERO, box.size))
-		ItemArt.draw(box, kind, Vector2(12, 10), (box.size.x - 24) / 16.0)
+		ItemIcons.draw(box, kind, Rect2(Vector2(8, 6), Vector2.ONE * (box.size.x - 16)))
 		var f := Kit.font()
 		box.draw_string_outline(f, Vector2(8, box.size.y - 8), str(i + 1), HORIZONTAL_ALIGNMENT_LEFT, -1, 16, 4, Kit.INK)
 		box.draw_string(f, Vector2(8, box.size.y - 8), str(i + 1), HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Kit.GOLD))
