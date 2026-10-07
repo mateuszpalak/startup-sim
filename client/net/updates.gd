@@ -53,4 +53,19 @@ func check() -> Dictionary:
 	var version := str(data.get("tag_name", "")).trim_prefix("v")
 	if version == "" or not is_newer(version, current()):
 		return {}
-	return {"version": version, "url": str(data.get("html_url", DOWNLOAD_PAGE))}
+	var url := str(data.get("html_url", DOWNLOAD_PAGE))
+	if OS.has_feature("windows"):
+		var arch := "arm64" if OS.has_feature("arm64") else "x86_64"
+		url = asset_url(data.get("assets", []), "-windows-%s.zip" % arch, url)
+	return {"version": version, "url": url}
+
+
+## Windows players get the zip for their machine straight away (assets named
+## like tools/build-windows.sh makes them); otherwise the release page.
+static func asset_url(assets, suffix: String, fallback: String) -> String:
+	if typeof(assets) != TYPE_ARRAY:
+		return fallback
+	for a in assets:
+		if typeof(a) == TYPE_DICTIONARY and str(a.get("name", "")).ends_with(suffix):
+			return str(a.get("browser_download_url", fallback))
+	return fallback

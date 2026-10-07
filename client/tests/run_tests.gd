@@ -25,6 +25,7 @@ func _init() -> void:
 	test_doorway_floors()
 	test_door_plaques()
 	test_camera_keys()
+	test_windows_asset()
 	print("%d checks, %d failures" % [checks, failures])
 	quit(1 if failures > 0 else 0)
 
@@ -443,3 +444,14 @@ func test_parse_address() -> void:
 	for input in cases:
 		var got := NetClient.parse_address(input)
 		expect(got == cases[input], "parse_address(%s) = %s, want %s" % [input, got, cases[input]])
+
+
+func test_windows_asset() -> void:
+	var U = load("res://net/updates.gd")
+	var assets := [
+		{"name": "StartupSim-0.4.0.dmg", "browser_download_url": "https://x/mac.dmg"},
+		{"name": "StartupSim3D-0.4.0-windows-x86_64.zip", "browser_download_url": "https://x/win.zip"},
+	]
+	expect(U.asset_url(assets, "-windows-x86_64.zip", "page") == "https://x/win.zip", "windows asset found")
+	expect(U.asset_url(assets, "-windows-arm64.zip", "page") == "page", "no arm64 asset -> release page")
+	expect(U.asset_url(null, "-windows-x86_64.zip", "page") == "page", "no assets -> release page")

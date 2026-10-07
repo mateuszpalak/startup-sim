@@ -45,6 +45,9 @@ common/max_physics_steps_per_frame=8
 renderer/rendering_method="forward_plus"
 renderer/rendering_method.mobile="mobile"
 renderer/rendering_method.ios_simulator="gl_compatibility"
+rendering_device/driver.windows="d3d12"
+rendering_device/fallback_to_vulkan=true
+rendering_device/fallback_to_d3d12=true
 
 anti_aliasing/quality/msaa_3d=0
 anti_aliasing/quality/screen_space_aa=1

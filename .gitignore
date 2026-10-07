@@ -19,3 +19,4 @@ __pycache__/
 /.cache
 # The Android Gradle build template (tools/build-android.sh --release installs it).
 /client/android/
+/dist
