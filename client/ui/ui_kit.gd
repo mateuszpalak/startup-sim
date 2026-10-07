@@ -204,6 +204,8 @@ static func box(kind: String) -> StyleBox:
 	match kind:
 		"hud":
 			sb = _flat(Color(DARK, 0.78), R_LG, 16, 10, Color(1, 1, 1, 0.08), 1, 10)
+		"glass":
+			sb = _flat(Color(DARK, 0.84), R_XL, 22, 18, Color(1, 1, 1, 0.1), 1, 24, Vector2(0, 8))
 		"paper":
 			sb = _flat(PAPER, R_XL, 22, 18, Color(1, 1, 1, 0.9), 1, 24, Vector2(0, 8))
 		"window":

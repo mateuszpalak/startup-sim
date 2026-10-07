@@ -56,7 +56,7 @@ func _ready() -> void:
 	sub.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	outer.add_child(sub)
 	var panel := PanelContainer.new()
-	panel.add_theme_stylebox_override("panel", Kit.box("hud"))
+	panel.add_theme_stylebox_override("panel", Kit.box("glass"))
 	outer.add_child(panel)
 	var inner := VBoxContainer.new()
 	inner.add_theme_constant_override("separation", 8)

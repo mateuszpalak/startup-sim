@@ -6,6 +6,7 @@ extends Control
 const Kit = preload("res://ui/ui_kit.gd")
 
 const PlayerView = preload("res://game/player_view.gd")
+const AvatarPreview = preload("res://ui/avatar_preview.gd")
 
 ## Emitted with a validated character; `address` = server "host:port".
 signal connect_pressed(nick: String, profile: Dictionary, address: String)
@@ -47,11 +48,14 @@ func _ready() -> void:
 	center.add_child(outer)
 
 	var title := _label("Startup Sim", 44, Color.WHITE)
-	title.add_theme_constant_override("outline_size", 8)
-	title.add_theme_color_override("font_outline_color", Kit.ACCENT_LO)
+	title.add_theme_font_override("font", Kit.font_bold())
+	title.add_theme_constant_override("shadow_offset_y", 3)
+	title.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.35))
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	outer.add_child(title)
-	var sub := _label("Stwórz swoją postać — za chwilę zaczniesz szukać pracy.", 16, Color(1, 1, 1, 0.6))
+	var sub := _label("Stwórz swoją postać — za chwilę zaczniesz szukać pracy.", 16, Color(1, 1, 1, 0.85))
+	sub.add_theme_constant_override("shadow_offset_y", 1)
+	sub.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.5))
 	sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	outer.add_child(sub)
 
@@ -103,7 +107,7 @@ func _label(text: String, size: int, color := Color(1, 1, 1, 0.8)) -> Label:
 
 func _panel(content: Control) -> PanelContainer:
 	var p := PanelContainer.new()
-	p.add_theme_stylebox_override("panel", Kit.box("hud"))
+	p.add_theme_stylebox_override("panel", Kit.box("glass"))
 	p.add_child(content)
 	return p
 
@@ -150,15 +154,14 @@ func _build_looks() -> HBoxContainer:
 	h.add_theme_constant_override("separation", 16)
 	# Preview.
 	var pv := VBoxContainer.new()
-	var stage := Control.new()
-	stage.custom_minimum_size = Vector2(180, 230)
-	stage.clip_contents = true
+	# The look lives in a hidden PlayerView; the 3D avatar mirrors it.
 	var holder := Node2D.new()
-	holder.position = Vector2(90, 200)
-	holder.scale = Vector2(PREVIEW_SCALE, PREVIEW_SCALE)
-	stage.add_child(holder)
+	holder.visible = false
+	pv.add_child(holder)
 	holder.add_child(_preview)
 	_preview.setup(0, "", PREVIEW_SCALE)
+	var stage := AvatarPreview.new()
+	stage.setup(_preview, Vector2i(200, 260))
 	pv.add_child(stage)
 	var rot := Button.new()
 	rot.text = "Obróć"
