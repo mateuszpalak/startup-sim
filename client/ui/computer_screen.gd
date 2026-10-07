@@ -10,6 +10,7 @@ extends Control
 const Protocol = preload("res://net/protocol.gd")
 const ItemArt = preload("res://game/item_art.gd")
 const Kit = preload("res://ui/ui_kit.gd")
+const Touch = preload("res://touch/touch.gd")
 const ItemIcons = preload("res://ui/item_icons.gd")
 const Desktop = preload("res://ui/desktop.gd")
 const OsWindow = preload("res://ui/office/os_window.gd")
@@ -104,6 +105,7 @@ var terminal := TerminalView.new()
 var world := {}                 # {day, minute, weather, company, nick, department} for the web pages / terminal
 var _hr_asked := 0
 var _desk := Control.new()
+var _icons_box: Container
 var _win_layer := Control.new()
 var _windows := {}              # name -> OsWindow
 var _views := {}                # name -> Control shown in that window
@@ -138,6 +140,29 @@ func _fit() -> void:
 	var fs := Vector2(minf(1200, size.x - 40), minf(740, size.y - 40))
 	_frame.size = fs
 	_frame.position = (size - fs) / 2
+	if Touch.active:
+		# Use the whole safe area; the touch close button sits top right.
+		var sr := Touch.safe_rect(get_viewport()).grow(-6)
+		sr.size.x -= 58
+		_frame.position = sr.position
+		_frame.size = sr.size
+	_fit_windows.call_deferred()
+
+
+## Touch: icons flow into columns; on a phone windows fill the desk.
+func _fit_windows() -> void:
+	if not Touch.active:
+		return
+	_icons_box.size = Vector2(_icons_box.size.x, maxf(_desk.size.y - 16, 100))
+	if not Touch.phone:
+		return
+	var left := _icons_box.get_combined_minimum_size().x + 20
+	if _desk.size.x < 800:
+		left = 0.0  # portrait: apps cover the icons (the taskbar switches / closes)
+	for name in _windows:
+		var w: Control = _windows[name]
+		w.position = Vector2(left, 4)
+		w.size = Vector2(maxf(_desk.size.x - left - 4, 200), maxf(_desk.size.y - 8, 150))
 
 
 # ------------------------------------------------------------------- state
@@ -396,10 +421,14 @@ func _build() -> void:
 	wall.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
 	wall.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_desk.add_child(wall)
-	var icons := VBoxContainer.new()
-	icons.position = Vector2(14, 12)
+	var icons: Container = VFlowContainer.new() if Touch.active else VBoxContainer.new()
+	_icons_box = icons
+	icons.position = Vector2(14, 12) if not Touch.active else Vector2(8, 8)
 	icons.add_theme_constant_override("separation", 6)
+	icons.add_theme_constant_override("h_separation", 4)
+	icons.add_theme_constant_override("v_separation", 2)
 	_desk.add_child(icons)
+	_desk.resized.connect(_fit_windows)
 	for ic in [["mail", "Poczta", "mail"], ["browser", "Przeglądarka", "browser"], ["chat", "Komunikator", "chat"],
 			["calendar", "Kalendarz", "calendar"], ["hr", "Kadry", "hr"], ["terminal", "Terminal", "terminal"],
 			["company", "Firma", "company"], ["trash", "Kosz", "trash"]]:
@@ -425,15 +454,28 @@ func _build() -> void:
 	for k in ["font_color", "font_hover_color", "font_pressed_color", "font_focus_color"]:
 		_start.add_theme_color_override(k, Color.WHITE)
 	var pm := _start.get_popup()
+	if Touch.active:
+		_start.custom_minimum_size = Vector2(110, 48)
+		pm.add_theme_font_size_override("font_size", 22)
+		pm.add_theme_constant_override("v_separation", 22)
 	pm.add_item("Zablokuj komputer", 1)
 	pm.add_item("Zabierz laptop", 2)
 	pm.add_separator()
-	pm.add_item("Zamknij (Esc)", 3)
+	pm.add_item("Wstań od komputera" if Touch.active else "Zamknij (Esc)", 3)
 	pm.id_pressed.connect(_start_menu)
 	row.add_child(_start)
 	_task_btns.add_theme_constant_override("separation", 6)
 	_task_btns.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	row.add_child(_task_btns)
+	if Touch.active:
+		# Many windows: the taskbar scrolls sideways instead of widening the screen.
+		var ts := ScrollContainer.new()
+		ts.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		ts.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+		ts.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_NEVER
+		ts.add_child(_task_btns)
+		row.add_child(ts)
+	else:
+		row.add_child(_task_btns)
 	_style_label(_as_owner, 14, Color("#ffcf6e"))
 	row.add_child(_as_owner)
 	_style_label(_title, 14, Color(1, 1, 1, 0.85))
@@ -624,7 +666,7 @@ func _build() -> void:
 	_lunch_view.add_child(lh)
 	_style_label(_lunch_status, 15, Kit.ACCENT)
 	_lunch_status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_lunch_status.custom_minimum_size = Vector2(600, 0)
+	_lunch_status.custom_minimum_size = Vector2(300 if Touch.phone else 600, 0)
 	_lunch_view.add_child(_lunch_status)
 	_lunch_list.add_theme_constant_override("separation", 6)
 	_lunch_view.add_child(_lunch_list)
@@ -739,12 +781,19 @@ func _open(name: String) -> void:
 		var ds := _desk.size
 		w.position = Vector2(118 + k * 22, 8 + k * 16)
 		w.size = Vector2(maxf(420, ds.x - 132 - k * 22), maxf(300, ds.y - 16 - k * 16))
+		if Touch.active:
+			w.position = Vector2(_icons_box.get_combined_minimum_size().x + 20 + k * 22, 6 + k * 12)
+			w.size = Vector2(maxf(300, ds.x - w.position.x - 6), maxf(200, ds.y - w.position.y - 6))
+			w.draggable = not Touch.phone
 		w.closed.connect(func(): _close(name))
 		w.focused.connect(func(): _win_layer.move_child(w, -1))
 		_win_layer.add_child(w)
 		_windows[name] = w
 		var tb := Kit.button(WINDOW_TITLES[name])
 		tb.add_theme_font_size_override("font_size", 14)
+		if Touch.active:
+			tb.custom_minimum_size.y = 48
+			tb.add_theme_font_size_override("font_size", 17)
 		tb.name = "task_" + name
 		tb.pressed.connect(func(): _open(name))
 		_task_btns.add_child(tb)
@@ -765,6 +814,7 @@ func _open(name: String) -> void:
 	if name == "terminal":
 		terminal.focus()
 	_win_layer.move_child(_windows[name], -1)
+	_fit_windows.call_deferred()
 	_render()
 
 
@@ -959,7 +1009,7 @@ func _co_label(text: String, size: int, color := Kit.TEXT_INK, wrap := false) ->
 	l.text = text
 	if wrap:
 		l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		l.custom_minimum_size = Vector2(600, 0)
+		l.custom_minimum_size = Vector2(300 if Touch.phone else 600, 0)
 	return l
 
 
@@ -1147,7 +1197,7 @@ func _render_company() -> void:
 		var pid: int = c.id
 		row = _co_row()
 		var l := _co_label("%s — %s, wynik rozmowy %d/%d" % [c.nick, titles.get(c.offer, "?"), c.score, c.total], 15)
-		l.custom_minimum_size = Vector2(430, 0)
+		l.custom_minimum_size = Vector2(300 if Touch.phone else 430, 0)
 		row.add_child(l)
 		var hire := _button("Zatrudnij", true)
 		hire.pressed.connect(func(): company_action.emit(Protocol.CO_HIRE, pid, 0, ""))
@@ -1168,7 +1218,7 @@ func _render_company() -> void:
 		if reprimands > 0:
 			text += " · nagany: %d/3" % reprimands
 		var l := _co_label(text, 15)
-		l.custom_minimum_size = Vector2(430, 0)
+		l.custom_minimum_size = Vector2(300 if Touch.phone else 430, 0)
 		row.add_child(l)
 		if pid == my_id:
 			row.add_child(_co_label("(Ty)", 14, Kit.TEXT_MUTED))
@@ -1216,7 +1266,7 @@ func _render_lunch() -> void:
 		icon.draw.connect(func(): ItemIcons.draw(icon, k, Rect2(Vector2.ZERO, Vector2.ONE * 16.0 * (2.0))))
 		row.add_child(icon)
 		var info := VBoxContainer.new()
-		info.custom_minimum_size = Vector2(320, 0)
+		info.custom_minimum_size = Vector2(170 if Touch.phone else 320, 0)
 		info.add_theme_constant_override("separation", 0)
 		var n := Label.new()
 		_style_label(n, 16, Kit.TEXT_INK)
