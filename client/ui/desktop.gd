@@ -5,6 +5,7 @@
 extends Control
 
 const Kit = preload("res://ui/ui_kit.gd")
+const Touch = preload("res://touch/touch.gd")
 const AvatarPreview = preload("res://ui/avatar_preview.gd")
 
 const Protocol = preload("res://net/protocol.gd")
@@ -51,6 +52,7 @@ var _root := Control.new()
 var _windows := {}        # name -> window PanelContainer
 var _body := {}           # name -> VBoxContainer (window content)
 var _taskbar := HBoxContainer.new()
+var _bar := PanelContainer.new()
 var _clock := Label.new()
 var game_day := 0          # from the server's Clock (0 = not known yet)
 var game_minute := 0
@@ -79,6 +81,17 @@ func _ready() -> void:
 func _fit() -> void:
 	position = Vector2.ZERO
 	size = get_viewport_rect().size
+	if Touch.active and _bar.is_inside_tree():  # the taskbar clear of the notch / home bar
+		var sr := Touch.safe_rect(get_viewport())
+		_bar.offset_left = sr.position.x
+		_bar.offset_right = sr.end.x - size.x
+		_bar.offset_bottom = sr.end.y - size.y
+		_bar.offset_top = _bar.offset_bottom - 60
+
+
+## Where the taskbar starts (windows end above it).
+func _taskbar_top() -> float:
+	return size.y + _bar.offset_top
 
 
 func set_profile(p_nick: String, p_profile: Dictionary) -> void:
@@ -126,6 +139,8 @@ func _build_desktop() -> void:
 
 	var icons := VBoxContainer.new()
 	icons.position = Vector2(24, 24)
+	if Touch.active:
+		icons.position += Touch.safe_rect(get_viewport()).position
 	icons.add_theme_constant_override("separation", 18)
 	_root.add_child(icons)
 	icons.add_child(_icon("Przeglądarka", "browser", func(): _open_window("browser")))
@@ -144,11 +159,12 @@ func _build_desktop() -> void:
 	icons.add_child(_icon("Kosz", "trash", func(): _toast_msg("Kosz jest pusty. Na razie.")))
 
 	# Taskbar.
-	var bar := PanelContainer.new()
+	var bar := _bar
 	bar.add_theme_stylebox_override("panel", Kit.box("hud"))
 	bar.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
 	bar.offset_top = -52
 	_root.add_child(bar)
+	_fit()
 	var row := HBoxContainer.new()
 	bar.add_child(row)
 	var start_btn := Kit.button("StartOS", true)
@@ -313,6 +329,10 @@ func _open_window(name: String) -> void:
 		win.size = wsize
 		var offset: Vector2 = {"browser": Vector2(0, 0), "mail": Vector2(40, 24), "interview": Vector2(80, 12)}[name]
 		win.position = Vector2(140, 20) + offset
+		if Touch.active:  # a small screen: every window full size, switched on the taskbar
+			var sr := Touch.safe_rect(get_viewport())
+			win.position = sr.position + Vector2(6, 6)
+			win.size = Vector2(sr.size.x - 12, _taskbar_top() - sr.position.y - 12)
 		_root.add_child(win)
 		_windows[name] = win
 		_body[name] = body
@@ -521,11 +541,12 @@ func _render_mail(body: VBoxContainer) -> void:
 		return
 	if _selected_mail < 0 or not mails.has(_selected_mail):
 		_selected_mail = ids[0]
-	var h := HBoxContainer.new()
+	var h := BoxContainer.new()
+	h.vertical = _narrow()  # an upright phone: the list over the mail
 	h.add_theme_constant_override("separation", 14)
 	body.add_child(h)
 	var list := VBoxContainer.new()
-	list.custom_minimum_size = Vector2(250, 0)
+	list.custom_minimum_size = Vector2(0 if _narrow() else 250, 0)
 	h.add_child(list)
 	for id in ids:
 		var m: Dictionary = mails[id]
@@ -533,7 +554,7 @@ func _render_mail(body: VBoxContainer) -> void:
 		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
 		b.text = ("● " if unread.has(id) else "   ") + m.from + "\n   " + m.subject
 		b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		b.custom_minimum_size = Vector2(250, 0)
+		b.custom_minimum_size = Vector2(0 if _narrow() else 250, 52 if Touch.active else 0)
 		b.toggle_mode = true
 		b.button_pressed = id == _selected_mail
 		var mid: int = id
@@ -589,7 +610,7 @@ func _video_tile(parent: Container, who: String, look: int, appearance: Dictiona
 	s.set_corner_radius_all(Kit.R_LG)
 	s.anti_aliasing = true
 	tile.add_theme_stylebox_override("panel", s)
-	tile.custom_minimum_size = Vector2(230, 170)
+	tile.custom_minimum_size = Vector2(200, 150) if _narrow() else Vector2(230, 170)
 	tile.clip_children = CanvasItem.CLIP_CHILDREN_AND_DRAW
 	var stage := Control.new()
 	stage.clip_contents = true
@@ -614,7 +635,7 @@ func _video_tile(parent: Container, who: String, look: int, appearance: Dictiona
 	nb.content_margin_left = 8
 	nb.content_margin_right = 8
 	name_l.add_theme_stylebox_override("normal", nb)
-	name_l.position = Vector2(8, 144)
+	name_l.position = Vector2(8, tile.custom_minimum_size.y - 26)
 	stage.add_child(name_l)
 	parent.add_child(tile)
 
@@ -757,7 +778,7 @@ func _render_found_card(body: VBoxContainer) -> void:
 	edit.placeholder_text = "Nazwa firmy, np. Pixel Pierogi sp. z o.o."
 	edit.text = _found_name
 	edit.max_length = 40
-	edit.custom_minimum_size = Vector2(380, 36)
+	edit.custom_minimum_size = Vector2(160, 48) if Touch.active else Vector2(380, 36)
 	edit.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	edit.text_changed.connect(func(t: String): _found_name = t)
 	row.add_child(edit)
@@ -826,6 +847,11 @@ func _toast_msg(text: String) -> void:
 				_toast.visible = false)
 
 
+## A phone held upright: side-by-side layouts stack.
+func _narrow() -> bool:
+	return Touch.active and get_viewport_rect().size.x < 700
+
+
 func _label(text: String, size: int, color := Kit.TEXT_INK, wrap := true) -> Label:
 	return Kit.label(text, size, color, wrap)
 
@@ -845,5 +871,5 @@ func _card_in(parent: Container) -> VBoxContainer:
 
 func _button(text: String, primary := true) -> Button:
 	var b := Kit.button(text, primary)
-	b.custom_minimum_size = Vector2(0, 36)
+	b.custom_minimum_size = Vector2(0, 50 if Touch.active else 36)
 	return b

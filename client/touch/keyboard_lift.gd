@@ -16,7 +16,9 @@ func _process(delta: float) -> void:
 	var vp := get_viewport()
 	var focus := vp.gui_get_focus_owner()
 	var typing := focus is LineEdit or focus is TextEdit
-	var kb_px := float(DisplayServer.virtual_keyboard_get_height())
+	var kb_px := 0.0
+	if typing and DisplayServer.has_feature(DisplayServer.FEATURE_VIRTUAL_KEYBOARD):
+		kb_px = float(DisplayServer.virtual_keyboard_get_height())
 	if fake > 0.0 and typing:
 		kb_px = vp.get_window().size.y * fake
 	var want := 0.0

@@ -77,6 +77,9 @@ Po `--`, np. `godot --path client -- --nick=Ala --autoconnect`.
 | `--goto="…"` | scenariusz kroków (niżej) |
 | `--record=/katalog --record-start=2 --record-length=6` | klatki JPG do zwiastuna ([tools/trailer](../../tools/trailer/README.md)) |
 | `--screenshot=/tmp/x.png --screenshot-delay=5` | zapis klatki i wyjście; `--screenshot-delay=5,12,20` zapisuje `x_1.png`, `x_2.png`, … |
+| `--touch` / `--touch=phone` / `--touch=tablet` | sterowanie dotykiem na komputerze (mysz = palec), skala UI telefonu / tabletu |
+| `--safe-area=l,t,r,b` | z `--touch`: udawane wcięcia ekranu (notch, pasek), w pikselach okna |
+| `--fake-keyboard=0.4` | z `--touch`: udawana klawiatura ekranowa na tej części okna (gdy pole tekstowe ma fokus) |
 | `--perf` | co 2 s: FPS, wywołania rysowania, co się najczęściej przerysowuje |
 | `--zoom=1.5` | przybliżenie kamery |
 | `--no-mood` | bez efektu „tuszu i papieru” (tylko do testów — w grze jest zawsze) |

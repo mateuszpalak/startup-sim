@@ -4,6 +4,7 @@
 extends Control
 
 const Kit = preload("res://ui/ui_kit.gd")
+const Touch = preload("res://touch/touch.gd")
 const SettingsPanel = preload("res://ui/settings_panel.gd")
 const Updates = preload("res://net/updates.gd")
 
@@ -58,8 +59,10 @@ func _ready() -> void:
 	box.add_child(_menu)
 	for entry in [["Graj", func(): play.emit(), true], ["Ustawienia", func(): _show(_settings), false],
 			["O grze", func(): _show(_about), false], ["Wyjdź", func(): quit.emit(), false]]:
+		if entry[0] == "Wyjdź" and OS.get_name() == "iOS":
+			continue  # iOS apps don't quit themselves
 		var b := Kit.button(entry[0], entry[2])
-		b.custom_minimum_size = Vector2(300, 50)
+		b.custom_minimum_size = Vector2(300, 58 if Touch.active else 50)
 		b.add_theme_font_size_override("font_size", 22)
 		b.pressed.connect(entry[1])
 		_menu.add_child(b)
@@ -74,7 +77,7 @@ func _ready() -> void:
 			"Czcionka: Nunito (The Nunito Project Authors), licencja SIL OFL.", "Grafika i kod narysowane w kodzie — bez gotowych assetów.",
 			"Kod źródłowy (licencja AGPL-3.0): github.com/mateuszpalak/startup-sim"]:
 		var l := Kit.label(line, 18, Kit.TEXT_INK, true)
-		l.custom_minimum_size = Vector2(520, 0)
+		l.custom_minimum_size = Vector2(380 if Touch.active else 520, 0)
 		_about.add_child(l)
 	var back := Kit.button("Wróć")
 	back.pressed.connect(func(): _show(_menu))
@@ -109,6 +112,15 @@ func _center_card() -> void:
 	_card.position = Vector2(left, maxf(_logo.position.y + _logo.size.y + 24, (vs.y - _card.size.y) / 2 + 50))
 	if _card.position.y + _card.size.y > vs.y - 12:
 		_card.position.y = maxf(8.0, vs.y - _card.size.y - 12)
+	if Touch.active:
+		var sr := Touch.safe_rect(get_viewport())
+		if vs.y > vs.x:  # upright phone: the logo over the card, both centred
+			_logo.position = Vector2((vs.x - _logo.size.x) / 2, sr.position.y + 40)
+			_card.position = Vector2((vs.x - _card.size.x) / 2, maxf(_logo.position.y + _logo.size.y + 30, (vs.y - _card.size.y) / 2))
+		elif _logo.size.y + _card.size.y + 60 > sr.size.y:  # a short screen: the card beside the logo
+			_logo.position = Vector2(sr.position.x + 24, sr.position.y + 24)
+			_card.position = Vector2(sr.end.x - _card.size.x - 24, sr.position.y + maxf((sr.size.y - _card.size.y) / 2, 8))
+		_card.position.y = minf(_card.position.y, maxf(sr.position.y + 8, sr.end.y - _card.size.y - 8))
 	if not _shown and is_visible_in_tree():
 		_shown = true
 		Kit.pop_in(_card, 0.96, 0.3)

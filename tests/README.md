@@ -43,6 +43,7 @@ GODOT=/ścieżka/do/godot python3 tests/e2e/run.py
 | `storeroom` | apteczka na recepcji (witamina), klucz do magazynku — odmowa przy recepcjonistce, wzięty w jej przerwie obiadowej, cola z magazynku |
 | `chat` | dwóch graczy: powiadomienie o mailu, czat tekstowy do pokoju, szept i krzyk |
 | `drinking` | alkohol ze sklepu zapłacony przy kasie, upojenie, wymioty, zataczanie się |
+| `touch` | sterowanie dotykiem (`--touch`): przycisk akcji kładzie laptop i sadza przy komputerze, ✕ wstaje, menu akcji, „Mów” trzyma V, szczypanie przybliża, joystick chodzi, stuknięcie w podłogę prowadzi tam |
 | `fight` | dwóch graczy: nóż z szafki w aneksie, bójka do nokautu, ochrona biegnie; menu psot (R) |
 
 Każdy scenariusz dostaje własny serwer (osobny port, katalog tymczasowy z

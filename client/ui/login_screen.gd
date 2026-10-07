@@ -5,6 +5,7 @@
 extends Control
 
 const Kit = preload("res://ui/ui_kit.gd")
+const TouchFit = preload("res://ui/touch_fit.gd")
 const AuthClient = preload("res://net/auth_client.gd")
 
 ## Logged in: `grant` = {nick, ticket, refresh, character}.
@@ -46,6 +47,7 @@ func _ready() -> void:
 	outer.add_theme_constant_override("separation", 14)
 	outer.custom_minimum_size = Vector2(420, 0)
 	center.add_child(outer)
+	TouchFit.scroll_center(self, center)
 	var title := _label("Startup Sim", 44, Color.WHITE)
 	title.add_theme_font_override("font", Kit.font_bold())
 	title.add_theme_constant_override("shadow_offset_y", 3)
@@ -53,6 +55,7 @@ func _ready() -> void:
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	outer.add_child(title)
 	var sub := _label("Zaloguj się albo załóż konto — Twój postęp zapisuje się na serwerze.", 16, Color(1, 1, 1, 0.85))
+	sub.visible = not TouchFit.Touch.phone
 	sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	sub.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	outer.add_child(sub)
@@ -94,7 +97,7 @@ func _ready() -> void:
 	new_pass_edit.max_length = 128
 	new_pass_edit.placeholder_text = "co najmniej 8 znaków"
 	_new_pass_row = _field("Nowe hasło", new_pass_edit)
-	remember_box.text = "Zapamiętaj mnie na tym komputerze"
+	remember_box.text = "Zapamiętaj mnie na tym urządzeniu" if TouchFit.Touch.active else "Zapamiętaj mnie na tym komputerze"
 	remember_box.button_pressed = true
 	for k in ["font_color", "font_hover_color", "font_pressed_color", "font_focus_color", "font_hover_pressed_color"]:
 		remember_box.add_theme_color_override(k, Color(1, 1, 1, 0.85))

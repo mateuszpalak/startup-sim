@@ -4,6 +4,7 @@
 extends Control
 
 const Kit = preload("res://ui/ui_kit.gd")
+const TouchFit = preload("res://ui/touch_fit.gd")
 
 const PlayerView = preload("res://game/player_view.gd")
 const AvatarPreview = preload("res://ui/avatar_preview.gd")
@@ -46,6 +47,7 @@ func _ready() -> void:
 	var outer := VBoxContainer.new()
 	outer.add_theme_constant_override("separation", 14)
 	center.add_child(outer)
+	TouchFit.scroll_center(self, center)
 
 	var title := _label("Startup Sim", 44, Color.WHITE)
 	title.add_theme_font_override("font", Kit.font_bold())
@@ -57,16 +59,23 @@ func _ready() -> void:
 	sub.add_theme_constant_override("shadow_offset_y", 1)
 	sub.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.5))
 	sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	sub.visible = not TouchFit.Touch.phone
 	outer.add_child(sub)
+	title.visible = not TouchFit.Touch.phone
 
-	var row := HBoxContainer.new()
+	var row := BoxContainer.new()
 	row.add_theme_constant_override("separation", 18)
 	outer.add_child(row)
+	var orient := func():  # a phone held upright: the panels one under the other
+		var vs := get_viewport_rect().size
+		row.vertical = TouchFit.Touch.active and vs.y > vs.x
+	get_viewport().size_changed.connect(orient)
+	orient.call()
 	row.add_child(_panel(_build_form()))
 	row.add_child(_panel(_build_looks()))
 
 	button.text = "Rozpocznij"
-	button.custom_minimum_size = Vector2(0, 48)
+	button.custom_minimum_size = Vector2(0, 56 if TouchFit.Touch.active else 48)
 	button.add_theme_font_size_override("font_size", 24)
 	for st in ["normal", "hover", "pressed", "disabled", "focus"]:
 		button.add_theme_stylebox_override(st, Kit.button_box(st, true))
@@ -74,7 +83,7 @@ func _ready() -> void:
 		button.add_theme_color_override(k, Color.WHITE)
 	outer.add_child(button)
 	var back := Kit.button("Wróć do menu")
-	back.custom_minimum_size = Vector2(0, 40)
+	back.custom_minimum_size = Vector2(0, 52 if TouchFit.Touch.active else 40)
 	back.pressed.connect(func(): back_pressed.emit())
 	outer.add_child(back)
 	status.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -207,7 +216,7 @@ func _swatch_row(box: VBoxContainer, caption: String, key: String, colors: Array
 	var buttons: Array[Button] = []
 	for i in colors.size():
 		var b := Button.new()
-		b.custom_minimum_size = Vector2(30, 24)
+		b.custom_minimum_size = Vector2(44, 40) if TouchFit.Touch.active else Vector2(30, 24)
 		b.tooltip_text = "%s %d" % [caption, i + 1]
 		var idx := i
 		b.pressed.connect(func(): appearance[key] = idx; _refresh_looks())

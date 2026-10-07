@@ -28,6 +28,9 @@ go rysuje.
 | `world3d/elevator_door_3d.gd`, `stall_door_3d.gd` | drzwi windy (rozsuwane skrzydła, wyświetlacz piętra), drzwi kabin (obrót na zawiasie do środka kabiny, czerwone/zielone okienko) |
 | `world3d/ride_cabin_3d.gd` | jazda windą: piętro ukryte, widać tylko kabinę (tło czarne) |
 | `world3d/camera_rig.gd` | kamera: pochylenie 55°, płynne śledzenie, zoom, obrót |
+| `touch/touch.gd` | tryb dotykowy: wykrycie (iOS / Android / ekran dotykowy, `--touch[=phone\|tablet]`), skala UI na telefonie (krótszy bok = 520 jednostek, tablet 720), bezpieczny obszar (`safe_rect`, `--safe-area=l,t,r,b`), `place_center` (okno w bezpiecznym obszarze, zmniejszone do ekranu), `press` / `tap` (sztuczne klawisze) |
+| `touch/touch_controls.gd` | przyciski na ekranie w grze: joystick, E, F/Q/G, Tab, V/B, menu / czat / dziennik, ✕ (Esc) przy oknach; stuknięcie w świat (idź / podejdź i E — `game.touch_tap_world`), szczypanie i obrót dwoma palcami (`camera_rig.turn_by`) |
+| `touch/keyboard_lift.gd` | pole tekstowe nad klawiaturą ekranową (przesuwa CanvasLayer pola; `--fake-keyboard=0.4` udaje klawiaturę) |
 | `tests/render_objects.gd` | podgląd widoków encji: `godot --path client -s tests/render_objects.gd -- /katalog [items vehicles tram night laptops tv tray elevator stalls ride]` |
 | `tests/render_3d.gd` | podgląd bez serwera: `godot --path client -s tests/render_3d.gd -- /katalog [nazwa:piętro:x,y:zoom:obrót:minuta]` |
 
@@ -47,6 +50,7 @@ piętra): wysokość stopni pod postacią z meta `heights` piętra.
 - Nowy widok 3D encji: osobny plik w `world3d/`, tworzony w `world_view` dla odpowiadającego widoku 2D (wpis w `ENTITY_VIEWS`: `setup(widok_2d, world_view)`, `sync(pozycja, delta)`; zastępuje pudełko z `ENTITY_PROXIES`); stan czytaj z widoku 2D, nie z sieci.
 - Geometria statyczna przez `MeshBatch` (jedno wywołanie rysowania na materiał), kolory jako sRGB w wierzchołkach.
 - Ściany używają `wall.gdshader` (parametry `focus`, `cam_pos` ustawia `world_view`); inne wysokie rzeczy, które mają znikać, też muszą z niego korzystać.
+- Dotyk: przyciski naciskają te same klawisze co klawiatura (`Touch.press`), więc gra ma jedną ścieżkę wejścia; nowy klawisz = przycisk w `touch_controls.gd` albo pozycja w menu akcji (`_actions_here`). Nowe okno na środku ekranu: po ustawieniu pozycji `Touch.place_center(panel, get_viewport())`, teksty z klawiszami przez `Touch.say(klawiatura, palec)`. Zrzuty: scenariusze `touch_tour` / `touch_computer` (`--touch=phone --shots=/katalog`) → `docs/media/ios/touch/`.
 - UI to `CanvasLayer`y nad 3D. Wygląd: `ui/ui_kit.gd` (tokeny kolorów, promieni, rozmiarów, czcionka Nunito, panele, ikony wektorowe `draw_icon`, animacje `pop_in`/`fade_in`), ikony przedmiotów renderowane z modeli 3D (`ui/item_icons.gd`), tło menu to żywy świat 3D (`ui/title_backdrop_3d.gd`, tworzony przez `main.gd`, nie w trybie headless), podgląd postaci 3D (`ui/avatar_preview.gd`). Zrzuty UI: scenariusz `ui_tour` (`--scenario=ui_tour --shots=/katalog`, poza `run.py`) → `docs/media/3d/ui/`. Nicki i dymki to te same węzły 2D (`PlayerView._tag`), stawiane na ekranie nad głową (`_place_tags`).
 
 ## Do przeniesienia (właściciele)
