@@ -1432,15 +1432,16 @@ func _update_hint() -> void:
 	elif map:
 		text = _elevator_call_hint(map)
 	if text == "":
-		# Same choice as the server: NPCs standing at their post first, then nearest.
+		# Same choice as the server: the cashier first (E at the till pays even
+		# with the guard closer), then NPCs standing at their post, then nearest.
 		var me_px := Movement.to_px(pred.pos)
 		var best_id := -1
-		var best_key := Vector2(INF, INF)
+		var best_key := Vector3(INF, INF, INF)
 		for id in remotes:
 			var d: float = remotes[id].position.distance_to(me_px)
 			if kinds.get(id) == Protocol.KIND_NPC and d <= TALK_RADIUS_PX:
 				var moving: bool = remotes[id].samples.size() > 0 and (remotes[id].samples[-1][2] & 4) != 0
-				var key := Vector2(1.0 if moving else 0.0, d)
+				var key := Vector3(0.0 if nicks.get(id) == "Kasjer" else 1.0, 1.0 if moving else 0.0, d)
 				if key < best_key:
 					best_key = key
 					best_id = id
