@@ -64,7 +64,7 @@ func _exit_tree() -> void:
 
 ## The microphone starts on the first push-to-talk (macOS asks then).
 func _open_mic() -> void:
-	if _mic:
+	if _mic or not AndroidPlatform.microphone_allowed():
 		return
 	_mic = AudioStreamPlayer.new()
 	_mic.stream = AudioStreamMicrophone.new()

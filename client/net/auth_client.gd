@@ -35,7 +35,7 @@ static func configured() -> Array:
 ## The servers to choose from (the local one when developing, or when the
 ## build has no servers.cfg).
 static func servers() -> Array:
-	var list: Array = configured().duplicate()
+	var list: Array = configured().duplicate() + AndroidPlatform.extra_servers()
 	if OS.has_feature("editor") or list.is_empty():
 		list.append(DEV_SERVER)
 	return list
@@ -48,7 +48,7 @@ static func default_server() -> String:
 
 ## What to call a server in the UI (never its address).
 static func server_name(address: String) -> String:
-	for s in configured() + [DEV_SERVER]:
+	for s in configured() + AndroidPlatform.extra_servers() + [DEV_SERVER]:
 		if s.address == address:
 			return s.name
 	return "Serwer lokalny" if address.begins_with("127.") or address.begins_with("localhost") else "Inny serwer"

@@ -85,6 +85,7 @@ func _ready() -> void:
 	Settings.apply_fps()
 	if args.has("render-scale"):  # dev: --render-scale=0.6 (not saved)
 		Settings.render_scale = clampf(float(args["render-scale"]), 0.25, 1.0)
+	AndroidPlatform.apply_quality(get_viewport())
 	Settings.apply_render(get_viewport())
 	if args.has("perf"):
 		Engine.max_fps = 0  # measure the headroom (run with --disable-vsync)
@@ -624,13 +625,15 @@ func _send_crash_report(report: Dictionary, status: Label, panel: Control = null
 
 
 func _notification(what: int) -> void:
+	if AndroidPlatform.handle_back(what):
+		return
 	match what:
 		NOTIFICATION_WM_CLOSE_REQUEST:
 			net.close()
 			get_tree().quit()
-		NOTIFICATION_APPLICATION_FOCUS_OUT:
+		NOTIFICATION_APPLICATION_FOCUS_OUT, NOTIFICATION_APPLICATION_PAUSED:
 			if not args.has("perf"):  # benchmarks: never throttled
 				Settings.apply_fps(false)  # in the background: draw less
-		NOTIFICATION_APPLICATION_FOCUS_IN:
+		NOTIFICATION_APPLICATION_FOCUS_IN, NOTIFICATION_APPLICATION_RESUMED:
 			if not args.has("perf"):
 				Settings.apply_fps(true)
