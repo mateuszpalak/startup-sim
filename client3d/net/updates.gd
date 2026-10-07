@@ -68,9 +68,9 @@ static func asset_suffix(os_name: String, arm64: bool) -> String:
 		"Windows":
 			return "-windows-%s.zip" % ("arm64" if arm64 else "x86_64")
 		"Android":
-			return ".apk"
+			return "-android.apk"
 		"macOS":
-			return ".dmg"
+			return "-macos.dmg"
 	return ""
 
 

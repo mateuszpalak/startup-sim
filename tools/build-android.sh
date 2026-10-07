@@ -1,10 +1,10 @@
 #!/bin/bash
 # The Android client.
 #
-#   tools/build-android.sh                 -> build/StartupSim-<version>-debug.apk
+#   tools/build-android.sh                 -> build/StartupSim3D-<version>-android-debug.apk
 #   tools/build-android.sh --install       -> the same, installed and started via adb
-#   tools/build-android.sh --release       -> build/StartupSim-<version>.aab (Google Play)
-#   tools/build-android.sh --release-apk   -> build/StartupSim-<version>.apk (signed, to sideload)
+#   tools/build-android.sh --release       -> build/StartupSim3D-<version>-android.aab (Google Play)
+#   tools/build-android.sh --release-apk   -> build/StartupSim3D-<version>-android.apk (signed, to sideload)
 #
 # Needs: Godot 4.7.2 + Android export templates, JDK 17 and the Android SDK
 # (paths in Godot's editor settings: export/android/java_sdk_path,
@@ -38,15 +38,15 @@ case "${1:-}" in
     if [ "$1" = --release ]; then
       TEMPLATE=()
       [ -d "$ROOT/$CLIENT/android/build" ] || TEMPLATE=(--install-android-build-template)
-      OUT="$ROOT/build/StartupSim-$VERSION.aab"
+      OUT="$ROOT/build/StartupSim3D-$VERSION-android.aab"
       "$GODOT" --headless --path "$ROOT/$CLIENT" ${TEMPLATE[@]+"${TEMPLATE[@]}"} --export-release "Android AAB" "$OUT"
     else
-      OUT="$ROOT/build/StartupSim-$VERSION.apk"
+      OUT="$ROOT/build/StartupSim3D-$VERSION-android.apk"
       "$GODOT" --headless --path "$ROOT/$CLIENT" --export-release "Android" "$OUT"
     fi
     ;;
   ""|--install)
-    OUT="$ROOT/build/StartupSim-$VERSION-debug.apk"
+    OUT="$ROOT/build/StartupSim3D-$VERSION-android-debug.apk"
     "$GODOT" --headless --path "$ROOT/$CLIENT" --export-debug "Android" "$OUT"
     ;;
   *)

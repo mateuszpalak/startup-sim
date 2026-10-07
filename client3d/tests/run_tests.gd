@@ -455,11 +455,13 @@ func test_windows_asset() -> void:
 	expect(Updates.asset_url(assets, "-windows-x86_64.zip", "page") == "https://x/win.zip", "windows asset found")
 	expect(Updates.asset_url(assets, "-windows-arm64.zip", "page") == "page", "no arm64 asset -> release page")
 	expect(Updates.asset_url(null, "-windows-x86_64.zip", "page") == "page", "no assets -> release page")
-	assets.append({"name": "StartupSim-0.4.0-debug.apk", "browser_download_url": "https://x/debug.apk"})
+	assets.append({"name": "StartupSim3D-0.4.0-android-debug.apk", "browser_download_url": "https://x/debug.apk"})
 	expect(Updates.asset_url(assets, Updates.asset_suffix("Android", true), "page") == "page", "debug apk is not offered")
-	assets.append({"name": "StartupSim-0.4.0.apk", "browser_download_url": "https://x/a.apk"})
+	assets.append({"name": "StartupSim3D-0.4.0-android.apk", "browser_download_url": "https://x/a.apk"})
 	expect(Updates.asset_url(assets, Updates.asset_suffix("Android", true), "page") == "https://x/a.apk", "android apk found")
-	expect(Updates.asset_url(assets, Updates.asset_suffix("macOS", true), "page") == "https://x/mac.dmg", "mac dmg found")
+	expect(Updates.asset_url(assets, Updates.asset_suffix("macOS", true), "page") == "page", "2D dmg is not offered to the 3D client")
+	assets.append({"name": "StartupSim3D-0.4.0-macos.dmg", "browser_download_url": "https://x/mac3d.dmg"})
+	expect(Updates.asset_url(assets, Updates.asset_suffix("macOS", true), "page") == "https://x/mac3d.dmg", "3D mac dmg found")
 	expect(Updates.asset_suffix("iOS", true) == "" and Updates.asset_suffix("Windows", true) == "-windows-arm64.zip", "suffixes")
 
 
