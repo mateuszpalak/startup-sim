@@ -672,8 +672,21 @@ static func draw_icon(ci: CanvasItem, name: String, c: Vector2, s: float, col: C
 
 # ---------------------------------------------------------------- key caps
 
+## The pad's glyphs for key caps (set by pad/pad.gd): (ci, at, key, fsize,
+## draw) -> width, -1 = draw the key, -2 = the pad has no button for it.
+static var key_glyph := Callable()
+
+
 ## A key cap ("E", "1–3", "Esc") with its top-left at `at`; returns its width.
+## When the pad is in use, its button instead (nothing when it has none).
 static func draw_keycap(ci: CanvasItem, at: Vector2, key: String, fsize := 14, light := true) -> float:
+	if key_glyph.is_valid():
+		var gw: float = key_glyph.call(ci, at, key, fsize, true)
+		if gw > -1.5:
+			if gw >= 0.0:
+				return gw
+		else:
+			return 0.0
 	var f := font_bold()
 	var tw := f.get_string_size(key, HORIZONTAL_ALIGNMENT_LEFT, -1, fsize).x
 	var h := fsize + 10.0
@@ -695,6 +708,12 @@ static func draw_key_hints(ci: CanvasItem, at: Vector2, hints: Array, fsize := 1
 		var text: String = hints[i][1]
 		var kw := f.get_string_size(key, HORIZONTAL_ALIGNMENT_LEFT, -1, fsize).x + 12
 		kw = maxf(kw, fsize + 10.0)
+		if key_glyph.is_valid():
+			var gw: float = key_glyph.call(ci, at, key, fsize, false)
+			if gw < -1.5:
+				continue  # no pad button for it
+			if gw >= 0.0:
+				kw = gw
 		if not measure:
 			draw_keycap(ci, Vector2(x, at.y), key, fsize)
 		x += kw + 6

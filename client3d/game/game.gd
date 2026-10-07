@@ -47,6 +47,9 @@ const Kit = preload("res://ui/ui_kit.gd")
 const Touch = preload("res://touch/touch.gd")
 const TouchControls = preload("res://touch/touch_controls.gd")
 const Coords = preload("res://world3d/coords.gd")
+const Pad = preload("res://pad/pad.gd")
+const PadMap = preload("res://pad/pad_map.gd")
+const PadGlyphs = preload("res://pad/pad_glyphs.gd")
 
 ## Nick / bubble tags are drawn at screen scale (the 3D world places them).
 const ZOOM := 1.0
@@ -83,6 +86,9 @@ var overlay := DebugOverlay.new()
 var status_layer := CanvasLayer.new()
 var status_label := Label.new()
 var hint_label := Label.new()
+var hint_glyph := Control.new()  # the pad's button left of the hint
+var _hint_button := -1
+var _rumble_status := 0  # rumble when this changes to knocked out
 var log_label := Label.new()
 var _log: Array = []  # [msec, text]
 var kinds := {}          # id -> entity kind (player / NPC)
@@ -309,6 +315,12 @@ func setup(p_net, p_building, welcome: Dictionary, p_nick: String, args: Diction
 		status_layer.add_child(l)
 	Kit.style_label(status_label, 22, Kit.TEXT)
 	Kit.style_label(hint_label, 18, Kit.TEXT)
+	hint_glyph.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	hint_glyph.draw.connect(func():
+		if _hint_button >= 0:
+			var h := 26.0
+			PadGlyphs.draw(hint_glyph, Vector2(0, (hint_label.size.y - h) / 2 - 1), _hint_button, Pad.style, h))
+	hint_label.add_child(hint_glyph)
 	get_viewport().size_changed.connect(_fit_hud_text)
 	log_label.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
 	log_label.position = Vector2(16, -236)
@@ -863,6 +875,13 @@ func _fit_hud_text() -> void:
 
 func _process(delta: float) -> void:
 	_update_media()
+	if touch:
+		touch.visible = not Pad.active  # a pad in hand: no buttons over the game
+	if me.status != _rumble_status:
+		_rumble_status = me.status
+		if me.status == Protocol.ACT_KNOCKED_OUT:
+			Pad.rumble(0.9, 1.0, 0.5)
+	hint_glyph.size.y = hint_label.size.y
 	if hint_label.visible or status_label.visible:
 		_fit_hud_text()
 	# Fire alarm: the screen pulses red.
@@ -1398,6 +1417,7 @@ func _item_action(action: int, slot: int) -> void:
 ## gate that needs a pass.
 func _update_hint() -> void:
 	hint_text = ""
+	_set_hint_glyph(-1)
 	var text := ""
 	plaque_here = 0
 	if me.status == Protocol.ACT_HELD:
@@ -1568,8 +1588,41 @@ func _update_hint() -> void:
 	if text == "" and voice.whisper_to >= 0:
 		text = "[V] mów · [B] szept: %s" % nicks.get(voice.whisper_to, "?")
 	hint_text = text
-	hint_label.text = _touch_words(text) if touch else text
+	if Pad.active and text != "":
+		var ph := PadMap.pad_hint(text, Pad.style)
+		_set_hint_glyph(ph[0])
+		hint_label.text = ph[1]
+	else:
+		hint_label.text = _touch_words(text) if touch else text
 	hint_label.visible = text != ""
+
+
+## The pad's button drawn left of the hint text (-1: none).
+func _set_hint_glyph(button: int) -> void:
+	var key := "%d/%s" % [button, Pad.style]
+	if key == hint_glyph.get_meta("shown", ""):
+		return
+	hint_glyph.set_meta("shown", key)
+	_hint_button = button
+	var box: StyleBox = Kit.box("hud")
+	if button >= 0:
+		box = box.duplicate()
+		hint_glyph.position = Vector2(box.content_margin_left, 0)
+		box.content_margin_left += PadGlyphs.width(button, Pad.style, 26.0) + 8
+	hint_label.add_theme_stylebox_override("normal", box)
+	hint_glyph.size = Vector2(60, 40)
+	hint_glyph.queue_redraw()
+
+
+## The window the pad's focus ring works in (pad/pad.gd): the top open
+## one, or null while walking around.
+func pad_modal() -> Control:
+	if screen.visible:
+		return screen
+	for w in [gadget, chat_box, log_history, action_menu, door_plaque, brush_game, roll_game, dialog, coffee, container, shelf_window]:
+		if w.visible:
+			return w
+	return null
 
 
 ## Touch screens: no keys in the hint ("[E] Usiądź" -> "Usiądź", the hand
@@ -1645,6 +1698,7 @@ func _update_ride() -> void:
 	elif ride_mask.visible:
 		ride_mask.visible = false
 		camera.offset = Vector2.ZERO
+		Pad.rumble(0.35, 0.1, 0.2)  # the car stops: arrived
 		_set_door_views_visible(true)
 		_set_floor_extras_visible(true)
 
