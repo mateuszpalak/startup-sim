@@ -9,6 +9,8 @@
 ##   --commute=3  (dev: pick this way to work every morning; 1 foot .. 5 tram)
 ##   --auto-recruit=1 [--auto-recruit-delay=2]  (dev: apply for offer 1, answer
 ##     at random until hired, waiting N s before each click)
+##   --touch[=phone|tablet] [--safe-area=l,t,r,b] [--fake-keyboard=0.4]  (dev:
+##     touch mode on a desktop, the mouse acts as a finger; see touch/touch.gd)
 extends Node
 
 const NetClient = preload("res://net/net_client.gd")
@@ -28,6 +30,7 @@ const Settings = preload("res://ui/settings.gd")
 const Audio = preload("res://audio/audio.gd")
 const AuthClient = preload("res://net/auth_client.gd")
 const LoginScreen = preload("res://ui/login_screen.gd")
+const Touch = preload("res://touch/touch.gd")
 
 const BUILDING_PATH := "res://maps/building.json"
 
@@ -78,6 +81,7 @@ func _ready() -> void:
 	# End-to-end scenarios keep their files (login, settings) to themselves.
 	if args.has("scenario"):
 		UserPaths.use_folder("e2e/" + str(args.get("scenario-id", args["scenario"])))
+	_setup_touch()
 	Settings.load_once()
 	Settings.apply_window()
 	Settings.apply_fps()
@@ -601,3 +605,17 @@ func _notification(what: int) -> void:
 			Settings.apply_fps(false)  # in the background: draw less
 		NOTIFICATION_APPLICATION_FOCUS_IN:
 			Settings.apply_fps(true)
+
+
+## Touch screens (or --touch): bigger UI on phones, the text field above the
+## on-screen keyboard (--fake-keyboard=0.4 pretends one on a desktop).
+func _setup_touch() -> void:
+	Touch.setup(args)
+	if not Touch.active:
+		return
+	var root := get_tree().root
+	root.size_changed.connect(func(): Touch.fit_ui(root))
+	Touch.fit_ui(root)
+	var lift := preload("res://touch/keyboard_lift.gd").new()
+	lift.fake = float(args.get("fake-keyboard", "0"))
+	add_child(lift)

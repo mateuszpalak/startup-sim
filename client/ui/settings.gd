@@ -14,6 +14,11 @@ static var vol_ambient := 0.6
 static var vol_music := 0.5
 static var vol_voice := 0.9
 static var mic_device := "Default"
+## Touch controls: the joystick on the left (else right), button size and
+## opacity multipliers.
+static var touch_left := true
+static var touch_size := 1.0
+static var touch_opacity := 0.85
 static var _loaded := false
 
 
@@ -33,6 +38,9 @@ static func load_once() -> void:
 	vol_music = clampf(float(cfg.get_value("audio", "music", 0.5)), 0.0, 1.0)
 	vol_voice = clampf(float(cfg.get_value("audio", "voice", 0.9)), 0.0, 1.0)
 	mic_device = str(cfg.get_value("audio", "mic", "Default"))
+	touch_left = bool(cfg.get_value("touch", "left", true))
+	touch_size = clampf(float(cfg.get_value("touch", "size", 1.0)), 0.8, 1.4)
+	touch_opacity = clampf(float(cfg.get_value("touch", "opacity", 0.85)), 0.3, 1.0)
 
 
 static func save() -> void:
@@ -46,6 +54,9 @@ static func save() -> void:
 	cfg.set_value("audio", "music", vol_music)
 	cfg.set_value("audio", "voice", vol_voice)
 	cfg.set_value("audio", "mic", mic_device)
+	cfg.set_value("touch", "left", touch_left)
+	cfg.set_value("touch", "size", touch_size)
+	cfg.set_value("touch", "opacity", touch_opacity)
 	cfg.save(UserPaths.at("settings.cfg"))
 
 
