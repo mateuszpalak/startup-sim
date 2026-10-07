@@ -175,18 +175,21 @@ func _show() -> void:
 
 func _draw_bar() -> void:
 	var r := Rect2(Vector2(0, 8), Vector2(_bar.size.x, 30))
-	_bar.draw_rect(r, Color("#f4ead0"))
+	var rad := r.size.y / 2
+	var green := Kit.GREEN
+	Kit.draw_rrect(_bar, r, Kit.CARD_LO, rad, Color(Kit.TEXT_INK, 0.1), 1)
 	match step:
 		0:
-			_bar.draw_rect(Rect2(r.position + Vector2(r.size.x * FILL_FROM, 0), Vector2(r.size.x * (FILL_TO - FILL_FROM), r.size.y)), Color("#9fd46a"))
-			_bar.draw_rect(Rect2(r.position, Vector2(r.size.x * minf(_fill, 1.0), r.size.y)), Color(0.55, 0.38, 0.2, 0.85))
+			Kit.draw_rrect(_bar, Rect2(r.position + Vector2(r.size.x * FILL_FROM, 3), Vector2(r.size.x * (FILL_TO - FILL_FROM), r.size.y - 6)), Color(green, 0.55), rad - 3)
+			var w := r.size.x * minf(_fill, 1.0)
+			if w > 4:
+				Kit.draw_rrect(_bar, Rect2(r.position + Vector2(3, 6), Vector2(maxf(w - 6, 18), r.size.y - 12)), Color("#a8743f"), rad - 6)
 		1:
-			_bar.draw_rect(Rect2(r.position + Vector2(r.size.x * 0.45, 0), Vector2(r.size.x * 0.1, r.size.y)), Color("#9fd46a"))
+			Kit.draw_rrect(_bar, Rect2(r.position + Vector2(r.size.x * 0.45, 3), Vector2(r.size.x * 0.1, r.size.y - 6)), Color(green, 0.55), rad - 3)
 			var x := r.position.x + r.size.x * _marker()
-			_bar.draw_rect(Rect2(Vector2(x - 3, r.position.y - 4), Vector2(6, r.size.y + 8)), Kit.INK)
+			Kit.draw_rrect(_bar, Rect2(Vector2(x - 4, r.position.y - 5), Vector2(8, r.size.y + 10)), Kit.ACCENT, 4)
 		2:
 			var now := _seal_at > 0.0 and _t >= _seal_at
-			_bar.draw_rect(r, Color("#9fd46a") if now else Color("#f4ead0"))
-			_bar.draw_string(ThemeDB.fallback_font, r.position + Vector2(r.size.x / 2 - 40, 22), "TERAZ!" if now else "czekaj…",
-				HORIZONTAL_ALIGNMENT_LEFT, -1, 20, Kit.INK)
-	_bar.draw_rect(r, Kit.INK, false, 2.0)
+			Kit.draw_rrect(_bar, r, green if now else Kit.CARD_LO, rad)
+			_bar.draw_string(Kit.font_bold(), Vector2(r.position.x, r.position.y + 21), "TERAZ!" if now else "czekaj…",
+				HORIZONTAL_ALIGNMENT_CENTER, r.size.x, 18, Color.WHITE if now else Kit.TEXT_MUTED)

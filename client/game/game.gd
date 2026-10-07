@@ -195,6 +195,8 @@ var _goto_floor := -1   # floor the current path was planned on
 
 
 func setup(p_net, p_building, welcome: Dictionary, p_nick: String, args: Dictionary) -> void:
+	if DisplayServer.get_name() != "headless":
+		preload("res://ui/item_icons.gd").prewarm()
 	RenderingServer.set_default_clear_color(Color("#15171f"))  # the night around the building
 	label_layer.layer = 7
 	label_layer.follow_viewport_enabled = false  # tags are put on screen by world_view

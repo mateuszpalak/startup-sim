@@ -118,12 +118,11 @@ func _process(delta: float) -> void:
 ## the brush where the mouse is.
 func _draw_bowl() -> void:
 	var c := AREA / 2
-	var ink := Kit.INK
-	_oval(c + Vector2(0, 4), Vector2(160, 128), Color(0, 0, 0, 0.12))
-	_oval(c, Vector2(158, 126), ink)
-	_oval(c, Vector2(154, 122), Color("#f4f4f2"))
-	_oval(c, Vector2(128, 100), ink)
-	_oval(c, Vector2(125, 97), Color("#e3e8ea"))
+	_oval(c + Vector2(0, 10), Vector2(160, 128), Color(0, 0, 0, 0.1))
+	_oval(c, Vector2(158, 126), Color("#d8dde2"))
+	_oval(c + Vector2(0, -2), Vector2(155, 122), Color("#ffffff"))
+	_oval(c, Vector2(128, 100), Color("#c9d1d8"))
+	_oval(c + Vector2(0, 3), Vector2(125, 96), Color("#eef2f4"))
 	_oval(c + Vector2(0, 12), Vector2(62, 44), Color("#a9cbd8"))
 	for s in _smears:
 		if s.dirt <= 0.0:
@@ -134,13 +133,13 @@ func _draw_bowl() -> void:
 	if _mouse.x >= 0:
 		# The brush: a handle and the bristles.
 		var head := _mouse
-		_area.draw_line(head + Vector2(10, -10), head + Vector2(46, -58), ink, 7.0, true)
-		_area.draw_line(head + Vector2(10, -10), head + Vector2(46, -58), Color("#d9d9d9"), 4.0, true)
-		_area.draw_circle(head, 15.0, ink)
-		_area.draw_circle(head, 13.0, Color("#5a7a9a"))
+		_area.draw_line(head + Vector2(10, -10), head + Vector2(46, -58), Kit.ACCENT_LO, 7.0, true)
+		_area.draw_line(head + Vector2(10, -10), head + Vector2(46, -58), Kit.ACCENT, 4.0, true)
+		_area.draw_circle(head + Vector2(0, 3), 15.0, Color(0, 0, 0, 0.15), true, -1.0, true)
+		_area.draw_circle(head, 14.0, Kit.TEAL, true, -1.0, true)
 		for k in 8:
 			var a := TAU * k / 8.0
-			_area.draw_line(head + Vector2.from_angle(a) * 6, head + Vector2.from_angle(a) * 16, Color("#2f4a63"), 2.0, true)
+			_area.draw_line(head + Vector2.from_angle(a) * 6, head + Vector2.from_angle(a) * 16, Color("#2b7d71"), 2.0, true)
 
 
 func _oval(at: Vector2, radii: Vector2, color: Color) -> void:

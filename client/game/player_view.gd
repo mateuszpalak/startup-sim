@@ -203,6 +203,11 @@ func _build_bubble() -> void:
 	bubble.visible = false
 	bubble.z_index = 10
 	_tag.add_child(bubble)
+	# The tail pointing down at the speaker.
+	bubble.draw.connect(func():
+		var bx := bubble.size.x / 2
+		var by := bubble.size.y - 1
+		bubble.draw_colored_polygon(PackedVector2Array([Vector2(bx - 9, by), Vector2(bx + 9, by), Vector2(bx, by + 11)]), Color(Kit.CARD, 0.96)))
 
 
 func set_nick(nick: String) -> void:
@@ -230,7 +235,7 @@ func say(text: String) -> void:
 
 func _place_bubble() -> void:
 	var sz := bubble.get_combined_minimum_size() / _zoom
-	bubble.position = Vector2(-sz.x / 2, HEAD_TOP - 28 / _zoom - sz.y)
+	bubble.position = Vector2(-sz.x / 2, HEAD_TOP - 36 / _zoom - sz.y)
 
 
 func set_held(k: int) -> void:

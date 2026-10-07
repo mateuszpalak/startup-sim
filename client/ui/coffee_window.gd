@@ -133,24 +133,24 @@ func _draw_machine() -> void:
 	var grounds := float(state.get("grounds", 0)) / mx
 	var busy: int = state.get("busy", 0)
 	var body := Rect2(18, 10, 154, 230)
-	c.draw_rect(body.grow(3), Kit.INK)
-	c.draw_rect(body, Color("#2f2f36"))
-	c.draw_rect(Rect2(body.position + Vector2(8, 8), Vector2(body.size.x - 16, 26)), Color("#45454f"))
+	Kit.draw_rrect(c, Rect2(body.position + Vector2(0, 6), body.size), Color(0, 0, 0, 0.15), 18)
+	Kit.draw_rrect(c, body, Color("#34343c"), 18)
+	Kit.draw_rrect(c, Rect2(body.position + Vector2(8, 8), Vector2(body.size.x - 16, 26)), Color("#4a4a55"), 10)
 	# A little display.
-	c.draw_rect(Rect2(98, 22, 60, 14), Color("#9fb98c"))
-	c.draw_string(Kit.font(), Vector2(102, 34), ("%d s" % busy) if busy > 0 else "OK", HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color("#1f2a17"))
+	Kit.draw_rrect(c, Rect2(96, 20, 64, 18), Color("#a9c99a"), 6)
+	c.draw_string(Kit.font(), Vector2(96, 34), ("%d s" % busy) if busy > 0 else "OK", HORIZONTAL_ALIGNMENT_CENTER, 64, 13, Color("#1f2a17"))
 	# The water tank.
 	var tank := Rect2(28, 48, 40, 120)
-	c.draw_rect(tank.grow(2), Kit.INK)
-	c.draw_rect(tank, Color("#cfe4ef", 0.5))
+	Kit.draw_rrect(c, tank.grow(2), Color("#cfe4ef", 0.35), 10)
 	var h := tank.size.y * water
-	c.draw_rect(Rect2(tank.position.x, tank.end.y - h, tank.size.x, h), Color("#4f8fc0"))
+	if h > 2:
+		Kit.draw_rrect(c, Rect2(tank.position.x, tank.end.y - h, tank.size.x, h), Kit.BLUE, minf(8, h / 2))
 	for k in 3:
-		c.draw_line(Vector2(tank.end.x - 8, tank.position.y + 30 * (k + 1)), Vector2(tank.end.x, tank.position.y + 30 * (k + 1)), Kit.INK, 1.5)
+		c.draw_line(Vector2(tank.end.x - 8, tank.position.y + 30 * (k + 1)), Vector2(tank.end.x, tank.position.y + 30 * (k + 1)), Color(1, 1, 1, 0.5), 1.5)
 	# The spout and the drip tray.
-	c.draw_rect(Rect2(108, 52, 34, 16), Color("#8b8f98"))
-	c.draw_rect(Rect2(118, 68, 14, 12), Color("#5d6068"))
-	c.draw_rect(Rect2(86, 168, 78, 8), Color("#5d6068"))
+	Kit.draw_rrect(c, Rect2(108, 52, 34, 16), Color("#a3a7b0"), 6)
+	Kit.draw_rrect(c, Rect2(118, 66, 14, 14), Color("#6d7078"), 4)
+	Kit.draw_rrect(c, Rect2(86, 168, 78, 8), Color("#6d7078"), 4)
 	if busy > 0:
 		ItemIcons.draw(c, ItemArt.COFFEE, Rect2(Vector2(101, 108), Vector2.ONE * 16.0 * (3.0)))
 		for k in 3:  # steam
@@ -160,11 +160,11 @@ func _draw_machine() -> void:
 		c.draw_line(Vector2(125, 80), Vector2(125, 110), Color("#6b3d1f"), 3.0)
 	# The grounds drawer.
 	var drawer := Rect2(28, 188, 136, 40)
-	c.draw_rect(drawer.grow(2), Kit.INK)
-	c.draw_rect(drawer, Color("#45454f"))
+	Kit.draw_rrect(c, drawer, Color("#4a4a55"), 10)
 	var gw := (drawer.size.x - 8) * grounds
-	c.draw_rect(Rect2(drawer.position + Vector2(4, 14), Vector2(gw, drawer.size.y - 18)), Color("#5e4130"))
-	c.draw_rect(Rect2(drawer.position.x + drawer.size.x / 2 - 14, drawer.position.y + 4, 28, 6), Color("#8b8f98"))
+	if gw > 2:
+		Kit.draw_rrect(c, Rect2(drawer.position + Vector2(4, 14), Vector2(maxf(gw, 12), drawer.size.y - 18)), Color("#6e4a33"), 6)
+	Kit.draw_rrect(c, Rect2(drawer.position.x + drawer.size.x / 2 - 14, drawer.position.y + 4, 28, 6), Color("#a3a7b0"), 3)
 
 
 func _process(_delta: float) -> void:

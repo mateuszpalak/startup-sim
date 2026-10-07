@@ -23,14 +23,18 @@ func _ready() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 	# Over the live 3D backdrop (main.gd): a soft shade on the left, where
 	# the logo and the menu are.
-	_shade.set_anchors_preset(Control.PRESET_FULL_RECT)
+	# A smooth left-to-right scrim: one polygon with per-vertex colours
+	# (interpolated on the GPU, no bands).
+	_shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_shade.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_shade.draw.connect(func():
 		var w := _shade.size.x
-		var steps := 32
-		for k in steps:
-			var t := float(k) / steps
-			_shade.draw_rect(Rect2(w * 0.6 * t, 0, w * 0.6 / steps + 1, _shade.size.y), Color(0.09, 0.07, 0.13, 0.62 * pow(1.0 - t, 1.6))))
+		var h := _shade.size.y
+		var dark := Color(0.09, 0.07, 0.13, 0.62)
+		var mid := Color(0.09, 0.07, 0.13, 0.3)
+		var clear := Color(0.09, 0.07, 0.13, 0.0)
+		_shade.draw_polygon(PackedVector2Array([Vector2(0, 0), Vector2(w * 0.3, 0), Vector2(w * 0.3, h), Vector2(0, h)]), PackedColorArray([dark, mid, mid, dark]))
+		_shade.draw_polygon(PackedVector2Array([Vector2(w * 0.3, 0), Vector2(w * 0.62, 0), Vector2(w * 0.62, h), Vector2(w * 0.3, h)]), PackedColorArray([mid, clear, clear, mid])))
 	add_child(_shade)
 	get_viewport().size_changed.connect(_fit)
 	_logo.add_theme_constant_override("separation", 0)
@@ -114,5 +118,6 @@ func _center_card() -> void:
 func _fit() -> void:
 	position = Vector2.ZERO
 	size = get_viewport_rect().size
+	_shade.size = size
 	_shade.queue_redraw()
 	_center_card()

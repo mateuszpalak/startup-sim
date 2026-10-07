@@ -208,6 +208,10 @@ static func box(kind: String) -> StyleBox:
 			sb = _flat(Color(DARK, 0.84), R_XL, 22, 18, Color(1, 1, 1, 0.1), 1, 24, Vector2(0, 8))
 		"alarm":
 			sb = _flat(Color(RED, 0.9), R_LG, 20, 10, Color(1, 1, 1, 0.3), 1, 12)
+		"glass_card":
+			sb = _flat(Color(DARK, 0.72), R_LG, 16, 10, Color(1, 1, 1, 0.12), 1, 12)
+		"glass_hover":
+			sb = _flat(Color(DARK_HI, 0.85), R_LG, 16, 10, Color(ACCENT, 0.8), 2, 12)
 		"paper":
 			sb = _flat(PAPER, R_XL, 22, 18, Color(1, 1, 1, 0.9), 1, 24, Vector2(0, 8))
 		"window":

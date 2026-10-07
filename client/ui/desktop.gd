@@ -5,6 +5,7 @@
 extends Control
 
 const Kit = preload("res://ui/ui_kit.gd")
+const AvatarPreview = preload("res://ui/avatar_preview.gd")
 
 const Protocol = preload("res://net/protocol.gd")
 const PlayerView = preload("res://game/player_view.gd")
@@ -132,8 +133,7 @@ func _build_desktop() -> void:
 	Kit.style_label(_mail_icon_badge, 16, Color.WHITE)
 	var badge_bg := StyleBoxFlat.new()
 	badge_bg.bg_color = Kit.RED
-	badge_bg.border_color = Kit.INK
-	badge_bg.set_border_width_all(Kit.LINE)
+	badge_bg.set_corner_radius_all(10)
 	badge_bg.content_margin_left = 6
 	badge_bg.content_margin_right = 6
 	_mail_icon_badge.add_theme_stylebox_override("normal", badge_bg)
@@ -151,7 +151,7 @@ func _build_desktop() -> void:
 	_root.add_child(bar)
 	var row := HBoxContainer.new()
 	bar.add_child(row)
-	var start_btn := Kit.button("◆ StartOS")
+	var start_btn := Kit.button("StartOS", true)
 	start_btn.tooltip_text = "Menu gry: ustawienia, wyjście"
 	start_btn.pressed.connect(func(): menu_requested.emit())
 	row.add_child(start_btn)
@@ -182,8 +182,8 @@ static var _wall: Texture2D
 static func wallpaper() -> Texture2D:
 	if _wall:
 		return _wall
-	var w := 480
-	var h := 270
+	var w := 640
+	var h := 360
 	var img := Image.create(w, h, false, Image.FORMAT_RGBA8)
 	var top := Color("#7fa9d9")
 	var mid := Color("#c9b6e0")
@@ -214,9 +214,10 @@ static func wallpaper() -> Texture2D:
 						var a: Vector2 = pts[k]
 						var b: Vector2 = pts[k + 1]
 						var ry := lerpf(a.y, b.y, (x - a.x) / (b.x - a.x))
-						if y >= ry:
-							var shade := 0.06 if b.y < a.y else -0.03
-							c = hill_cols[layer].lightened(shade + (1.0 - (y - ry) / h) * 0.05)
+						var cov := clampf(y + 0.5 - ry, 0.0, 1.0)  # anti-aliased ridge
+						if cov > 0.0:
+							var shade := 0.05 if b.y < a.y else -0.02
+							c = c.lerp(hill_cols[layer].lightened(shade + (1.0 - (y - ry) / h) * 0.05), cov)
 						break
 			img.set_pixel(x, y, c)
 	_wall = ImageTexture.create_from_image(img)
@@ -584,17 +585,18 @@ func _go_to_office() -> void:
 func _video_tile(parent: Container, who: String, look: int, appearance: Dictionary, seed_id: int) -> void:
 	var tile := PanelContainer.new()
 	var s := StyleBoxFlat.new()
-	s.bg_color = Color("#20242e")
-	s.border_color = Kit.INK
-	s.set_border_width_all(Kit.LINE)
+	s.bg_color = Color("#3a4252")
+	s.set_corner_radius_all(Kit.R_LG)
+	s.anti_aliasing = true
 	tile.add_theme_stylebox_override("panel", s)
 	tile.custom_minimum_size = Vector2(230, 170)
+	tile.clip_children = CanvasItem.CLIP_CHILDREN_AND_DRAW
 	var stage := Control.new()
 	stage.clip_contents = true
 	tile.add_child(stage)
+	# The person as the 3D avatar (the look lives in a hidden PlayerView).
 	var holder := Node2D.new()
-	holder.position = Vector2(115, 250)
-	holder.scale = Vector2(9, 9)
+	holder.visible = false
 	stage.add_child(holder)
 	var v := PlayerView.new()
 	v.look = look
@@ -602,11 +604,15 @@ func _video_tile(parent: Container, who: String, look: int, appearance: Dictiona
 	v.setup(seed_id, "", 9)
 	if not appearance.is_empty():
 		v.set_appearance(appearance)
+	var cam := AvatarPreview.new()
+	cam.setup(v, Vector2i(230, 170), true)
+	stage.add_child(cam)
 	var name_l := _label(who, 16, Color.WHITE, false)
 	var nb := StyleBoxFlat.new()
-	nb.bg_color = Color(0, 0, 0, 0.6)
-	nb.content_margin_left = 6
-	nb.content_margin_right = 6
+	nb.bg_color = Color(Kit.DARK, 0.65)
+	nb.set_corner_radius_all(9)
+	nb.content_margin_left = 8
+	nb.content_margin_right = 8
 	name_l.add_theme_stylebox_override("normal", nb)
 	name_l.position = Vector2(8, 144)
 	stage.add_child(name_l)

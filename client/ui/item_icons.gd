@@ -38,12 +38,15 @@ static func texture(kind: int) -> Texture2D:
 	var radius := maxf(aabb.size.length() * 0.5, 0.02)
 	mi.position = -centre
 	var pivot := Node3D.new()
-	pivot.rotation = Vector3(0, deg_to_rad(-35), 0)
+	# Flat things (laptop, cards, papers) stand up towards the camera so
+	# their face reads; the rest turn a bit for a 3/4 view.
+	var flat := aabb.size.y < 0.3 * maxf(aabb.size.x, aabb.size.z)
+	pivot.rotation = Vector3(deg_to_rad(34) if flat else 0.0, deg_to_rad(-28 if flat else -35), 0)
 	pivot.add_child(mi)
 	vp.add_child(pivot)
 	var cam := Camera3D.new()
 	cam.projection = Camera3D.PROJECTION_ORTHOGONAL
-	cam.size = radius * 2.15
+	cam.size = radius * (1.75 if flat else 2.15)
 	cam.near = 0.01
 	cam.far = radius * 10 + 1
 	var dir := Vector3(0.0, 0.6, 1).normalized()
@@ -54,20 +57,31 @@ static func texture(kind: int) -> Texture2D:
 	env.background_mode = Environment.BG_CLEAR_COLOR
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
 	env.ambient_light_color = Color("#fff4e6")
-	env.ambient_light_energy = 0.75
+	env.ambient_light_energy = 0.95
 	env.tonemap_mode = Environment.TONE_MAPPER_FILMIC
 	var we := WorldEnvironment.new()
 	we.environment = env
 	vp.add_child(we)
 	var sun := DirectionalLight3D.new()
-	sun.light_energy = 1.1
+	sun.light_energy = 1.25
 	sun.light_color = Color("#fff1dc")
-	sun.rotation_degrees = Vector3(-50, -30, 0)
+	sun.rotation_degrees = Vector3(-35, -25, 0)
 	vp.add_child(sun)
+	var fill := DirectionalLight3D.new()
+	fill.light_energy = 0.45
+	fill.light_color = Color("#d8e4ff")
+	fill.rotation_degrees = Vector3(-15, 140, 0)
+	vp.add_child(fill)
 	_holder.add_child.call_deferred(vp)
 	var t := vp.get_texture()
 	_tex[kind] = t
 	return t
+
+
+## Render every item's icon up front (the HUD then never pops in).
+static func prewarm() -> void:
+	for kind in preload("res://game/item_art.gd").NAMES:
+		texture(kind)
 
 
 ## Draw the icon of `kind` into `rect` of `c` (nothing for an empty slot).

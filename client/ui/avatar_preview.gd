@@ -11,7 +11,8 @@ var _avatar := Avatar3D.new()
 var _pivot := Node3D.new()
 
 
-func setup(p_view: Node2D, px := Vector2i(220, 280)) -> void:
+## `portrait`: head and shoulders (a video call) instead of the whole figure.
+func setup(p_view: Node2D, px := Vector2i(220, 280), portrait := false) -> void:
 	view = p_view
 	stretch = true
 	custom_minimum_size = Vector2(px)
@@ -58,7 +59,11 @@ func setup(p_view: Node2D, px := Vector2i(220, 280)) -> void:
 	cam.fov = 30
 	cam.cull_mask = 0xFFFFF
 	_vp.add_child(cam)
-	cam.look_at_from_position(Vector3(0, 1.35, 4.1), Vector3(0, 0.72, 0))
+	if portrait:
+		cam.look_at_from_position(Vector3(0.0, 1.3, 2.3), Vector3(0, 1.08, 0))
+		disc.visible = false
+	else:
+		cam.look_at_from_position(Vector3(0, 1.35, 4.1), Vector3(0, 0.72, 0))
 	_vp.add_child(_pivot)
 	_pivot.add_child(_avatar)
 	_avatar.setup(view)
