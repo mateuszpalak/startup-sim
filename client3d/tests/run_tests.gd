@@ -463,6 +463,12 @@ func test_windows_asset() -> void:
 	assets.append({"name": "StartupSim3D-0.4.0-macos.dmg", "browser_download_url": "https://x/mac3d.dmg"})
 	expect(Updates.asset_url(assets, Updates.asset_suffix("macOS", true), "page") == "https://x/mac3d.dmg", "3D mac dmg found")
 	expect(Updates.asset_suffix("iOS", true) == "" and Updates.asset_suffix("Windows", true) == "-windows-arm64.zip", "suffixes")
+	var only_2d := [
+		{"name": "StartupSim-0.4.0-windows-x86_64.zip", "browser_download_url": "https://x/win2d.zip"},
+		{"name": "StartupSim-0.4.0-android.apk", "browser_download_url": "https://x/a2d.apk"},
+	]
+	expect(Updates.asset_url(only_2d, "-windows-x86_64.zip", "page") == "page", "2D zip is not offered to the 3D client")
+	expect(Updates.asset_url(only_2d, "-android.apk", "page") == "page", "2D apk is not offered to the 3D client")
 
 
 ## Login: "Inny serwer…" takes a typed host:port; the game's servers keep their names.

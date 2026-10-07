@@ -9,6 +9,10 @@ const LATEST_API := "https://api.github.com/repos/" + REPO + "/releases/latest"
 ## Where players download the game (the newest release's page).
 const DOWNLOAD_PAGE := "https://github.com/" + REPO + "/releases/latest"
 
+## This client's release files: StartupSim3D-<version>-* (the 2D client's
+## are StartupSim-<version>*).
+const ASSET_PREFIX := "StartupSim3D-"
+
 ## Dev: pretend to be another version (--pretend-version=0.0.9).
 static var pretend := ""
 
@@ -81,6 +85,6 @@ static func asset_url(assets, suffix: String, fallback: String) -> String:
 		return fallback
 	for a in assets:
 		var name := str(a.get("name", "")) if typeof(a) == TYPE_DICTIONARY else ""
-		if name.ends_with(suffix) and not name.ends_with("-debug" + suffix):
+		if name.begins_with(ASSET_PREFIX) and name.ends_with(suffix) and not name.ends_with("-debug" + suffix):
 			return str(a.get("browser_download_url", fallback))
 	return fallback

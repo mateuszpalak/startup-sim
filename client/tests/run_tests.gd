@@ -7,6 +7,7 @@ const Movement = preload("res://sim/movement.gd")
 const MapData = preload("res://map/map_data.gd")
 const Building = preload("res://map/building.gd")
 const NetClient = preload("res://net/net_client.gd")
+const Updates = preload("res://net/updates.gd")
 
 var failures := 0
 var checks := 0
@@ -19,6 +20,7 @@ func _init() -> void:
 	test_sealed(golden.path_join("sealed.json"))
 	test_rejects_garbage()
 	test_parse_address()
+	test_release_assets()
 	test_shell()
 	test_scripts_compile()
 	test_roll_scores()
@@ -99,7 +101,6 @@ func test_protocol(path: String) -> void:
 	expect(dr.get("type") == Protocol.T_DOORS and dr.floor == 1 and dr.tiles == [Vector2i(5, 45), Vector2i(41, 43)]
 		and dr.lifts.size() == 2 and dr.lifts[0].floor == 0 and dr.lifts[0].target == 1 and dr.lifts[0].moving
 		and dr.lifts[1].floor == 1 and dr.lifts[1].target == Protocol.NO_FLOOR and not dr.lifts[1].moving, "decode doors %s" % dr)
-	var Updates = load("res://net/updates.gd")
 	expect(Updates.is_newer("0.2.0", "0.1.0") and Updates.is_newer("v0.1.10", "0.1.9") and Updates.is_newer("1.0", "0.9.9")
 		and not Updates.is_newer("0.1.0", "0.1.0") and not Updates.is_newer("v0.1.0", "0.2.0") and not Updates.is_newer("0.1", "0.1.0"),
 		"version comparison")
@@ -421,3 +422,32 @@ func test_parse_address() -> void:
 	for input in cases:
 		var got := NetClient.parse_address(input)
 		expect(got == cases[input], "parse_address(%s) = %s, want %s" % [input, got, cases[input]])
+
+
+## Updates: each platform gets this (2D) client's file, never a 3D one.
+func test_release_assets() -> void:
+	var assets := [
+		{"name": "StartupSim3D-0.4.0-macos.dmg", "browser_download_url": "https://x/mac3d.dmg"},
+		{"name": "StartupSim3D-0.4.0-windows-x86_64.zip", "browser_download_url": "https://x/win3d.zip"},
+		{"name": "StartupSim3D-0.4.0-windows-arm64.zip", "browser_download_url": "https://x/arm3d.zip"},
+		{"name": "StartupSim3D-0.4.0-android.apk", "browser_download_url": "https://x/a3d.apk"},
+		{"name": "StartupSim-0.4.0-android-debug.apk", "browser_download_url": "https://x/debug.apk"},
+	]
+	for os_name in ["macOS", "Windows", "Android"]:
+		for arm in [false, true]:
+			expect(Updates.asset_url(assets, Updates.asset_suffix(os_name, arm), "page") == "page",
+				"no 3D / debug asset for 2D on %s" % os_name)
+	assets.append_array([
+		{"name": "StartupSim-0.4.0.dmg", "browser_download_url": "https://x/mac.dmg"},
+		{"name": "StartupSim-0.4.0-windows-x86_64.zip", "browser_download_url": "https://x/win.zip"},
+		{"name": "StartupSim-0.4.0-windows-arm64.zip", "browser_download_url": "https://x/arm.zip"},
+		{"name": "StartupSim-0.4.0-android.apk", "browser_download_url": "https://x/a.apk"},
+	])
+	var want := {["macOS", false]: "https://x/mac.dmg", ["macOS", true]: "https://x/mac.dmg",
+		["Windows", false]: "https://x/win.zip", ["Windows", true]: "https://x/arm.zip",
+		["Android", true]: "https://x/a.apk", ["iOS", true]: "page"}
+	for k in want:
+		var suffix: String = Updates.asset_suffix(k[0], k[1])
+		var got: String = Updates.asset_url(assets, suffix, "page") if suffix != "" else "page"
+		expect(got == want[k], "2D asset for %s: %s, want %s" % [k, got, want[k]])
+	expect(Updates.asset_url(null, ".dmg", "page") == "page", "no assets -> release page")

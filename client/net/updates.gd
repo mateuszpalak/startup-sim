@@ -9,6 +9,11 @@ const LATEST_API := "https://api.github.com/repos/" + REPO + "/releases/latest"
 ## Where players download the game (the newest release's page).
 const DOWNLOAD_PAGE := "https://github.com/" + REPO + "/releases/latest"
 
+## This client's release files: StartupSim-<version>.dmg,
+## StartupSim-<version>-windows-x86_64.zip, StartupSim-<version>-android.apk
+## (the 3D client's are StartupSim3D-*).
+const ASSET_PREFIX := "StartupSim-"
+
 ## Dev: pretend to be another version (--pretend-version=0.0.9).
 static var pretend := ""
 
@@ -53,4 +58,35 @@ func check() -> Dictionary:
 	var version := str(data.get("tag_name", "")).trim_prefix("v")
 	if version == "" or not is_newer(version, current()):
 		return {}
-	return {"version": version, "url": str(data.get("html_url", DOWNLOAD_PAGE))}
+	var url := str(data.get("html_url", DOWNLOAD_PAGE))
+	var suffix := asset_suffix(OS.get_name(), OS.has_feature("arm64"))
+	if suffix != "":
+		url = asset_url(data.get("assets", []), suffix, url)
+	return {"version": version, "url": url}
+
+
+## Which release file this platform installs from (as the tools/build-*.sh
+## scripts name them): Windows its zip, Android the release APK, macOS the
+## .dmg. "" = the release page (iOS updates through TestFlight).
+static func asset_suffix(os_name: String, arm64: bool) -> String:
+	match os_name:
+		"Windows":
+			return "-windows-%s.zip" % ("arm64" if arm64 else "x86_64")
+		"Android":
+			return "-android.apk"
+		"macOS":
+			return ".dmg"
+	return ""
+
+
+## The release file for this platform (only this client's files: names start
+## with ASSET_PREFIX, never the 3D client's StartupSim3D-*); else `fallback`
+## (the release page).
+static func asset_url(assets, suffix: String, fallback: String) -> String:
+	if typeof(assets) != TYPE_ARRAY:
+		return fallback
+	for a in assets:
+		var name := str(a.get("name", "")) if typeof(a) == TYPE_DICTIONARY else ""
+		if name.begins_with(ASSET_PREFIX) and name.ends_with(suffix) and not name.ends_with("-debug" + suffix):
+			return str(a.get("browser_download_url", fallback))
+	return fallback
