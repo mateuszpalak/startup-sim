@@ -552,6 +552,7 @@ func _show_update(version: String, url: String, required: bool) -> void:
 	update_layer.add_child(panel)
 	panel.reset_size()
 	panel.position = Vector2((get_viewport().get_visible_rect().size.x - panel.size.x) / 2, 16)
+	Kit.pop_in(panel, 0.9, 0.25)
 
 
 ## A normal exit: the next start won't think it crashed.

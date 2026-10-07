@@ -129,16 +129,15 @@ func set_talking(on: bool, whisper := false) -> void:
 
 
 func _draw_talk() -> void:
-	# A little mouth-and-waves glyph above the nick, inked like the rest.
-	var ink := Kit.INK
-	var fill := Color("#9fd0c0") if not _talk_whisper else Color("#d9c7a0")
-	_talk.draw_circle(Vector2.ZERO, 9.0, ink)
-	_talk.draw_circle(Vector2.ZERO, 7.0, fill)
-	_talk.draw_rect(Rect2(-3, -1.5, 6, 3), ink)
+	# A round chip with sound waves above the nick (teal: talking, honey:
+	# whispering), like the HUD's gauges.
+	var col := Kit.TEAL if not _talk_whisper else Kit.GOLD
+	_talk.draw_circle(Vector2.ZERO, 11.0, Color(Kit.DARK, 0.7), true, -1.0, true)
+	_talk.draw_circle(Vector2.ZERO, 4.0, col, true, -1.0, true)
 	for k in (1 if _talk_whisper else 2):
-		var r := 13.0 + k * 5.0
-		_talk.draw_arc(Vector2.ZERO, r, -0.6, 0.6, 8, ink, 2.5, true)
-		_talk.draw_arc(Vector2.ZERO, r, PI - 0.6, PI + 0.6, 8, ink, 2.5, true)
+		var r := 6.5 + k * 2.8
+		_talk.draw_arc(Vector2.ZERO, r, -0.7, 0.7, 8, col, 1.8, true)
+		_talk.draw_arc(Vector2.ZERO, r, PI - 0.7, PI + 0.7, 8, col, 1.8, true)
 
 
 const HAIR_STYLE_NAMES := ["krótkie", "długie", "kok", "jeżyk", "kucyk", "łysa głowa"]
