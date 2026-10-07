@@ -1169,6 +1169,7 @@ func _touch_layout() -> void:
 	log_label.size = Vector2(minf(420, vs.x * 0.42), 180)
 	log_label.position = Vector2(sr.position.x + 16, sr.end.y - 180 - 200)
 	var w := minf(560.0, sr.size.x - 24)
+	hint_label.custom_minimum_size.x = w
 	hint_label.size = Vector2(w, 0)
 	hint_label.reset_size()
 	hint_label.position = Vector2((vs.x - w) / 2, hud.top() - hint_label.size.y - 8)

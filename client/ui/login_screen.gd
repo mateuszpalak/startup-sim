@@ -5,6 +5,7 @@
 extends Control
 
 const Ink = preload("res://ui/ink_ui.gd")
+const TouchFit = preload("res://ui/touch_fit.gd")
 const AuthClient = preload("res://net/auth_client.gd")
 
 ## Logged in: `grant` = {nick, ticket, refresh, character}.
@@ -55,6 +56,8 @@ func _ready() -> void:
 	sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	sub.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	outer.add_child(sub)
+	sub.visible = not TouchFit.Touch.phone
+	TouchFit.scroll_center(self, center)
 	var panel := PanelContainer.new()
 	panel.add_theme_stylebox_override("panel", Ink.box("hud"))
 	outer.add_child(panel)
@@ -93,7 +96,7 @@ func _ready() -> void:
 	new_pass_edit.max_length = 128
 	new_pass_edit.placeholder_text = "co najmniej 8 znaków"
 	_new_pass_row = _field("Nowe hasło", new_pass_edit)
-	remember_box.text = "Zapamiętaj mnie na tym komputerze"
+	remember_box.text = "Zapamiętaj mnie na tym urządzeniu" if TouchFit.Touch.active else "Zapamiętaj mnie na tym komputerze"
 	remember_box.button_pressed = true
 	for k in ["font_color", "font_hover_color", "font_pressed_color", "font_focus_color", "font_hover_pressed_color"]:
 		remember_box.add_theme_color_override(k, Color(1, 1, 1, 0.85))
@@ -178,6 +181,8 @@ func _field(caption: String, control: Control) -> Control:
 	box.add_theme_constant_override("separation", 2)
 	box.add_child(_label(caption, 14, Color(1, 1, 1, 0.6)))
 	control.custom_minimum_size.x = 380
+	if TouchFit.Touch.active:
+		control.custom_minimum_size.y = 48
 	box.add_child(control)
 	_form.add_child(box)
 	return box
@@ -185,7 +190,7 @@ func _field(caption: String, control: Control) -> Control:
 
 func _big_button(text: String, primary: bool) -> Button:
 	var b := Ink.button(text, primary)
-	b.custom_minimum_size = Vector2(0, 44)
+	b.custom_minimum_size = Vector2(0, TouchFit.Touch.TARGET if TouchFit.Touch.active else 44.0)
 	b.add_theme_font_size_override("font_size", 22)
 	return b
 

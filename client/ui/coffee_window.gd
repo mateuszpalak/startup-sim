@@ -6,6 +6,7 @@
 extends Control
 
 const Ink = preload("res://ui/ink_ui.gd")
+const Touch = preload("res://touch/touch.gd")
 const ItemArt = preload("res://game/item_art.gd")
 const Protocol = preload("res://net/protocol.gd")
 
@@ -49,7 +50,7 @@ func _ready() -> void:
 	_brew = _button(col, "1   Zaparz kawę", Protocol.COFFEE_BREW, true)
 	_water = _button(col, "2   Dolej wody", Protocol.COFFEE_WATER)
 	_empty = _button(col, "3   Wyrzuć fusy", Protocol.COFFEE_EMPTY_GROUNDS)
-	var close_b := Ink.button("Zamknij (Esc)")
+	var close_b := Ink.button(Touch.say("Zamknij (Esc)", "Zamknij"))
 	close_b.focus_mode = Control.FOCUS_NONE
 	close_b.pressed.connect(close)
 	col.add_child(close_b)
@@ -72,6 +73,7 @@ func _place() -> void:
 	size = vs
 	_panel.reset_size()
 	_panel.position = ((vs - _panel.size) / 2).floor()
+	Touch.place_center(_panel, get_viewport())
 
 
 func show_machine(p: Dictionary) -> void:
