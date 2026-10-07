@@ -9,7 +9,7 @@ extends Control
 
 const Protocol = preload("res://net/protocol.gd")
 const ItemArt = preload("res://game/item_art.gd")
-const Ink = preload("res://ui/ink_ui.gd")
+const Kit = preload("res://ui/ui_kit.gd")
 const Desktop = preload("res://ui/desktop.gd")
 const OsWindow = preload("res://ui/office/os_window.gd")
 const KanbanView = preload("res://ui/office/kanban_view.gd")
@@ -372,11 +372,11 @@ func _build() -> void:
 	_dim.mouse_filter = Control.MOUSE_FILTER_STOP
 	add_child(_dim)
 	# A pixel monitor: dark bezel, light screen, blue title bar.
-	_frame.add_theme_stylebox_override("panel", Ink.box("screen"))
+	_frame.add_theme_stylebox_override("panel", Kit.box("screen"))
 	add_child(_frame)
 	var screen_bg := PanelContainer.new()
 	var ssb := StyleBoxFlat.new()
-	ssb.bg_color = Ink.PAPER
+	ssb.bg_color = Kit.PAPER
 	screen_bg.add_theme_stylebox_override("panel", ssb)
 	_frame.add_child(screen_bg)
 	_screen.add_theme_constant_override("separation", 0)
@@ -409,7 +409,7 @@ func _build() -> void:
 	_desk.add_child(_win_layer)
 	# Taskbar: StartOS (lock / take the laptop / close), open windows, account.
 	var bar := PanelContainer.new()
-	bar.add_theme_stylebox_override("panel", Ink.box("hud"))
+	bar.add_theme_stylebox_override("panel", Kit.box("hud"))
 	_screen.add_child(bar)
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 8)
@@ -417,7 +417,7 @@ func _build() -> void:
 	_start.text = "◆ StartOS"
 	_start.flat = false
 	for st in ["normal", "hover", "pressed", "focus"]:
-		_start.add_theme_stylebox_override(st, Ink.button_box(st if st != "focus" else "normal", true))
+		_start.add_theme_stylebox_override(st, Kit.button_box(st if st != "focus" else "normal", true))
 	for k in ["font_color", "font_hover_color", "font_pressed_color", "font_focus_color"]:
 		_start.add_theme_color_override(k, Color.WHITE)
 	var pm := _start.get_popup()
@@ -438,7 +438,7 @@ func _build() -> void:
 	# Browser: address, bookmarks, the page.
 	_browser.add_theme_constant_override("separation", 6)
 	var addr := PanelContainer.new()
-	addr.add_theme_stylebox_override("panel", Ink.box("input"))
+	addr.add_theme_stylebox_override("panel", Kit.box("input"))
 	_style_label(_url, 14, Color("#4a5566"))
 	addr.add_child(_url)
 	_browser.add_child(addr)
@@ -447,7 +447,7 @@ func _build() -> void:
 	marks.add_child(_mini_label("Ulubione:"))
 	var marks_list := [["home", "⌂ Start"], ["web", "🌐 Internet"], ["lunch", "★ Obiady do biura"], ["tasks", "★ Tablica zadań"]]
 	for bm in marks_list:
-		var mb := Ink.button(bm[1])
+		var mb := Kit.button(bm[1])
 		mb.add_theme_font_size_override("font_size", 14)
 		var pg: String = bm[0]
 		mb.pressed.connect(func(): _go(pg))
@@ -469,7 +469,7 @@ func _build() -> void:
 		var tb := Button.new()
 		tb.custom_minimum_size = Vector2(260, 130)
 		for st in ["normal", "hover", "pressed", "focus"]:
-			tb.add_theme_stylebox_override(st, Ink.box("card_hover" if st == "hover" else "card"))
+			tb.add_theme_stylebox_override(st, Kit.box("card_hover" if st == "hover" else "card"))
 		var pic := Control.new()
 		pic.position = Vector2(88, 6)
 		pic.size = Vector2(84, 52)
@@ -515,7 +515,7 @@ func _build() -> void:
 	_chat_view.add_child(_body)
 	var side := PanelContainer.new()
 	var sdb := StyleBoxFlat.new()
-	sdb.bg_color = Ink.DARK
+	sdb.bg_color = Kit.DARK
 	sdb.set_content_margin_all(10)
 	side.add_theme_stylebox_override("panel", sdb)
 	side.custom_minimum_size = Vector2(230, 0)
@@ -559,8 +559,8 @@ func _build() -> void:
 	_entry.custom_minimum_size = Vector2(0, 40)
 	_entry.max_length = 200
 	_entry.add_theme_font_size_override("font_size", 16)
-	_entry.add_theme_stylebox_override("normal", Ink.box("input"))
-	_entry.add_theme_stylebox_override("focus", Ink.box("input_focus"))
+	_entry.add_theme_stylebox_override("normal", Kit.box("input"))
+	_entry.add_theme_stylebox_override("focus", Kit.box("input_focus"))
 	_entry.add_theme_color_override("font_color", Color("#1c2430"))
 	_entry.add_theme_color_override("font_placeholder_color", Color("#8a93a3"))
 	_entry.add_theme_color_override("caret_color", Color("#1c2430"))
@@ -584,7 +584,7 @@ func _build() -> void:
 	_style_label(ch, 20, Color("#1c2430"))
 	ch.text = "Kalendarz zarządu — spotkania na dziś"
 	_cal_view.add_child(ch)
-	_style_label(_cal_mine, 15, Ink.ACCENT)
+	_style_label(_cal_mine, 15, Kit.ACCENT)
 	_cal_view.add_child(_cal_mine)
 	var trow := HBoxContainer.new()
 	trow.add_theme_constant_override("separation", 10)
@@ -618,7 +618,7 @@ func _build() -> void:
 	_style_label(lh, 20, Color("#1c2430"))
 	lh.text = "Obiady do biura — dostawa na recepcję (piętro 4)"
 	_lunch_view.add_child(lh)
-	_style_label(_lunch_status, 15, Ink.ACCENT)
+	_style_label(_lunch_status, 15, Kit.ACCENT)
 	_lunch_status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_lunch_status.custom_minimum_size = Vector2(600, 0)
 	_lunch_view.add_child(_lunch_status)
@@ -648,7 +648,7 @@ func _build() -> void:
 	# Lock screen: over the whole desktop.
 	var lock_bg := PanelContainer.new()
 	var lsb := StyleBoxFlat.new()
-	lsb.bg_color = Ink.PAPER
+	lsb.bg_color = Kit.PAPER
 	lock_bg.add_theme_stylebox_override("panel", lsb)
 	lock_bg.set_anchors_preset(Control.PRESET_FULL_RECT)
 	lock_bg.name = "lock_bg"
@@ -739,7 +739,7 @@ func _open(name: String) -> void:
 		w.focused.connect(func(): _win_layer.move_child(w, -1))
 		_win_layer.add_child(w)
 		_windows[name] = w
-		var tb := Ink.button(WINDOW_TITLES[name])
+		var tb := Kit.button(WINDOW_TITLES[name])
 		tb.add_theme_font_size_override("font_size", 14)
 		tb.name = "task_" + name
 		tb.pressed.connect(func(): _open(name))
@@ -818,7 +818,7 @@ func _desk_icon(caption: String, kind: String) -> Button:
 	pic.draw.connect(func(): Desktop.draw_icon(pic, kind))
 	b.add_child(pic)
 	var l := Label.new()
-	Ink.style_label(l, 15, Color.WHITE)
+	Kit.style_label(l, 15, Color.WHITE)
 	l.text = caption
 	l.position = Vector2(0, 50)
 	l.size = Vector2(90, 22)
@@ -828,10 +828,10 @@ func _desk_icon(caption: String, kind: String) -> Button:
 	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	b.add_child(l)
 	var badge := Label.new()
-	Ink.style_label(badge, 14, Color.WHITE)
+	Kit.style_label(badge, 14, Color.WHITE)
 	var bs := StyleBoxFlat.new()
-	bs.bg_color = Ink.RED
-	bs.border_color = Ink.INK
+	bs.bg_color = Kit.RED
+	bs.border_color = Kit.INK
 	bs.set_border_width_all(2)
 	bs.set_corner_radius_all(9)
 	bs.content_margin_left = 5
@@ -968,8 +968,8 @@ func _co_edit(key: String, value: String, max_len: int, width: int) -> LineEdit:
 	e.add_theme_font_size_override("font_size", 14)
 	e.add_theme_color_override("font_color", Color("#1c2430"))
 	e.add_theme_color_override("font_placeholder_color", Color("#8a93a3"))
-	e.add_theme_stylebox_override("normal", Ink.box("input"))
-	e.add_theme_stylebox_override("focus", Ink.box("input_focus"))
+	e.add_theme_stylebox_override("normal", Kit.box("input"))
+	e.add_theme_stylebox_override("focus", Kit.box("input_focus"))
 	e.text_changed.connect(func(t: String): _co_drafts[key] = t)
 	return e
 
@@ -979,7 +979,7 @@ func _co_edit(key: String, value: String, max_len: int, width: int) -> LineEdit:
 func _position_card(o: Dictionary) -> Control:
 	var id: int = o.id
 	var places: int = o.places
-	var card := Ink.panel("card")
+	var card := Kit.panel("card")
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 6)
 	card.add_child(box)
@@ -1001,7 +1001,7 @@ func _position_card(o: Dictionary) -> Control:
 	var qs := _set_select(o.set)
 	qs.item_selected.connect(func(i: int): company_action.emit(Protocol.CO_SET_QUESTIONS, id, 0, qs.get_item_metadata(i)))
 	r1.add_child(qs)
-	var del := Ink.button("Usuń", false, true)
+	var del := Kit.button("Usuń", false, true)
 	del.tooltip_text = "Zamyka rekrutację (zatrudnieni zostają)"
 	del.pressed.connect(func(): company_action.emit(Protocol.CO_REMOVE_POSITION, id, 0, ""))
 	r1.add_child(del)
@@ -1037,11 +1037,11 @@ func _position_card(o: Dictionary) -> Control:
 
 ## "Nowe stanowisko": name, department, question set, description.
 func _new_position_card(count: int) -> Control:
-	var card := Ink.panel("card")
+	var card := Kit.panel("card")
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 6)
 	card.add_child(box)
-	box.add_child(_co_label("Nowe stanowisko", 16, Ink.ACCENT))
+	box.add_child(_co_label("Nowe stanowisko", 16, Kit.ACCENT))
 	var r1 := HBoxContainer.new()
 	r1.add_theme_constant_override("separation", 8)
 	box.add_child(r1)
@@ -1130,12 +1130,12 @@ func _render_company() -> void:
 	row.add_child(rename)
 
 	var positions: Array = company_offers.offers
-	_co_view.add_child(_co_label("Stanowiska (%d/%d) — ogłoszenia na portalu" % [positions.size(), Protocol.CO_MAX_POSITIONS], 18, Ink.ACCENT))
+	_co_view.add_child(_co_label("Stanowiska (%d/%d) — ogłoszenia na portalu" % [positions.size(), Protocol.CO_MAX_POSITIONS], 18, Kit.ACCENT))
 	for o in positions:
 		_co_view.add_child(_position_card(o))
 	_co_view.add_child(_new_position_card(positions.size()))
 
-	_co_view.add_child(_co_label("Kandydaci po rozmowie", 18, Ink.ACCENT))
+	_co_view.add_child(_co_label("Kandydaci po rozmowie", 18, Kit.ACCENT))
 	var cands: Array = company_people.get("candidates", [])
 	if cands.is_empty():
 		_co_view.add_child(_co_label("Nikt nie czeka. Kandydaci, o których nie zdecydujesz w 30 min, są zatrudniani automatycznie.", 14, Color("#8a93a3"), true))
@@ -1148,11 +1148,11 @@ func _render_company() -> void:
 		var hire := _button("Zatrudnij", true)
 		hire.pressed.connect(func(): company_action.emit(Protocol.CO_HIRE, pid, 0, ""))
 		row.add_child(hire)
-		var rej := Ink.button("Odrzuć", false, true)
+		var rej := Kit.button("Odrzuć", false, true)
 		rej.pressed.connect(func(): company_action.emit(Protocol.CO_REJECT, pid, 0, ""))
 		row.add_child(rej)
 
-	_co_view.add_child(_co_label("Zespół", 18, Ink.ACCENT))
+	_co_view.add_child(_co_label("Zespół", 18, Kit.ACCENT))
 	var staff: Array = company_people.get("staff", [])
 	if staff.is_empty():
 		_co_view.add_child(_co_label("Na razie tylko Ty.", 14, Color("#8a93a3")))
@@ -1169,7 +1169,7 @@ func _render_company() -> void:
 		if pid == my_id:
 			row.add_child(_co_label("(Ty)", 14, Color("#8a93a3")))
 			continue
-		var fire := Ink.button("Zwolnij", false, true)
+		var fire := Kit.button("Zwolnij", false, true)
 		fire.pressed.connect(func(): company_action.emit(Protocol.CO_FIRE, pid, 0, ""))
 		row.add_child(fire)
 
@@ -1285,7 +1285,7 @@ func _render_calendar() -> void:
 				st.text = "zajęte"
 				row.add_child(st)
 			Protocol.SLOT_MINE:
-				_style_label(st, 15, Ink.ACCENT)
+				_style_label(st, 15, Kit.ACCENT)
 				st.text = "Twoje spotkanie"
 				row.add_child(st)
 				var b2 := _button("Odwołaj", true)
@@ -1330,9 +1330,9 @@ func _render_sidebar() -> void:
 		var sb := StyleBoxFlat.new()
 		sb.set_content_margin_all(6)
 		sb.content_margin_left = 10
-		sb.bg_color = Ink.ACCENT if c.conv == current else Color(0, 0, 0, 0)
+		sb.bg_color = Kit.ACCENT if c.conv == current else Color(0, 0, 0, 0)
 		var hover := sb.duplicate()
-		hover.bg_color = Ink.ACCENT_HI if c.conv == current else Color(1, 1, 1, 0.08)
+		hover.bg_color = Kit.ACCENT_HI if c.conv == current else Color(1, 1, 1, 0.08)
 		for st in ["normal", "focus"]:
 			b.add_theme_stylebox_override(st, sb)
 		b.add_theme_stylebox_override("hover", hover)
@@ -1391,8 +1391,8 @@ func _render_input() -> void:
 
 
 func _style_label(l: Label, size: int, color: Color) -> void:
-	Ink.style_label(l, size, color)
+	Kit.style_label(l, size, color)
 
 
 func _button(text: String, primary: bool) -> Button:
-	return Ink.button(text, primary)
+	return Kit.button(text, primary)

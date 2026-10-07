@@ -4,7 +4,7 @@
 ## mnie". With a remembered login: "Graj jako X" / "Wyloguj".
 extends Control
 
-const Ink = preload("res://ui/ink_ui.gd")
+const Kit = preload("res://ui/ui_kit.gd")
 const AuthClient = preload("res://net/auth_client.gd")
 
 ## Logged in: `grant` = {nick, ticket, refresh, character}.
@@ -48,7 +48,7 @@ func _ready() -> void:
 	center.add_child(outer)
 	var title := _label("Startup Sim", 44, Color.WHITE)
 	title.add_theme_constant_override("outline_size", 8)
-	title.add_theme_color_override("font_outline_color", Ink.ACCENT_LO)
+	title.add_theme_color_override("font_outline_color", Kit.ACCENT_LO)
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	outer.add_child(title)
 	var sub := _label("Zaloguj się albo załóż konto — Twój postęp zapisuje się na serwerze.", 16, Color(1, 1, 1, 0.6))
@@ -56,7 +56,7 @@ func _ready() -> void:
 	sub.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	outer.add_child(sub)
 	var panel := PanelContainer.new()
-	panel.add_theme_stylebox_override("panel", Ink.box("hud"))
+	panel.add_theme_stylebox_override("panel", Kit.box("hud"))
 	outer.add_child(panel)
 	var inner := VBoxContainer.new()
 	inner.add_theme_constant_override("separation", 8)
@@ -65,15 +65,15 @@ func _ready() -> void:
 	# Remembered login.
 	_quick.add_theme_constant_override("separation", 8)
 	_quick_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	Ink.style_label(_quick_label, 18, Color.WHITE)
+	Kit.style_label(_quick_label, 18, Color.WHITE)
 	_quick.add_child(_quick_label)
 	var play := _big_button("Graj", true)
 	play.pressed.connect(_quick_play)
 	_quick.add_child(play)
-	var other := Ink.button("Zaloguj na inne konto")
+	var other := Kit.button("Zaloguj na inne konto")
 	other.pressed.connect(func(): _show_form())
 	_quick.add_child(other)
-	var out := Ink.button("Wyloguj")
+	var out := Kit.button("Wyloguj")
 	out.pressed.connect(_logout)
 	_quick.add_child(out)
 	inner.add_child(_quick)
@@ -109,20 +109,20 @@ func _ready() -> void:
 	_register_btn.pressed.connect(func(): _go("register"))
 	row.add_child(_register_btn)
 	_form.add_child(row)
-	_change_btn = Ink.button("Zmień hasło")
+	_change_btn = Kit.button("Zmień hasło")
 	_change_btn.pressed.connect(_toggle_change)
 	_form.add_child(_change_btn)
 	for e in [nick_edit, pass_edit, new_pass_edit]:
 		e.text_submitted.connect(func(_t): _go("password" if _changing else "login"))
 
-	_trust_btn = Ink.button("Zaufaj nowemu certyfikatowi serwera", false, true)
+	_trust_btn = Kit.button("Zaufaj nowemu certyfikatowi serwera", false, true)
 	_trust_btn.visible = false
 	_trust_btn.pressed.connect(func():
 		AuthClient.forget_pin(address())
 		_trust_btn.visible = false
 		set_status("Zapomniany. Spróbuj jeszcze raz."))
 	outer.add_child(_trust_btn)
-	var b := Ink.button("Wróć do menu")
+	var b := Kit.button("Wróć do menu")
 	b.pressed.connect(func(): back.emit())
 	outer.add_child(b)
 	status.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -169,7 +169,7 @@ func _fit() -> void:
 func _label(text: String, size: int, color := Color(1, 1, 1, 0.8)) -> Label:
 	var l := Label.new()
 	l.text = text
-	Ink.style_label(l, size, color)
+	Kit.style_label(l, size, color)
 	return l
 
 
@@ -184,7 +184,7 @@ func _field(caption: String, control: Control) -> Control:
 
 
 func _big_button(text: String, primary: bool) -> Button:
-	var b := Ink.button(text, primary)
+	var b := Kit.button(text, primary)
 	b.custom_minimum_size = Vector2(0, 44)
 	b.add_theme_font_size_override("font_size", 22)
 	return b

@@ -3,7 +3,7 @@
 ## Each stays a few seconds; at most a few at once (the oldest go first).
 extends VBoxContainer
 
-const Ink = preload("res://ui/ink_ui.gd")
+const Kit = preload("res://ui/ui_kit.gd")
 
 const SHOW_SEC := 7.0
 const MAX_SHOWN := 4
@@ -29,10 +29,10 @@ func _place() -> void:
 func push(icon: int, text: String) -> void:
 	history.append(text)
 	var card := PanelContainer.new()
-	card.add_theme_stylebox_override("panel", Ink.box("bubble"))
+	card.add_theme_stylebox_override("panel", Kit.box("bubble"))
 	card.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var l := Label.new()
-	Ink.style_label(l, 16, Color("#c0392b") if icon == 4 else Ink.TEXT_INK)
+	Kit.style_label(l, 16, Color("#c0392b") if icon == 4 else Kit.TEXT_INK)
 	l.text = "%s  %s" % [ICONS.get(icon, "•"), text]
 	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	l.custom_minimum_size = Vector2(340, 0)

@@ -18,7 +18,7 @@ const Doors = preload("res://world3d/art/doors.gd")
 const Signage = preload("res://world3d/art/signage.gd")
 const Exterior = preload("res://world3d/art/exterior.gd")
 const S = preload("res://world3d/art/shapes.gd")
-const Ink = preload("res://ui/ink_ui.gd")
+const Kit = preload("res://ui/ui_kit.gd")
 
 const WALL_T := 0.28          # wall thickness
 const DOOR_H := 2.15          # top of door openings
@@ -694,11 +694,11 @@ func _labels(root: Node3D, floor_names: Dictionary) -> void:
 		var a: Rect2i = link.rect
 		var l := Label3D.new()
 		l.text = "▸ " + floor_names[link.to_floor]
-		l.font = Ink.font()
+		l.font = Kit.font()
 		l.font_size = 48
 		l.outline_size = 12
-		l.modulate = Ink.PAPER_HI
-		l.outline_modulate = Ink.INK
+		l.modulate = Kit.PAPER_HI
+		l.outline_modulate = Kit.INK
 		l.pixel_size = 0.006
 		l.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 		l.no_depth_test = true

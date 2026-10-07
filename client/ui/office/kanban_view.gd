@@ -5,7 +5,7 @@
 ## as `done`; while shown, the board is re-synced every SYNC_MSEC.
 extends VBoxContainer
 
-const Ink = preload("res://ui/ink_ui.gd")
+const Kit = preload("res://ui/ui_kit.gd")
 const Protocol = preload("res://net/protocol.gd")
 
 ## TaskAction to send.
@@ -55,10 +55,10 @@ func _ready() -> void:
 	add_theme_constant_override("separation", 8)
 	var top := HBoxContainer.new()
 	top.add_theme_constant_override("separation", 10)
-	Ink.style_label(_head, 20, INK)
+	Kit.style_label(_head, 20, INK)
 	_head.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	top.add_child(_head)
-	var add := Ink.button("+ Nowe zadanie", true)
+	var add := Kit.button("+ Nowe zadanie", true)
 	add.pressed.connect(func():
 		_form.visible = not _form.visible
 		if _form.visible:
@@ -67,7 +67,7 @@ func _ready() -> void:
 	add_child(top)
 
 	# New card form.
-	_form.add_theme_stylebox_override("panel", Ink.box("card"))
+	_form.add_theme_stylebox_override("panel", Kit.box("card"))
 	_form.visible = false
 	var fc := VBoxContainer.new()
 	fc.add_theme_constant_override("separation", 6)
@@ -86,10 +86,10 @@ func _ready() -> void:
 	fc.add_child(_f_desc)
 	var fb := HBoxContainer.new()
 	fb.add_theme_constant_override("separation", 8)
-	var ok := Ink.button("Dodaj", true)
+	var ok := Kit.button("Dodaj", true)
 	ok.pressed.connect(_create)
 	fb.add_child(ok)
-	var cancel := Ink.button("Anuluj")
+	var cancel := Kit.button("Anuluj")
 	cancel.pressed.connect(func(): _form.visible = false)
 	fb.add_child(cancel)
 	fc.add_child(fb)
@@ -105,7 +105,7 @@ func _ready() -> void:
 		col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		col.add_theme_constant_override("separation", 4)
 		var t := Label.new()
-		Ink.style_label(t, 16, Ink.ACCENT)
+		Kit.style_label(t, 16, Kit.ACCENT)
 		col.add_child(t)
 		_col_titles.append(t)
 		var sc := ScrollContainer.new()
@@ -131,7 +131,7 @@ func _ready() -> void:
 
 
 func _build_pane() -> void:
-	_pane.add_theme_stylebox_override("panel", Ink.box("card"))
+	_pane.add_theme_stylebox_override("panel", Kit.box("card"))
 	_pane.custom_minimum_size = Vector2(300, 0)
 	_pane.visible = false
 	var sc := ScrollContainer.new()
@@ -142,20 +142,20 @@ func _build_pane() -> void:
 	v.add_theme_constant_override("separation", 6)
 	sc.add_child(v)
 	var top := HBoxContainer.new()
-	Ink.style_label(_p_title, 18, INK)
+	Kit.style_label(_p_title, 18, INK)
 	_p_title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_p_title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	top.add_child(_p_title)
-	var x := Ink.button("X")
+	var x := Kit.button("X")
 	x.pressed.connect(func(): _open(0))
 	top.add_child(x)
 	v.add_child(top)
-	Ink.style_label(_p_meta, 13, MUTED)
+	Kit.style_label(_p_meta, 13, MUTED)
 	v.add_child(_p_meta)
 	var mv := HBoxContainer.new()
 	mv.add_theme_constant_override("separation", 4)
 	for i in COLUMNS.size():
-		var b := Ink.button(COLUMNS[i])
+		var b := Kit.button(COLUMNS[i])
 		b.add_theme_font_size_override("font_size", 14)
 		var col: int = i
 		b.pressed.connect(func(): _act(Protocol.TA_MOVE, open_id, col, ""))
@@ -175,7 +175,7 @@ func _build_pane() -> void:
 	wr.add_child(_small("Kto:"))
 	_p_who.item_selected.connect(func(i: int): _act(Protocol.TA_ASSIGN, open_id, 0, _p_who.get_item_metadata(i)))
 	wr.add_child(_p_who)
-	var mine := Ink.button("Biorę")
+	var mine := Kit.button("Biorę")
 	mine.add_theme_font_size_override("font_size", 14)
 	mine.pressed.connect(func(): _act(Protocol.TA_ASSIGN, open_id, 0, me))
 	wr.add_child(mine)
@@ -183,7 +183,7 @@ func _build_pane() -> void:
 	v.add_child(_small("Opis:"))
 	_text(_p_desc, "Brak opisu")
 	v.add_child(_p_desc)
-	var save := Ink.button("Zapisz opis")
+	var save := Kit.button("Zapisz opis")
 	save.add_theme_font_size_override("font_size", 14)
 	save.pressed.connect(func(): _act(Protocol.TA_EDIT, open_id, 0, "%s\n%s" % [_card(open_id).get("title", ""), _p_desc.text]))
 	v.add_child(save)
@@ -196,11 +196,11 @@ func _build_pane() -> void:
 	_p_comment.keep_editing_on_text_submit = true
 	_p_comment.text_submitted.connect(func(_t): _comment())
 	cr.add_child(_p_comment)
-	var cb := Ink.button("Dodaj", true)
+	var cb := Kit.button("Dodaj", true)
 	cb.pressed.connect(_comment)
 	cr.add_child(cb)
 	v.add_child(cr)
-	var del := Ink.button("Usuń zadanie", false, true)
+	var del := Kit.button("Usuń zadanie", false, true)
 	del.pressed.connect(func():
 		_act(Protocol.TA_DELETE, open_id, 0, "")
 		_open(0))
@@ -334,7 +334,7 @@ func _render() -> void:
 
 func _card_view(t: Dictionary) -> Control:
 	var panel := PanelContainer.new()
-	panel.add_theme_stylebox_override("panel", Ink.box("card_hover" if t.id == open_id else "card"))
+	panel.add_theme_stylebox_override("panel", Kit.box("card_hover" if t.id == open_id else "card"))
 	panel.mouse_filter = Control.MOUSE_FILTER_STOP
 	panel.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 	var id: int = t.id
@@ -356,7 +356,7 @@ func _card_view(t: Dictionary) -> Control:
 	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	row.add_child(v)
 	var title := Label.new()
-	Ink.style_label(title, 15, INK)
+	Kit.style_label(title, 15, INK)
 	title.text = t.title
 	title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	title.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -374,7 +374,7 @@ func _card_view(t: Dictionary) -> Control:
 		var col: int = t.column + dir
 		if col < 0 or col > 2:
 			continue
-		var b := Ink.button("←" if dir < 0 else "→")
+		var b := Kit.button("←" if dir < 0 else "→")
 		b.add_theme_font_size_override("font_size", 13)
 		b.tooltip_text = COLUMNS[col]
 		b.pressed.connect(func(): _act(Protocol.TA_MOVE, id, col, ""))
@@ -420,7 +420,7 @@ func _render_pane() -> void:
 		_p_comments.add_child(_small("Jeszcze bez komentarzy."))
 	for c in comments:
 		var l := Label.new()
-		Ink.style_label(l, 14, INK)
+		Kit.style_label(l, 14, INK)
 		l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		l.text = "%s: %s" % [c[0], c[1]]
 		_p_comments.add_child(l)
@@ -430,7 +430,7 @@ func _render_pane() -> void:
 
 func _small(text: String) -> Label:
 	var l := Label.new()
-	Ink.style_label(l, 13, MUTED)
+	Kit.style_label(l, 13, MUTED)
 	l.text = text
 	return l
 

@@ -3,7 +3,7 @@
 ## shouts to the whole floor.
 extends PanelContainer
 
-const Ink = preload("res://ui/ink_ui.gd")
+const Kit = preload("res://ui/ui_kit.gd")
 
 signal sent(text: String)
 
@@ -14,13 +14,13 @@ var _input := LineEdit.new()
 
 func _ready() -> void:
 	visible = false
-	add_theme_stylebox_override("panel", Ink.box("hud"))
+	add_theme_stylebox_override("panel", Kit.box("hud"))
 	set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
 	custom_minimum_size = Vector2(560, 0)
 	var row := HBoxContainer.new()
 	add_child(row)
 	var l := Label.new()
-	Ink.style_label(l, 15, Color(1, 1, 1, 0.8))
+	Kit.style_label(l, 15, Color(1, 1, 1, 0.8))
 	l.text = "Czat:"
 	row.add_child(l)
 	_input.size_flags_horizontal = Control.SIZE_EXPAND_FILL

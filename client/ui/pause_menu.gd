@@ -3,7 +3,7 @@
 ## The game keeps running on the server meanwhile.
 extends Control
 
-const Ink = preload("res://ui/ink_ui.gd")
+const Kit = preload("res://ui/ui_kit.gd")
 const SettingsPanel = preload("res://ui/settings_panel.gd")
 const Updates = preload("res://net/updates.gd")
 
@@ -25,23 +25,23 @@ func _ready() -> void:
 	get_viewport().size_changed.connect(_fit)
 	_dim.color = Color(0.05, 0.03, 0.02, 0.55)
 	add_child(_dim)
-	_card.add_theme_stylebox_override("panel", Ink.box("paper"))
+	_card.add_theme_stylebox_override("panel", Kit.box("paper"))
 	add_child(_card)
 	var box := VBoxContainer.new()
 	_card.add_child(box)
 	_menu.add_theme_constant_override("separation", 12)
 	box.add_child(_menu)
-	_menu.add_child(Ink.label("Przerwa", 30, Ink.TEXT_INK))
-	_menu.add_child(Ink.label("Gra toczy się dalej — inni pracują.", 16, Ink.TEXT_MUTED))
+	_menu.add_child(Kit.label("Przerwa", 30, Kit.TEXT_INK))
+	_menu.add_child(Kit.label("Gra toczy się dalej — inni pracują.", 16, Kit.TEXT_MUTED))
 	for entry in [["Wróć do gry", func(): close(), true], ["Ustawienia", func(): _show(_settings), false],
 			["Wyjdź do menu", func(): close(); to_menu.emit(), false], ["Wyloguj", func(): close(); logout.emit(), false],
 			["Wyjdź z gry", func(): quit.emit(), false]]:
-		var b := Ink.button(entry[0], entry[2])
+		var b := Kit.button(entry[0], entry[2])
 		b.custom_minimum_size = Vector2(300, 44)
 		b.add_theme_font_size_override("font_size", 24)
 		b.pressed.connect(entry[1])
 		_menu.add_child(b)
-	var version := Ink.label("Startup Sim %s" % Updates.current(), 14, Ink.TEXT_MUTED)
+	var version := Kit.label("Startup Sim %s" % Updates.current(), 14, Kit.TEXT_MUTED)
 	version.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_menu.add_child(version)
 	_settings.visible = false

@@ -4,7 +4,7 @@
 ## - a short "Dzień N" card whenever the personal day number goes up.
 extends Control
 
-const Ink = preload("res://ui/ink_ui.gd")
+const Kit = preload("res://ui/ui_kit.gd")
 
 const Protocol = preload("res://net/protocol.gd")
 
@@ -29,7 +29,7 @@ var _info := Label.new()
 var _sky := Control.new()
 var _modes := HBoxContainer.new()
 var _mode_buttons := {}   # mode -> Button
-var _skip := Ink.button("Pomiń czekanie  »", true)
+var _skip := Kit.button("Pomiń czekanie  »", true)
 var _vote := PanelContainer.new()
 var _vote_text := Label.new()
 var _vote_row := HBoxContainer.new()
@@ -51,7 +51,7 @@ func _ready() -> void:
 		l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		l.add_theme_color_override("font_color", Color.WHITE)
 		l.add_theme_constant_override("outline_size", 8)
-		l.add_theme_color_override("font_outline_color", Ink.INK)
+		l.add_theme_color_override("font_outline_color", Kit.INK)
 		col.add_child(l)
 	_title.add_theme_font_size_override("font_size", 64)
 	_sub.add_theme_font_size_override("font_size", 24)
@@ -80,13 +80,13 @@ func _ready() -> void:
 	# Someone else's "skip the waiting": a vote.
 	var vote_row := CenterContainer.new()
 	col.add_child(vote_row)
-	_vote.add_theme_stylebox_override("panel", Ink.box("paper"))
+	_vote.add_theme_stylebox_override("panel", Kit.box("paper"))
 	_vote.custom_minimum_size = Vector2(560, 0)
 	vote_row.add_child(_vote)
 	var vcol := VBoxContainer.new()
 	vcol.add_theme_constant_override("separation", 10)
 	_vote.add_child(vcol)
-	Ink.style_label(_vote_text, 18, Ink.TEXT_INK)
+	Kit.style_label(_vote_text, 18, Kit.TEXT_INK)
 	_vote_text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_vote_text.custom_minimum_size = Vector2(520, 0)
 	vcol.add_child(_vote_text)
@@ -106,7 +106,7 @@ func on_vote(p: Dictionary) -> void:
 	for c in _vote_row.get_children():
 		c.queue_free()
 	for i in p.options.size():
-		var b := Ink.button(p.options[i], i == 0)
+		var b := Kit.button(p.options[i], i == 0)
 		b.focus_mode = Control.FOCUS_NONE
 		var choice: int = i
 		b.pressed.connect(func(): vote.emit(choice); _vote.visible = false)
@@ -161,7 +161,7 @@ func _render_modes() -> void:
 		b.disabled = m[2] > clock.money
 		var chosen: bool = id == clock.mode
 		for st in ["normal", "hover", "pressed", "disabled"]:
-			b.add_theme_stylebox_override(st, Ink.button_box(st, chosen) if chosen else Ink.box("hud"))
+			b.add_theme_stylebox_override(st, Kit.button_box(st, chosen) if chosen else Kit.box("hud"))
 		var fc := Color.WHITE
 		for k in ["font_color", "font_hover_color", "font_pressed_color"]:
 			b.add_theme_color_override(k, fc)
@@ -232,12 +232,12 @@ func _draw_sky() -> void:
 	var c := Vector2(size.x / 2, size.y * 0.22)
 	match clock.get("place", -1):
 		Protocol.PLACE_HOME when not clock.get("night", true):
-			Ink.draw_disc(_sky, c, 40, Color("#ffd166"))
+			Kit.draw_disc(_sky, c, 40, Color("#ffd166"))
 		Protocol.PLACE_HOME:
-			Ink.draw_disc(_sky, c, 36, Color("#f4f1c9"))
-			Ink.draw_disc(_sky, c + Vector2(14, -8), 32, Color("#0d1330"))
+			Kit.draw_disc(_sky, c, 36, Color("#f4f1c9"))
+			Kit.draw_disc(_sky, c + Vector2(14, -8), 32, Color("#0d1330"))
 			for i in 24:
 				var sp := Vector2(fmod(i * 197.0, size.x), fmod(i * 83.0, size.y * 0.5))
 				_sky.draw_rect(Rect2(sp, Vector2(2, 2)), Color(1, 1, 1, 0.3 + 0.5 * fmod(i * 0.37, 1.0)))
 		Protocol.PLACE_COMMUTING:
-			Ink.draw_disc(_sky, c + Vector2(0, 30), 44, Color("#ffd166"))
+			Kit.draw_disc(_sky, c + Vector2(0, 30), 44, Color("#ffd166"))

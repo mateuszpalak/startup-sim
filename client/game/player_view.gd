@@ -5,7 +5,7 @@
 ## the movement for both the local player and interpolated remote ones.
 extends Node2D
 
-const Ink = preload("res://ui/ink_ui.gd")
+const Kit = preload("res://ui/ui_kit.gd")
 const ItemArt = preload("res://game/item_art.gd")
 
 const FACING_DOWN := 0
@@ -90,11 +90,11 @@ func setup(seed_id: int, nick: String, zoom: float) -> void:
 	set_seed(seed_id)
 	nick_label.text = nick
 	var ls := LabelSettings.new()
-	ls.font = Ink.font()
+	ls.font = Kit.font()
 	ls.font_size = 20
-	ls.font_color = Ink.PAPER_HI
+	ls.font_color = Kit.PAPER_HI
 	ls.outline_size = 6
-	ls.outline_color = Ink.INK
+	ls.outline_color = Kit.INK
 	nick_label.label_settings = ls
 	nick_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	nick_label.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
@@ -124,7 +124,7 @@ func set_talking(on: bool, whisper := false) -> void:
 
 func _draw_talk() -> void:
 	# A little mouth-and-waves glyph above the nick, inked like the rest.
-	var ink := Ink.INK
+	var ink := Kit.INK
 	var fill := Color("#9fd0c0") if not _talk_whisper else Color("#d9c7a0")
 	_talk.draw_circle(Vector2.ZERO, 9.0, ink)
 	_talk.draw_circle(Vector2.ZERO, 7.0, fill)
@@ -188,10 +188,10 @@ func set_seed(seed_id: int) -> void:
 
 
 func _build_bubble() -> void:
-	bubble.add_theme_stylebox_override("panel", Ink.box("bubble"))
+	bubble.add_theme_stylebox_override("panel", Kit.box("bubble"))
 	bubble_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	bubble_label.custom_minimum_size = Vector2(BUBBLE_WIDTH, 0)
-	Ink.style_label(bubble_label, 16, Ink.TEXT_INK)
+	Kit.style_label(bubble_label, 16, Kit.TEXT_INK)
 	bubble.add_child(bubble_label)
 	bubble.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
 	bubble.scale = Vector2.ONE / _zoom

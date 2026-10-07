@@ -3,7 +3,7 @@
 ## The data lives in a MailBox shared by both windows.
 extends HBoxContainer
 
-const Ink = preload("res://ui/ink_ui.gd")
+const Kit = preload("res://ui/ui_kit.gd")
 const Protocol = preload("res://net/protocol.gd")
 
 const INK := Color("#1c2430")
@@ -40,13 +40,13 @@ func _ready() -> void:
 	var top := HBoxContainer.new()
 	top.add_theme_constant_override("separation", 6)
 	if trash_mode:
-		var empty := Ink.button("Opróżnij kosz", false, true)
+		var empty := Kit.button("Opróżnij kosz", false, true)
 		empty.pressed.connect(func():
 			box.act(Protocol.MA_EMPTY_TRASH, 0)
 			_selected = 0)
 		top.add_child(empty)
 	else:
-		var write := Ink.button("✎ Napisz", true)
+		var write := Kit.button("✎ Napisz", true)
 		write.pressed.connect(func(): _start_compose("", "", ""))
 		top.add_child(write)
 	left.add_child(top)
@@ -59,7 +59,7 @@ func _ready() -> void:
 	left.add_child(sc)
 
 	var right := PanelContainer.new()
-	right.add_theme_stylebox_override("panel", Ink.box("card"))
+	right.add_theme_stylebox_override("panel", Kit.box("card"))
 	right.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	add_child(right)
 	var rs := ScrollContainer.new()
@@ -97,10 +97,10 @@ func _build_compose() -> void:
 	_compose.add_child(_body)
 	var b := HBoxContainer.new()
 	b.add_theme_constant_override("separation", 8)
-	var send := Ink.button("Wyślij", true)
+	var send := Kit.button("Wyślij", true)
 	send.pressed.connect(_send)
 	b.add_child(send)
-	var cancel := Ink.button("Anuluj")
+	var cancel := Kit.button("Anuluj")
 	cancel.pressed.connect(func():
 		_composing = false
 		_sig = ""
@@ -162,7 +162,7 @@ func render() -> void:
 		b.custom_minimum_size = Vector2(250, 52)
 		b.add_theme_font_size_override("font_size", 14)
 		for st in ["normal", "hover", "pressed", "focus"]:
-			b.add_theme_stylebox_override(st, Ink.box("card_hover" if m.id == _selected or st == "hover" else "card"))
+			b.add_theme_stylebox_override(st, Kit.box("card_hover" if m.id == _selected or st == "hover" else "card"))
 		var id: int = m.id
 		b.pressed.connect(func():
 			_selected = id
@@ -187,15 +187,15 @@ func render() -> void:
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 8)
 	if trash_mode:
-		var restore := Ink.button("Przywróć", true)
+		var restore := Kit.button("Przywróć", true)
 		restore.pressed.connect(func(): box.act(Protocol.MA_RESTORE, m.id))
 		row.add_child(restore)
 	else:
 		if recipients.has(m.from):
-			var reply := Ink.button("Odpowiedz", true)
+			var reply := Kit.button("Odpowiedz", true)
 			reply.pressed.connect(func(): _start_compose(m.from, "Re: " + m.subject, "\n\n> " + m.body.replace("\n", "\n> ")))
 			row.add_child(reply)
-		var del := Ink.button("Do kosza", false, true)
+		var del := Kit.button("Do kosza", false, true)
 		del.pressed.connect(func():
 			box.act(Protocol.MA_TRASH, m.id)
 			_selected = 0)
@@ -205,6 +205,6 @@ func render() -> void:
 
 func _label(text: String, size: int, color: Color) -> Label:
 	var l := Label.new()
-	Ink.style_label(l, size, color)
+	Kit.style_label(l, size, color)
 	l.text = text
 	return l

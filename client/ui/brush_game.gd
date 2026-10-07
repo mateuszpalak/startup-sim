@@ -3,7 +3,7 @@
 ## scrub them away. Clean = the server is told (`Action` SCRUB); Esc gives up.
 extends Control
 
-const Ink = preload("res://ui/ink_ui.gd")
+const Kit = preload("res://ui/ui_kit.gd")
 
 signal scrubbed
 
@@ -24,13 +24,13 @@ var _t := 0.0
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	visible = false
-	_panel.add_theme_stylebox_override("panel", Ink.box("paper"))
+	_panel.add_theme_stylebox_override("panel", Kit.box("paper"))
 	add_child(_panel)
 	var col := VBoxContainer.new()
 	col.add_theme_constant_override("separation", 8)
 	_panel.add_child(col)
-	col.add_child(Ink.label("Szorowanie sedesu", 24, Ink.TEXT_INK))
-	col.add_child(Ink.label("Trzymaj lewy przycisk myszy i szoruj smugi szczotką · Esc — odpuść", 15, Ink.TEXT_MUTED))
+	col.add_child(Kit.label("Szorowanie sedesu", 24, Kit.TEXT_INK))
+	col.add_child(Kit.label("Trzymaj lewy przycisk myszy i szoruj smugi szczotką · Esc — odpuść", 15, Kit.TEXT_MUTED))
 	_area.custom_minimum_size = AREA
 	_area.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	_area.mouse_filter = Control.MOUSE_FILTER_STOP
@@ -41,7 +41,7 @@ func _ready() -> void:
 		_mouse = Vector2(-100, -100)
 		_area.queue_redraw())
 	col.add_child(_area)
-	Ink.style_label(_info, 17, Ink.TEXT_INK)
+	Kit.style_label(_info, 17, Kit.TEXT_INK)
 	col.add_child(_info)
 	get_viewport().size_changed.connect(_place)
 
@@ -118,7 +118,7 @@ func _process(delta: float) -> void:
 ## the brush where the mouse is.
 func _draw_bowl() -> void:
 	var c := AREA / 2
-	var ink := Ink.INK
+	var ink := Kit.INK
 	_oval(c + Vector2(0, 4), Vector2(160, 128), Color(0, 0, 0, 0.12))
 	_oval(c, Vector2(158, 126), ink)
 	_oval(c, Vector2(154, 122), Color("#f4f4f2"))

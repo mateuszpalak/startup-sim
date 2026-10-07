@@ -5,7 +5,7 @@
 ## closes it.
 extends Control
 
-const Ink = preload("res://ui/ink_ui.gd")
+const Kit = preload("res://ui/ui_kit.gd")
 const ItemArt = preload("res://game/item_art.gd")
 const Protocol = preload("res://net/protocol.gd")
 
@@ -37,28 +37,28 @@ var _sig := ""
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	visible = false
-	_panel.add_theme_stylebox_override("panel", Ink.box("paper"))
+	_panel.add_theme_stylebox_override("panel", Kit.box("paper"))
 	add_child(_panel)
 	var col := VBoxContainer.new()
 	col.add_theme_constant_override("separation", 8)
 	_panel.add_child(col)
-	Ink.style_label(_title, 24, Ink.TEXT_INK)
+	Kit.style_label(_title, 24, Kit.TEXT_INK)
 	col.add_child(_title)
-	Ink.style_label(_info, 15, Ink.TEXT_MUTED)
+	Kit.style_label(_info, 15, Kit.TEXT_MUTED)
 	col.add_child(_info)
 	_grid.columns = COLUMNS
 	_grid.add_theme_constant_override("h_separation", 6)
 	_grid.add_theme_constant_override("v_separation", 6)
 	col.add_child(_drop_area(_grid, "inv"))
-	col.add_child(Ink.label("Twoje rzeczy", 16, Ink.TEXT_INK))
+	col.add_child(Kit.label("Twoje rzeczy", 16, Kit.TEXT_INK))
 	_inv.add_theme_constant_override("separation", 6)
 	col.add_child(_drop_area(_inv, "box"))
-	Ink.style_label(_caption, 15, Ink.TEXT_INK)
+	Kit.style_label(_caption, 15, Kit.TEXT_INK)
 	_caption.custom_minimum_size = Vector2(0, 22)
 	col.add_child(_caption)
 	_buttons.add_theme_constant_override("separation", 8)
 	col.add_child(_buttons)
-	col.add_child(Ink.label("Przeciągnij myszką (albo kliknij), żeby wyjąć lub włożyć · Esc zamknij", 14, Ink.TEXT_MUTED))
+	col.add_child(Kit.label("Przeciągnij myszką (albo kliknij), żeby wyjąć lub włożyć · Esc zamknij", 14, Kit.TEXT_MUTED))
 	_panel.resized.connect(_place)
 	get_viewport().size_changed.connect(_place)
 
@@ -150,14 +150,14 @@ func _fill() -> void:
 			var idle: bool = state.minutes == 0
 			_button("Włącz", Protocol.CONTAINER_START, idle and _count(ItemArt.EMPTY_CUP) > 0 and _count(ItemArt.CUP) == 0)
 			_button("Rozładuj do szafki", Protocol.CONTAINER_UNLOAD, idle and _count(ItemArt.CUP) > 0)
-	var close_b := Ink.button("Zamknij")
+	var close_b := Kit.button("Zamknij")
 	close_b.focus_mode = Control.FOCUS_NONE
 	close_b.pressed.connect(close)
 	_buttons.add_child(close_b)
 
 
 func _button(text: String, act: int, enabled: bool) -> void:
-	var b := Ink.button(text, true)
+	var b := Kit.button(text, true)
 	b.focus_mode = Control.FOCUS_NONE
 	b.disabled = not enabled
 	b.pressed.connect(func(): action.emit(which, act, 0, 0))
@@ -196,21 +196,21 @@ func _slot(kind: int, count: int, label: String, from: String, index: int) -> Co
 
 func _draw_slot(box: Control, kind: int, count: int, from: String, index: int) -> void:
 	var hover: bool = box.get_meta("hover", false) and kind != 0
-	Ink.box("slot_active" if hover else "slot").draw(box.get_canvas_item(), Rect2(Vector2.ZERO, box.size))
+	Kit.box("slot_active" if hover else "slot").draw(box.get_canvas_item(), Rect2(Vector2.ZERO, box.size))
 	if kind != 0:
 		ItemArt.draw(box, kind, Vector2(10, 8), (box.size.x - 20) / 16.0)
 		if count == 0:  # none left: a faded picture
-			box.draw_rect(Rect2(Vector2(4, 4), box.size - Vector2(8, 8)), Color(Ink.PAPER_HI, 0.65))
-	var f := Ink.font()
+			box.draw_rect(Rect2(Vector2(4, 4), box.size - Vector2(8, 8)), Color(Kit.PAPER_HI, 0.65))
+	var f := Kit.font()
 	if from == "inv":
 		var cap := "ręce" if index == 0 else str(index)
-		box.draw_string_outline(f, Vector2(6, box.size.y - 6), cap, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, 4, Ink.INK)
-		box.draw_string(f, Vector2(6, box.size.y - 6), cap, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Ink.GOLD)
+		box.draw_string_outline(f, Vector2(6, box.size.y - 6), cap, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, 4, Kit.INK)
+		box.draw_string(f, Vector2(6, box.size.y - 6), cap, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Kit.GOLD)
 	elif kind != 0 and (count != 1 or which not in [Protocol.CONTAINER_FRIDGE, Protocol.CONTAINER_BIN]):
 		var n := "×%d" % count
 		var at := Vector2(box.size.x - 8 - f.get_string_size(n, HORIZONTAL_ALIGNMENT_LEFT, -1, 16).x, box.size.y - 6)
-		box.draw_string_outline(f, at, n, HORIZONTAL_ALIGNMENT_LEFT, -1, 16, 4, Ink.INK)
-		box.draw_string(f, at, n, HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Ink.GOLD)
+		box.draw_string_outline(f, at, n, HORIZONTAL_ALIGNMENT_LEFT, -1, 16, 4, Kit.INK)
+		box.draw_string(f, at, n, HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Kit.GOLD)
 
 
 func _preview(kind: int) -> Control:

@@ -4,7 +4,7 @@
 ## drives it; id 0 closes it.
 extends Control
 
-const Ink = preload("res://ui/ink_ui.gd")
+const Kit = preload("res://ui/ui_kit.gd")
 const ItemArt = preload("res://game/item_art.gd")
 
 signal answer(id: int, choice: int)
@@ -23,15 +23,15 @@ var _answered_at := 0
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	visible = false
-	_panel.add_theme_stylebox_override("panel", Ink.box("paper"))
+	_panel.add_theme_stylebox_override("panel", Kit.box("paper"))
 	_panel.custom_minimum_size = Vector2(560, 0)
 	add_child(_panel)
 	var col := VBoxContainer.new()
 	col.add_theme_constant_override("separation", 10)
 	_panel.add_child(col)
-	Ink.style_label(_who, 16, Ink.ACCENT)
+	Kit.style_label(_who, 16, Kit.ACCENT)
 	col.add_child(_who)
-	Ink.style_label(_text, 20, Ink.TEXT_INK)
+	Kit.style_label(_text, 20, Kit.TEXT_INK)
 	_text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_text.custom_minimum_size = Vector2(528, 0)  # wrap width (else it measures as a tall column)
 	col.add_child(_text)
@@ -88,7 +88,7 @@ func on_dialog(p: Dictionary) -> void:
 		if kind != 0:
 			shelf.add_child(_item_slot(kind, i, p.options[i]))
 			continue
-		var b := Ink.button("%d. %s" % [i + 1, p.options[i]])
+		var b := Kit.button("%d. %s" % [i + 1, p.options[i]])
 		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
 		b.focus_mode = Control.FOCUS_NONE
 		b.pressed.connect(func(): _choose(choice))
@@ -109,16 +109,16 @@ func _item_slot(kind: int, i: int, text: String) -> Control:
 	box.tooltip_text = text
 	box.pressed.connect(func(): _choose(i))
 	box.draw.connect(func():
-		Ink.box("slot_active" if box.is_hovered() else "slot").draw(box.get_canvas_item(), Rect2(Vector2.ZERO, box.size))
+		Kit.box("slot_active" if box.is_hovered() else "slot").draw(box.get_canvas_item(), Rect2(Vector2.ZERO, box.size))
 		ItemArt.draw(box, kind, Vector2(12, 10), (box.size.x - 24) / 16.0)
-		var f := Ink.font()
-		box.draw_string_outline(f, Vector2(8, box.size.y - 8), str(i + 1), HORIZONTAL_ALIGNMENT_LEFT, -1, 16, 4, Ink.INK)
-		box.draw_string(f, Vector2(8, box.size.y - 8), str(i + 1), HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Ink.GOLD))
+		var f := Kit.font()
+		box.draw_string_outline(f, Vector2(8, box.size.y - 8), str(i + 1), HORIZONTAL_ALIGNMENT_LEFT, -1, 16, 4, Kit.INK)
+		box.draw_string(f, Vector2(8, box.size.y - 8), str(i + 1), HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Kit.GOLD))
 	box.mouse_entered.connect(box.queue_redraw)
 	box.mouse_exited.connect(box.queue_redraw)
 	col.add_child(box)
 	var l := Label.new()
-	Ink.style_label(l, 13, Ink.TEXT_INK)
+	Kit.style_label(l, 13, Kit.TEXT_INK)
 	l.text = text
 	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART

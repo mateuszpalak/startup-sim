@@ -4,7 +4,7 @@
 ## "TERAZ!"). The average is the roll's quality (0..100), sent to the server.
 extends Control
 
-const Ink = preload("res://ui/ink_ui.gd")
+const Kit = preload("res://ui/ui_kit.gd")
 
 signal rolled(quality: int)
 
@@ -36,15 +36,15 @@ var _bar := Control.new()
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	visible = false
-	_panel.add_theme_stylebox_override("panel", Ink.box("paper"))
+	_panel.add_theme_stylebox_override("panel", Kit.box("paper"))
 	_panel.custom_minimum_size = Vector2(520, 0)
 	add_child(_panel)
 	var col := VBoxContainer.new()
 	col.add_theme_constant_override("separation", 10)
 	_panel.add_child(col)
-	Ink.style_label(_title, 22, Ink.TEXT_INK)
+	Kit.style_label(_title, 22, Kit.TEXT_INK)
 	col.add_child(_title)
-	Ink.style_label(_hint, 16, Color("#4a5566"))
+	Kit.style_label(_hint, 16, Color("#4a5566"))
 	_hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	col.add_child(_hint)
 	_bar.custom_minimum_size = Vector2(480, 46)
@@ -183,10 +183,10 @@ func _draw_bar() -> void:
 		1:
 			_bar.draw_rect(Rect2(r.position + Vector2(r.size.x * 0.45, 0), Vector2(r.size.x * 0.1, r.size.y)), Color("#9fd46a"))
 			var x := r.position.x + r.size.x * _marker()
-			_bar.draw_rect(Rect2(Vector2(x - 3, r.position.y - 4), Vector2(6, r.size.y + 8)), Ink.INK)
+			_bar.draw_rect(Rect2(Vector2(x - 3, r.position.y - 4), Vector2(6, r.size.y + 8)), Kit.INK)
 		2:
 			var now := _seal_at > 0.0 and _t >= _seal_at
 			_bar.draw_rect(r, Color("#9fd46a") if now else Color("#f4ead0"))
 			_bar.draw_string(ThemeDB.fallback_font, r.position + Vector2(r.size.x / 2 - 40, 22), "TERAZ!" if now else "czekaj…",
-				HORIZONTAL_ALIGNMENT_LEFT, -1, 20, Ink.INK)
-	_bar.draw_rect(r, Ink.INK, false, 2.0)
+				HORIZONTAL_ALIGNMENT_LEFT, -1, 20, Kit.INK)
+	_bar.draw_rect(r, Kit.INK, false, 2.0)

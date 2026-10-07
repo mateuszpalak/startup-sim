@@ -5,7 +5,7 @@
 extends Control
 
 const ItemArt = preload("res://game/item_art.gd")
-const Ink = preload("res://ui/ink_ui.gd")
+const Kit = preload("res://ui/ui_kit.gd")
 
 signal slot_clicked(pocket: int)
 
@@ -18,7 +18,7 @@ var _panel := PanelContainer.new()
 
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_panel.add_theme_stylebox_override("panel", Ink.box("hud"))
+	_panel.add_theme_stylebox_override("panel", Kit.box("hud"))
 	add_child(_panel)
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 10)
@@ -39,16 +39,16 @@ func _ready() -> void:
 		if hands:
 			var sep := Control.new()
 			sep.custom_minimum_size = Vector2(8, 0)
-			sep.draw.connect(func(): sep.draw_line(Vector2(4, 10), Vector2(4, sep.size.y - 10), Color(Ink.DARK_HI, 0.9), 2.0, true))
+			sep.draw.connect(func(): sep.draw_line(Vector2(4, 10), Vector2(4, sep.size.y - 10), Color(Kit.DARK_HI, 0.9), 2.0, true))
 			row.add_child(sep)
 	# Caption above, key help below the bar (outlined text over the world).
 	for l in [_caption, _keys]:
 		l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		l.add_theme_constant_override("outline_size", 6)
-		l.add_theme_color_override("font_outline_color", Ink.INK)
+		l.add_theme_color_override("font_outline_color", Kit.INK)
 		add_child(l)
-	Ink.style_label(_caption, 18, Ink.TEXT)
-	Ink.style_label(_keys, 14, Ink.TEXT_DIM)
+	Kit.style_label(_caption, 18, Kit.TEXT)
+	Kit.style_label(_keys, 14, Kit.TEXT_DIM)
 	_keys.text = "1–3 wyjmij / schowaj  ·  Q upuść  ·  G podaj  ·  F użyj"
 	_panel.resized.connect(_place)
 	get_viewport().size_changed.connect(_place)
@@ -95,12 +95,12 @@ func _slot(i: int) -> Dictionary:
 func _draw_slot(box: Control, i: int) -> void:
 	var r := Rect2(Vector2.ZERO, box.size)
 	var s := _slot(i)
-	Ink.box("slot_active" if i == 0 and s.kind != 0 else "slot").draw(box.get_canvas_item(), r)
+	Kit.box("slot_active" if i == 0 and s.kind != 0 else "slot").draw(box.get_canvas_item(), r)
 	if s.kind != 0:
 		var scale: float = (box.size.x - 20) / 16.0
 		ItemArt.draw(box, s.kind, Vector2(10, 10), scale)
-	var f := Ink.font()
+	var f := Kit.font()
 	var caption := "ręce" if i == 0 else str(i)
 	var p := Vector2(8, box.size.y - 8)
-	box.draw_string_outline(f, p, caption, HORIZONTAL_ALIGNMENT_LEFT, -1, 16, 4, Ink.INK)
-	box.draw_string(f, p, caption, HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Ink.GOLD if i > 0 else Ink.TEXT_DIM)
+	box.draw_string_outline(f, p, caption, HORIZONTAL_ALIGNMENT_LEFT, -1, 16, 4, Kit.INK)
+	box.draw_string(f, p, caption, HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Kit.GOLD if i > 0 else Kit.TEXT_DIM)

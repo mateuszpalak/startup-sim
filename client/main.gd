@@ -15,7 +15,7 @@ const NetClient = preload("res://net/net_client.gd")
 const Building = preload("res://map/building.gd")
 const Game = preload("res://game/game.gd")
 const CharacterScreen = preload("res://ui/character_screen.gd")
-const Ink = preload("res://ui/ink_ui.gd")
+const Kit = preload("res://ui/ui_kit.gd")
 const Desktop = preload("res://ui/desktop.gd")
 const Protocol = preload("res://net/protocol.gd")
 const DayScreen = preload("res://ui/day_screen.gd")
@@ -67,10 +67,10 @@ var _last_place := -1
 
 func _ready() -> void:
 	# Pixel font and frames everywhere (also text drawn with the fallback font).
-	ThemeDB.fallback_font = Ink.font()
+	ThemeDB.fallback_font = Kit.font()
 	ThemeDB.fallback_font_size = 16
-	ThemeDB.get_default_theme().merge_with(Ink.theme())
-	get_tree().root.theme = Ink.theme()
+	ThemeDB.get_default_theme().merge_with(Kit.theme())
+	get_tree().root.theme = Kit.theme()
 	for a in OS.get_cmdline_user_args():
 		var kv: PackedStringArray = a.trim_prefix("--").split("=", true, 1)
 		args[kv[0]] = kv[1] if kv.size() > 1 else ""
@@ -512,19 +512,19 @@ func _show_update(version: String, url: String, required: bool) -> void:
 	for c in update_layer.get_children():
 		c.queue_free()
 	var panel := PanelContainer.new()
-	panel.add_theme_stylebox_override("panel", Ink.box("paper"))
+	panel.add_theme_stylebox_override("panel", Kit.box("paper"))
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 12)
 	panel.add_child(row)
 	var text := "Ta wersja gry (%s) nie pasuje do serwera — pobierz najnowszą." % Updates.current() if required \
 		else "Dostępna nowa wersja gry: %s (masz %s)." % [version, Updates.current()]
-	var label := Ink.label(text, 18, Ink.TEXT_INK)
+	var label := Kit.label(text, 18, Kit.TEXT_INK)
 	label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	row.add_child(label)
-	var get_it := Ink.button("Pobierz", true)
+	var get_it := Kit.button("Pobierz", true)
 	get_it.pressed.connect(func(): OS.shell_open(url))
 	row.add_child(get_it)
-	var later := Ink.button("Zamknij" if required else "Później")
+	var later := Kit.button("Zamknij" if required else "Później")
 	later.pressed.connect(func(): panel.queue_free())
 	row.add_child(later)
 	update_layer.add_child(panel)
@@ -548,27 +548,27 @@ func _offer_crash_report(crashed: Dictionary) -> void:
 		_send_crash_report(report, null)
 		return
 	var panel := PanelContainer.new()
-	panel.add_theme_stylebox_override("panel", Ink.box("paper"))
+	panel.add_theme_stylebox_override("panel", Kit.box("paper"))
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 10)
 	box.custom_minimum_size = Vector2(520, 0)
 	panel.add_child(box)
-	box.add_child(Ink.label("Gra zamknęła się niespodziewanie", 26, Ink.TEXT_INK))
-	var info := Ink.label("Wysłać twórcom raport? Pomoże znaleźć błąd. Zawiera koniec dziennika gry " +
-		"(bez haseł), wersję gry, system i nazwę procesora i karty graficznej.", 17, Ink.TEXT_INK, true)
+	box.add_child(Kit.label("Gra zamknęła się niespodziewanie", 26, Kit.TEXT_INK))
+	var info := Kit.label("Wysłać twórcom raport? Pomoże znaleźć błąd. Zawiera koniec dziennika gry " +
+		"(bez haseł), wersję gry, system i nazwę procesora i karty graficznej.", 17, Kit.TEXT_INK, true)
 	info.custom_minimum_size.x = 520  # wrapped text needs a width
 	box.add_child(info)
 	var always := CheckBox.new()
 	always.text = "Wysyłaj zawsze bez pytania (zmienisz w Ustawieniach)"
 	for k in ["font_color", "font_hover_color", "font_pressed_color", "font_focus_color", "font_hover_pressed_color"]:
-		always.add_theme_color_override(k, Ink.TEXT_INK)
+		always.add_theme_color_override(k, Kit.TEXT_INK)
 	box.add_child(always)
-	var status := Ink.label("", 16, Ink.TEXT_INK, true)
+	var status := Kit.label("", 16, Kit.TEXT_INK, true)
 	status.custom_minimum_size.x = 520
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 10)
-	var send := Ink.button("Wyślij raport", true)
-	var skip := Ink.button("Nie wysyłaj")
+	var send := Kit.button("Wyślij raport", true)
+	var skip := Kit.button("Nie wysyłaj")
 	for b in [send, skip]:
 		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		row.add_child(b)

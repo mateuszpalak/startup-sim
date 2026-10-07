@@ -43,7 +43,7 @@ const PuddleView = preload("res://game/puddle_view.gd")
 const SmokeView = preload("res://game/smoke_view.gd")
 const LightView = preload("res://game/light_view.gd")
 const Settings = preload("res://ui/settings.gd")
-const Ink = preload("res://ui/ink_ui.gd")
+const Kit = preload("res://ui/ui_kit.gd")
 
 ## Nick / bubble tags are drawn at screen scale (the 3D world places them).
 const ZOOM := 1.0
@@ -318,9 +318,9 @@ func setup(p_net, p_building, welcome: Dictionary, p_nick: String, args: Diction
 	status_layer.add_child(hud)
 	hud.slot_clicked.connect(_pocket_key)
 	status_layer.add_child(stats_hud)
-	var cp := Ink.panel("hud")
+	var cp := Kit.panel("hud")
 	cp.position = Vector2(16, 16)
-	Ink.style_label(clock_label, 20, Ink.TEXT)
+	Kit.style_label(clock_label, 20, Kit.TEXT)
 	cp.add_child(clock_label)
 	status_layer.add_child(cp)
 	add_child(daylight)

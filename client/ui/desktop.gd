@@ -4,7 +4,7 @@
 ## re-sends our last action when the server's state shows it got lost.
 extends Control
 
-const Ink = preload("res://ui/ink_ui.gd")
+const Kit = preload("res://ui/ui_kit.gd")
 
 const Protocol = preload("res://net/protocol.gd")
 const PlayerView = preload("res://game/player_view.gd")
@@ -127,11 +127,11 @@ func _build_desktop() -> void:
 	_root.add_child(icons)
 	icons.add_child(_icon("Przeglądarka", "browser", func(): _open_window("browser")))
 	var mail_icon := _icon("Poczta", "mail", func(): _open_window("mail"))
-	Ink.style_label(_mail_icon_badge, 16, Color.WHITE)
+	Kit.style_label(_mail_icon_badge, 16, Color.WHITE)
 	var badge_bg := StyleBoxFlat.new()
-	badge_bg.bg_color = Ink.RED
-	badge_bg.border_color = Ink.INK
-	badge_bg.set_border_width_all(Ink.LINE)
+	badge_bg.bg_color = Kit.RED
+	badge_bg.border_color = Kit.INK
+	badge_bg.set_border_width_all(Kit.LINE)
 	badge_bg.content_margin_left = 6
 	badge_bg.content_margin_right = 6
 	_mail_icon_badge.add_theme_stylebox_override("normal", badge_bg)
@@ -143,13 +143,13 @@ func _build_desktop() -> void:
 
 	# Taskbar.
 	var bar := PanelContainer.new()
-	bar.add_theme_stylebox_override("panel", Ink.box("hud"))
+	bar.add_theme_stylebox_override("panel", Kit.box("hud"))
 	bar.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
 	bar.offset_top = -52
 	_root.add_child(bar)
 	var row := HBoxContainer.new()
 	bar.add_child(row)
-	var start_btn := Ink.button("◆ StartOS")
+	var start_btn := Kit.button("◆ StartOS")
 	start_btn.tooltip_text = "Menu gry: ustawienia, wyjście"
 	start_btn.pressed.connect(func(): menu_requested.emit())
 	row.add_child(start_btn)
@@ -164,8 +164,8 @@ func _build_desktop() -> void:
 	_toast.position = Vector2(-380, 16)
 	_toast.size = Vector2(360, 0)
 	_toast.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	Ink.style_label(_toast, 16, Ink.TEXT)
-	_toast.add_theme_stylebox_override("normal", Ink.box("hud"))
+	Kit.style_label(_toast, 16, Kit.TEXT)
+	_toast.add_theme_stylebox_override("normal", Kit.box("hud"))
 	_toast.visible = false
 	_root.add_child(_toast)
 
@@ -229,7 +229,7 @@ func _icon(caption: String, kind: String, on_open: Callable) -> Control:
 ## Desktop icons, hand-drawn like the rest of the game (ink outlines):
 ## browser, mail, trash, chat, calendar, company, tasks.
 static func draw_icon(c: Control, kind: String) -> void:
-	var ink := Ink.INK
+	var ink := Kit.INK
 	var o := Vector2(c.size.x / 2, 26)
 	match kind:
 		"browser":  # a globe
@@ -329,18 +329,18 @@ const TITLES := {"browser": "Przeglądarka — praca.example", "mail": "Poczta �
 
 func _open_window(name: String) -> void:
 	if not _windows.has(name):
-		var win := Ink.panel("paper")
+		var win := Kit.panel("paper")
 		var col := VBoxContainer.new()
 		col.add_theme_constant_override("separation", 0)
 		win.add_child(col)
 		var title_bar := PanelContainer.new()
-		title_bar.add_theme_stylebox_override("panel", Ink.box("title"))
+		title_bar.add_theme_stylebox_override("panel", Kit.box("title"))
 		var trow := HBoxContainer.new()
 		title_bar.add_child(trow)
 		var tl := _label(TITLES[name] % [profile.get("email", "")] if name == "mail" else TITLES[name], 16, Color.WHITE)
 		tl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		trow.add_child(tl)
-		var close := Ink.button("X", false, true)
+		var close := Kit.button("X", false, true)
 		close.pressed.connect(func(): _close_window(name))
 		trow.add_child(close)
 		title_bar.gui_input.connect(func(ev): _drag(win, ev))
@@ -366,7 +366,7 @@ func _open_window(name: String) -> void:
 		_root.add_child(win)
 		_windows[name] = win
 		_body[name] = body
-		var tbtn := Ink.button({"browser": "Przeglądarka", "mail": "Poczta", "interview": "Rozmowa"}[name])
+		var tbtn := Kit.button({"browser": "Przeglądarka", "mail": "Poczta", "interview": "Rozmowa"}[name])
 		tbtn.pressed.connect(func(): _focus(name))
 		tbtn.name = "task_" + name
 		_taskbar.add_child(tbtn)
@@ -636,8 +636,8 @@ func _video_tile(parent: Container, who: String, look: int, appearance: Dictiona
 	var tile := PanelContainer.new()
 	var s := StyleBoxFlat.new()
 	s.bg_color = Color("#20242e")
-	s.border_color = Ink.INK
-	s.set_border_width_all(Ink.LINE)
+	s.border_color = Kit.INK
+	s.set_border_width_all(Kit.LINE)
 	tile.add_theme_stylebox_override("panel", s)
 	tile.custom_minimum_size = Vector2(230, 170)
 	var stage := Control.new()
@@ -871,8 +871,8 @@ func _toast_msg(text: String) -> void:
 				_toast.visible = false)
 
 
-func _label(text: String, size: int, color := Ink.TEXT_INK, wrap := true) -> Label:
-	return Ink.label(text, size, color, wrap)
+func _label(text: String, size: int, color := Kit.TEXT_INK, wrap := true) -> Label:
+	return Kit.label(text, size, color, wrap)
 
 
 func _card(parent: Container) -> VBoxContainer:
@@ -880,7 +880,7 @@ func _card(parent: Container) -> VBoxContainer:
 
 
 func _card_in(parent: Container) -> VBoxContainer:
-	var panel := Ink.panel("card")
+	var panel := Kit.panel("card")
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 8)
 	panel.add_child(box)
@@ -889,6 +889,6 @@ func _card_in(parent: Container) -> VBoxContainer:
 
 
 func _button(text: String, primary := true) -> Button:
-	var b := Ink.button(text, primary)
+	var b := Kit.button(text, primary)
 	b.custom_minimum_size = Vector2(0, 36)
 	return b

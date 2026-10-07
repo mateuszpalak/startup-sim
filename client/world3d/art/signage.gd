@@ -7,7 +7,7 @@ extends RefCounted
 
 const MeshBatch = preload("res://world3d/mesh_batch.gd")
 const S = preload("res://world3d/art/shapes.gd")
-const Ink = preload("res://ui/ink_ui.gd")
+const Kit = preload("res://ui/ui_kit.gd")
 
 const WALL_T := 0.28
 const PLATE := Color("#d9c27a")
@@ -23,7 +23,7 @@ static func build(mb, root: Node3D) -> void:
 static func _label(text: String, size: int, pixel: float, col: Color, pos: Vector3, facing: Vector3, outline := 0, out_col := Color.BLACK) -> Label3D:
 	var l := Label3D.new()
 	l.text = text
-	l.font = Ink.font()
+	l.font = Kit.font()
 	l.font_size = size
 	l.pixel_size = pixel
 	l.modulate = col
@@ -69,7 +69,7 @@ static func _plaques(mb, root: Node3D) -> void:
 				things.xf = keep
 				var name: String = map.room_name(target)
 				var px := minf(0.0026, 0.42 / maxf(1.0, name.length() * 15.0))
-				root.add_child(_label(name, 32, px, Ink.INK, c + dir * 0.021, dir))
+				root.add_child(_label(name, 32, px, Kit.INK, c + dir * 0.021, dir))
 
 
 ## Green EXIT signs over the doors into the stairwell, on the side you

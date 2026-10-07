@@ -3,7 +3,7 @@
 ## it. The game gives the list (game.gd `_actions_here`).
 extends Control
 
-const Ink = preload("res://ui/ink_ui.gd")
+const Kit = preload("res://ui/ui_kit.gd")
 const ItemArt = preload("res://game/item_art.gd")
 
 const TILE := Vector2(132, 124)
@@ -18,24 +18,24 @@ var _runs: Array[Callable] = []
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	visible = false
-	_panel.add_theme_stylebox_override("panel", Ink.box("paper"))
+	_panel.add_theme_stylebox_override("panel", Kit.box("paper"))
 	add_child(_panel)
 	var col := VBoxContainer.new()
 	col.add_theme_constant_override("separation", 10)
 	_panel.add_child(col)
 	var title := Label.new()
-	Ink.style_label(title, 20, Ink.TEXT_INK)
+	Kit.style_label(title, 20, Kit.TEXT_INK)
 	title.text = "Co mogę teraz zrobić?"
 	col.add_child(title)
 	_grid.columns = COLUMNS
 	_grid.add_theme_constant_override("h_separation", 8)
 	_grid.add_theme_constant_override("v_separation", 8)
 	col.add_child(_grid)
-	Ink.style_label(_empty, 16, Ink.TEXT_MUTED)
+	Kit.style_label(_empty, 16, Kit.TEXT_MUTED)
 	_empty.text = "Nic tu nie ma do zrobienia — podejdź do czegoś albo do kogoś."
 	col.add_child(_empty)
 	var hint := Label.new()
-	Ink.style_label(hint, 14, Ink.TEXT_MUTED)
+	Kit.style_label(hint, 14, Kit.TEXT_MUTED)
 	hint.text = "Klawisz numeru albo klik · Tab / Esc zamknij"
 	col.add_child(hint)
 	get_viewport().size_changed.connect(_place)
@@ -72,7 +72,7 @@ func _tile(i: int, a: Dictionary) -> Control:
 
 func _draw_tile(b: Button, i: int, a: Dictionary) -> void:
 	var r := Rect2(Vector2.ZERO, b.size)
-	Ink.box("slot_active" if b.is_hovered() else "slot").draw(b.get_canvas_item(), r)
+	Kit.box("slot_active" if b.is_hovered() else "slot").draw(b.get_canvas_item(), r)
 	var icon: Variant = a.get("icon", "")
 	var c := Vector2(b.size.x / 2, 44)
 	if icon is int and icon != 0:
@@ -81,25 +81,25 @@ func _draw_tile(b: Button, i: int, a: Dictionary) -> void:
 			_arrow_down(b, c + Vector2(26, 6))
 	else:
 		_icon(b, str(icon), c)
-	var f := Ink.font()
+	var f := Kit.font()
 	# The number to press (and the key it stands for).
 	var num := str(i + 1)
-	b.draw_string_outline(f, Vector2(8, 22), num, HORIZONTAL_ALIGNMENT_LEFT, -1, 18, 4, Ink.INK)
-	b.draw_string(f, Vector2(8, 22), num, HORIZONTAL_ALIGNMENT_LEFT, -1, 18, Ink.GOLD)
+	b.draw_string_outline(f, Vector2(8, 22), num, HORIZONTAL_ALIGNMENT_LEFT, -1, 18, 4, Kit.INK)
+	b.draw_string(f, Vector2(8, 22), num, HORIZONTAL_ALIGNMENT_LEFT, -1, 18, Kit.GOLD)
 	var key: String = a.key
 	var kw := f.get_string_size(key, HORIZONTAL_ALIGNMENT_LEFT, -1, 14).x
 	var kr := Rect2(b.size.x - kw - 18, 6, kw + 12, 20)
-	b.draw_rect(kr, Ink.INK)
+	b.draw_rect(kr, Kit.INK)
 	b.draw_rect(kr.grow(-1.5), Color("#3b3026"))
-	b.draw_string(f, Vector2(kr.position.x + 6, 21), key, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Ink.PAPER_HI)
+	b.draw_string(f, Vector2(kr.position.x + 6, 21), key, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Kit.PAPER_HI)
 	# What it does, up to two lines.
 	var text: String = a.text
 	var lines := _wrap(text, b.size.x - 12, f, 15)
 	for k in lines.size():
 		var lw := f.get_string_size(lines[k], HORIZONTAL_ALIGNMENT_LEFT, -1, 15).x
 		var at := Vector2((b.size.x - lw) / 2, 92 + k * 17)
-		b.draw_string_outline(f, at, lines[k], HORIZONTAL_ALIGNMENT_LEFT, -1, 15, 4, Ink.INK)
-		b.draw_string(f, at, lines[k], HORIZONTAL_ALIGNMENT_LEFT, -1, 15, Ink.PAPER_HI)
+		b.draw_string_outline(f, at, lines[k], HORIZONTAL_ALIGNMENT_LEFT, -1, 15, 4, Kit.INK)
+		b.draw_string(f, at, lines[k], HORIZONTAL_ALIGNMENT_LEFT, -1, 15, Kit.PAPER_HI)
 
 
 static func _wrap(text: String, width: float, f: Font, fs: int) -> PackedStringArray:
@@ -122,9 +122,9 @@ static func _wrap(text: String, width: float, f: Font, fs: int) -> PackedStringA
 
 ## A simple ink picture for an action that isn't an item.
 func _icon(c: CanvasItem, name: String, m: Vector2) -> void:
-	var ink := Ink.INK
-	var paper := Ink.PAPER_HI
-	var gold := Ink.GOLD
+	var ink := Kit.INK
+	var paper := Kit.PAPER_HI
+	var gold := Kit.GOLD
 	match name:
 		"hand":  # E: use what's next to you
 			c.draw_circle(m + Vector2(0, 6), 15, ink)
@@ -188,8 +188,8 @@ func _icon(c: CanvasItem, name: String, m: Vector2) -> void:
 
 
 func _arrow_down(c: CanvasItem, at: Vector2) -> void:
-	c.draw_line(at + Vector2(0, -10), at + Vector2(0, 6), Ink.INK, 5, true)
-	c.draw_colored_polygon(PackedVector2Array([at + Vector2(-8, 4), at + Vector2(8, 4), at + Vector2(0, 14)]), Ink.INK)
+	c.draw_line(at + Vector2(0, -10), at + Vector2(0, 6), Kit.INK, 5, true)
+	c.draw_colored_polygon(PackedVector2Array([at + Vector2(-8, 4), at + Vector2(8, 4), at + Vector2(0, 14)]), Kit.INK)
 
 
 func close() -> void:

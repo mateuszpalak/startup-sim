@@ -2,7 +2,7 @@
 ## close) and a body that holds one app.
 extends PanelContainer
 
-const Ink = preload("res://ui/ink_ui.gd")
+const Kit = preload("res://ui/ui_kit.gd")
 
 signal closed
 signal focused
@@ -12,20 +12,20 @@ var _title := Label.new()
 
 
 func setup(title: String, body: Control, pad := 12) -> void:
-	add_theme_stylebox_override("panel", Ink.box("paper"))
+	add_theme_stylebox_override("panel", Kit.box("paper"))
 	var col := VBoxContainer.new()
 	col.add_theme_constant_override("separation", 0)
 	add_child(col)
 	var bar := PanelContainer.new()
-	bar.add_theme_stylebox_override("panel", Ink.box("title"))
+	bar.add_theme_stylebox_override("panel", Kit.box("title"))
 	col.add_child(bar)
 	var row := HBoxContainer.new()
 	bar.add_child(row)
-	Ink.style_label(_title, 16, Color.WHITE)
+	Kit.style_label(_title, 16, Color.WHITE)
 	_title.text = title
 	_title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	row.add_child(_title)
-	var x := Ink.button("X", false, true)
+	var x := Kit.button("X", false, true)
 	x.focus_mode = Control.FOCUS_NONE
 	x.pressed.connect(func(): closed.emit())
 	row.add_child(x)

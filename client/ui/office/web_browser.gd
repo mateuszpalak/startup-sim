@@ -6,7 +6,7 @@
 ## opened in the player's own browser.
 extends VBoxContainer
 
-const Ink = preload("res://ui/ink_ui.gd")
+const Kit = preload("res://ui/ui_kit.gd")
 
 const START := "https://www.onet.pl/"
 const SEARCH := "https://duckduckgo.com/?q="
@@ -41,11 +41,11 @@ func _init() -> void:
 	var bar := HBoxContainer.new()
 	bar.add_theme_constant_override("separation", 6)
 	add_child(bar)
-	var back := Ink.button("←")
+	var back := Kit.button("←")
 	back.tooltip_text = "Wstecz"
 	back.pressed.connect(func(): _call("eval", "history.back()"))
 	bar.add_child(back)
-	var reload := Ink.button("⟳")
+	var reload := Kit.button("⟳")
 	reload.tooltip_text = "Odśwież"
 	reload.pressed.connect(func(): _call("reload"))
 	bar.add_child(reload)
@@ -53,12 +53,12 @@ func _init() -> void:
 	_addr.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_addr.select_all_on_focus = true
 	_addr.add_theme_font_size_override("font_size", 15)
-	_addr.add_theme_stylebox_override("normal", Ink.box("input"))
-	_addr.add_theme_stylebox_override("focus", Ink.box("input_focus"))
+	_addr.add_theme_stylebox_override("normal", Kit.box("input"))
+	_addr.add_theme_stylebox_override("focus", Kit.box("input_focus"))
 	_addr.add_theme_color_override("font_color", TEXT)
 	_addr.text_submitted.connect(go)
 	bar.add_child(_addr)
-	var out := Ink.button("↗")
+	var out := Kit.button("↗")
 	out.tooltip_text = "Otwórz w swojej przeglądarce"
 	out.pressed.connect(func(): open_outside(url))
 	bar.add_child(out)
@@ -78,12 +78,12 @@ func _init() -> void:
 		box.size_flags_vertical = Control.SIZE_EXPAND_FILL
 		add_child(box)
 		var l := Label.new()
-		Ink.style_label(l, 18, TEXT)
+		Kit.style_label(l, 18, TEXT)
 		l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		l.text = "Przeglądarka nie działa na tym komputerze.\nStronę możesz otworzyć w swojej przeglądarce."
 		box.add_child(l)
-		var open := Ink.button("Otwórz %s ↗" % START, true)
+		var open := Kit.button("Otwórz %s ↗" % START, true)
 		open.pressed.connect(func(): open_outside(url))
 		box.add_child(open)
 

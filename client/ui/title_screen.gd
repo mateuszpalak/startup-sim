@@ -3,7 +3,7 @@
 ## O grze (wersja, autorzy) / Wyjdź; the installed version in the corner.
 extends Control
 
-const Ink = preload("res://ui/ink_ui.gd")
+const Kit = preload("res://ui/ui_kit.gd")
 const SettingsPanel = preload("res://ui/settings_panel.gd")
 const Updates = preload("res://net/updates.gd")
 
@@ -47,23 +47,23 @@ func _ready() -> void:
 	_animate()
 	get_viewport().size_changed.connect(_fit)
 	_fit()
-	var title := Ink.label("Startup Sim", 72, Ink.PAPER_HI)
+	var title := Kit.label("Startup Sim", 72, Kit.PAPER_HI)
 	title.add_theme_constant_override("outline_size", 14)
-	title.add_theme_color_override("font_outline_color", Ink.INK)
+	title.add_theme_color_override("font_outline_color", Kit.INK)
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title.set_anchors_preset(Control.PRESET_CENTER_TOP)
 	title.position = Vector2(-400, 60)
 	title.size = Vector2(800, 110)
 	add_child(title)
-	var sub := Ink.label("symulator pracy w startupie IT", 24, Ink.GOLD)
+	var sub := Kit.label("symulator pracy w startupie IT", 24, Kit.GOLD)
 	sub.add_theme_constant_override("outline_size", 8)
-	sub.add_theme_color_override("font_outline_color", Ink.INK)
+	sub.add_theme_color_override("font_outline_color", Kit.INK)
 	sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	sub.set_anchors_preset(Control.PRESET_CENTER_TOP)
 	sub.position = Vector2(-400, 165)
 	sub.size = Vector2(800, 40)
 	add_child(sub)
-	_card.add_theme_stylebox_override("panel", Ink.box("paper"))
+	_card.add_theme_stylebox_override("panel", Kit.box("paper"))
 	_card.set_anchors_preset(Control.PRESET_CENTER)
 	add_child(_card)
 	var box := VBoxContainer.new()
@@ -72,7 +72,7 @@ func _ready() -> void:
 	box.add_child(_menu)
 	for entry in [["Graj", func(): play.emit(), true], ["Ustawienia", func(): _show(_settings), false],
 			["O grze", func(): _show(_about), false], ["Wyjdź", func(): quit.emit(), false]]:
-		var b := Ink.button(entry[0], entry[2])
+		var b := Kit.button(entry[0], entry[2])
 		b.custom_minimum_size = Vector2(320, 48)
 		b.add_theme_font_size_override("font_size", 26)
 		b.pressed.connect(entry[1])
@@ -82,22 +82,22 @@ func _ready() -> void:
 	box.add_child(_settings)
 	_about.visible = false
 	_about.add_theme_constant_override("separation", 8)
-	_about.add_child(Ink.label("O grze", 28, Ink.TEXT_INK))
-	_about.add_child(Ink.label("Wersja %s" % Updates.current(), 20, Ink.TEXT_INK))
+	_about.add_child(Kit.label("O grze", 28, Kit.TEXT_INK))
+	_about.add_child(Kit.label("Wersja %s" % Updates.current(), 20, Kit.TEXT_INK))
 	for line in ["Startup Sim — prototyp gry o pracy w startupie IT.", "Serwer: Rust · klient: Godot 4 · własny protokół UDP.",
 			"Czcionka: Patrick Hand (Patrick Wagesreiter), licencja SIL OFL.", "Grafika i kod narysowane w kodzie — bez gotowych assetów.",
 			"Kod źródłowy (licencja AGPL-3.0): github.com/mateuszpalak/startup-sim"]:
-		var l := Ink.label(line, 18, Ink.TEXT_INK, true)
+		var l := Kit.label(line, 18, Kit.TEXT_INK, true)
 		l.custom_minimum_size = Vector2(520, 0)
 		_about.add_child(l)
-	var back := Ink.button("Wróć")
+	var back := Kit.button("Wróć")
 	back.pressed.connect(func(): _show(_menu))
 	_about.add_child(back)
 	box.add_child(_about)
 	# The installed version, bottom right.
-	var version := Ink.label("wersja %s" % Updates.current(), 16, Ink.PAPER_HI)
+	var version := Kit.label("wersja %s" % Updates.current(), 16, Kit.PAPER_HI)
 	version.add_theme_constant_override("outline_size", 6)
-	version.add_theme_color_override("font_outline_color", Ink.INK)
+	version.add_theme_color_override("font_outline_color", Kit.INK)
 	version.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	version.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT)
 	version.position -= Vector2(16, 12)
@@ -191,7 +191,7 @@ func _draw_city() -> void:
 		var bw := rng.randf_range(50, 120)
 		var bh := rng.randf_range(120, 330)
 		var r := Rect2(x, ground - bh, bw, bh + h)
-		_city.draw_rect(r.grow(2), Ink.INK)
+		_city.draw_rect(r.grow(2), Kit.INK)
 		_city.draw_rect(r, Color("#1c1622").lightened(rng.randf() * 0.05))
 		var wy := r.position.y + 12
 		while wy < ground - 10:
@@ -203,4 +203,4 @@ func _draw_city() -> void:
 				wx += 16
 			wy += 20
 		x += bw + rng.randf_range(4, 20)
-	_city.draw_rect(Rect2(0, ground, w, h - ground), Ink.INK)
+	_city.draw_rect(Rect2(0, ground, w, h - ground), Kit.INK)

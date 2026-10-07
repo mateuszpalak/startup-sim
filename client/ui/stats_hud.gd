@@ -5,7 +5,7 @@
 ## hands, upset stomach) on a paper note below. From the server's Stats.
 extends Control
 
-const Ink = preload("res://ui/ink_ui.gd")
+const Kit = preload("res://ui/ui_kit.gd")
 
 ## [name, true if high = bad, liquid colour, icon]
 const ROWS := [
@@ -79,8 +79,8 @@ func _ready() -> void:
 		top.draw.connect(func(): _draw_top(top, idx))
 		_liquids.append(liquid)
 		_tops.append(top)
-	_note.add_theme_stylebox_override("normal", Ink.box("bubble"))
-	Ink.style_label(_note, 16, Ink.TEXT_INK)
+	_note.add_theme_stylebox_override("normal", Kit.box("bubble"))
+	Kit.style_label(_note, 16, Kit.TEXT_INK)
 	_note.visible = false
 	add_child(_note)
 	visible = false
@@ -110,7 +110,7 @@ func update_stats(p: Dictionary) -> void:
 	elif dirty_hands:
 		warn = "Brudne ręce — umyj je (umywalka / płyn)"
 	_note.text = warn
-	_note.add_theme_color_override("font_color", Ink.RED if upset else Ink.TEXT_INK)
+	_note.add_theme_color_override("font_color", Kit.RED if upset else Kit.TEXT_INK)
 	_note.visible = warn != ""
 	have = true
 	visible = true
@@ -151,17 +151,17 @@ func _draw_coin() -> void:
 	var r := 20.0
 	var center := Vector2(c.size.x - r - 4, SIZE / 2)
 	c.draw_circle(center + Vector2(2, 3), r, Color(0, 0, 0, 0.3))
-	c.draw_circle(center, r, Ink.GOLD)
-	c.draw_circle(center, r - 5, Ink.GOLD.lightened(0.18))
-	c.draw_arc(center, r, 0, TAU, 40, Ink.INK, 3.0, true)
-	c.draw_arc(center, r - 5, 0, TAU, 40, Color(Ink.INK, 0.5), 1.5, true)
-	var f := Ink.font()
-	c.draw_string(f, center + Vector2(-6, 8), "zł", HORIZONTAL_ALIGNMENT_LEFT, -1, 20, Ink.INK)
+	c.draw_circle(center, r, Kit.GOLD)
+	c.draw_circle(center, r - 5, Kit.GOLD.lightened(0.18))
+	c.draw_arc(center, r, 0, TAU, 40, Kit.INK, 3.0, true)
+	c.draw_arc(center, r - 5, 0, TAU, 40, Color(Kit.INK, 0.5), 1.5, true)
+	var f := Kit.font()
+	c.draw_string(f, center + Vector2(-6, 8), "zł", HORIZONTAL_ALIGNMENT_LEFT, -1, 20, Kit.INK)
 	var txt := "%d,%02d" % [money / 100, money % 100]
 	var w := f.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 24).x
 	var pos := Vector2(center.x - r - 8 - w, center.y + 8)
-	c.draw_string_outline(f, pos, txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 24, 6, Ink.INK)
-	c.draw_string(f, pos, txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 24, Ink.TEXT)
+	c.draw_string_outline(f, pos, txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 24, 6, Kit.INK)
+	c.draw_string(f, pos, txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 24, Kit.TEXT)
 
 
 ## Shadow and dark glass, under the liquid.
@@ -177,12 +177,12 @@ func _draw_badge(b: Control, i: int) -> void:
 	var c := Vector2(SIZE / 2, SIZE / 2)
 	# The number: on hover, or when critical.
 	if _hover == i or badness(i) >= CRITICAL:
-		var f := Ink.font()
+		var f := Kit.font()
 		var txt := str(values[i])
 		var w := f.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 20).x
 		var p := Vector2(c.x - w / 2, SIZE + 18)
-		b.draw_string_outline(f, p, txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 20, 5, Ink.INK)
-		b.draw_string(f, p, txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 20, Ink.TEXT)
+		b.draw_string_outline(f, p, txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 20, 5, Kit.INK)
+		b.draw_string(f, p, txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 20, Kit.TEXT)
 
 
 ## Liquid up to the level, its surface wobbling: one polygon and a lighter
@@ -193,7 +193,7 @@ func _draw_liquid(l: Control, i: int) -> void:
 	var level := clampf(1.0 - bad / 100.0, 0.0, 1.0)
 	var col: Color = ROWS[i][2]
 	if bad >= CRITICAL:
-		col = col.lerp(Ink.RED, 0.5 + 0.3 * sin(t * 8.0))
+		col = col.lerp(Kit.RED, 0.5 + 0.3 * sin(t * 8.0))
 	var c := Vector2(SIZE / 2, SIZE / 2)
 	var inner := SIZE / 2 - 6
 	var surface := c.y + inner - level * inner * 2
@@ -222,15 +222,15 @@ func _draw_top(top: Control, i: int) -> void:
 	var r := SIZE / 2 - 3
 	var c := Vector2(SIZE / 2, SIZE / 2)
 	top.draw_arc(c, r - 7, PI * 1.1, PI * 1.45, 12, Color(1, 1, 1, 0.25), 3.0, true)
-	top.draw_arc(c, r, 0, TAU, 48, Ink.INK, 4.0, true)
-	top.draw_arc(c, r - 3, 0, TAU, 48, Color(Ink.DARK_HI, 0.8), 1.5, true)
+	top.draw_arc(c, r, 0, TAU, 48, Kit.INK, 4.0, true)
+	top.draw_arc(c, r - 3, 0, TAU, 48, Color(Kit.DARK_HI, 0.8), 1.5, true)
 	_draw_icon(top, ROWS[i][3], c)
 
 
 ## Simple inked icons in the middle of a badge.
 func _draw_icon(b: Control, kind: String, c: Vector2) -> void:
-	var ink := Ink.INK
-	var fill := Ink.PAPER_HI
+	var ink := Kit.INK
+	var fill := Kit.PAPER_HI
 	match kind:
 		"food":  # a drumstick
 			b.draw_line(c + Vector2(4, 4), c + Vector2(12, 12), ink, 6.0, true)

@@ -2,7 +2,7 @@
 ## game time, scrollable - the corner log only keeps the last few lines.
 extends PanelContainer
 
-const Ink = preload("res://ui/ink_ui.gd")
+const Kit = preload("res://ui/ui_kit.gd")
 
 const MAX_LINES := 400
 
@@ -13,14 +13,14 @@ var _scroll := ScrollContainer.new()
 
 func _ready() -> void:
 	visible = false
-	add_theme_stylebox_override("panel", Ink.box("paper"))
+	add_theme_stylebox_override("panel", Kit.box("paper"))
 	set_anchors_preset(Control.PRESET_CENTER)
 	custom_minimum_size = Vector2(640, 440)
 	var col := VBoxContainer.new()
 	col.add_theme_constant_override("separation", 8)
 	add_child(col)
 	var title := Label.new()
-	Ink.style_label(title, 22, Ink.TEXT_INK)
+	Kit.style_label(title, 22, Kit.TEXT_INK)
 	title.text = "Dziennik dnia  (H — zamknij)"
 	col.add_child(title)
 	_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -43,7 +43,7 @@ func add(line: String) -> void:
 		if _list.get_child_count() > 0:
 			_list.get_child(0).queue_free()
 	var l := Label.new()
-	Ink.style_label(l, 15, Ink.TEXT_INK)
+	Kit.style_label(l, 15, Kit.TEXT_INK)
 	l.text = line
 	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_list.add_child(l)

@@ -4,7 +4,7 @@
 ## short; "Wróć" stays visible under them.
 extends VBoxContainer
 
-const Ink = preload("res://ui/ink_ui.gd")
+const Kit = preload("res://ui/ui_kit.gd")
 const Settings = preload("res://ui/settings.gd")
 
 signal changed
@@ -22,7 +22,7 @@ var _content := VBoxContainer.new()
 func _ready() -> void:
 	Settings.load_once()
 	add_theme_constant_override("separation", 10)
-	add_child(Ink.label("Ustawienia", 28, Ink.TEXT_INK))
+	add_child(Kit.label("Ustawienia", 28, Kit.TEXT_INK))
 	_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	add_child(_scroll)
 	_content.add_theme_constant_override("separation", 10)
@@ -32,10 +32,10 @@ func _ready() -> void:
 			[_crashes, "Wysyłaj raporty awarii bez pytania"]]:
 		var cb: CheckButton = pair[0]
 		cb.text = pair[1]
-		cb.add_theme_font_override("font", Ink.font())
+		cb.add_theme_font_override("font", Kit.font())
 		cb.add_theme_font_size_override("font_size", 20)
 		for k in ["font_color", "font_hover_color", "font_pressed_color", "font_focus_color", "font_hover_pressed_color"]:
-			cb.add_theme_color_override(k, Ink.TEXT_INK)
+			cb.add_theme_color_override(k, Kit.TEXT_INK)
 		_content.add_child(cb)
 	_full.button_pressed = Settings.fullscreen
 	_battery.button_pressed = Settings.battery
@@ -53,7 +53,7 @@ func _ready() -> void:
 		_save())
 	var zr := HBoxContainer.new()
 	zr.add_theme_constant_override("separation", 12)
-	Ink.style_label(_zoom_label, 18, Ink.TEXT_INK)
+	Kit.style_label(_zoom_label, 18, Kit.TEXT_INK)
 	_zoom_label.custom_minimum_size = Vector2(210, 0)
 	zr.add_child(_zoom_label)
 	_zoom.min_value = 0.6
@@ -69,7 +69,7 @@ func _ready() -> void:
 	zr.add_child(_zoom)
 	_content.add_child(zr)
 	_update_zoom_label()
-	_content.add_child(Ink.label("W grze: kółko myszy albo + / - zmienia przybliżenie na chwilę.", 16, Ink.TEXT_MUTED))
+	_content.add_child(Kit.label("W grze: kółko myszy albo + / - zmienia przybliżenie na chwilę.", 16, Kit.TEXT_MUTED))
 	_render_row()
 	_volume("Efekty", Settings.vol_sfx, func(v: float): Settings.vol_sfx = v)
 	_volume("Otoczenie", Settings.vol_ambient, func(v: float): Settings.vol_ambient = v)
@@ -77,7 +77,7 @@ func _ready() -> void:
 	_volume("Głosy graczy", Settings.vol_voice, func(v: float): Settings.vol_voice = v)
 	var mr := HBoxContainer.new()
 	mr.add_theme_constant_override("separation", 12)
-	var ml := Ink.label("Mikrofon:", 18, Ink.TEXT_INK)
+	var ml := Kit.label("Mikrofon:", 18, Kit.TEXT_INK)
 	ml.custom_minimum_size = Vector2(210, 0)
 	mr.add_child(ml)
 	var mic := OptionButton.new()
@@ -94,8 +94,8 @@ func _ready() -> void:
 		_save())
 	mr.add_child(mic)
 	_content.add_child(mr)
-	_content.add_child(Ink.label("Czat głosowy: trzymaj V — mówisz do pomieszczenia, B — szept do osoby obok.", 16, Ink.TEXT_MUTED))
-	var b := Ink.button("Wróć")
+	_content.add_child(Kit.label("Czat głosowy: trzymaj V — mówisz do pomieszczenia, B — szept do osoby obok.", 16, Kit.TEXT_MUTED))
+	var b := Kit.button("Wróć")
 	b.pressed.connect(func(): back.emit())
 	add_child(b)
 	get_viewport().size_changed.connect(_fit_height)
@@ -121,7 +121,7 @@ const FIXED_HEIGHT := 400.0
 func _volume(title: String, value: float, set_value: Callable) -> void:
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 12)
-	var l := Ink.label("", 18, Ink.TEXT_INK)
+	var l := Kit.label("", 18, Kit.TEXT_INK)
 	l.custom_minimum_size = Vector2(210, 0)
 	row.add_child(l)
 	var s := HSlider.new()
@@ -146,7 +146,7 @@ func _volume(title: String, value: float, set_value: Callable) -> void:
 func _render_row() -> void:
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 12)
-	var l := Ink.label("", 18, Ink.TEXT_INK)
+	var l := Kit.label("", 18, Kit.TEXT_INK)
 	l.custom_minimum_size = Vector2(210, 0)
 	row.add_child(l)
 	var s := HSlider.new()
@@ -169,7 +169,7 @@ func _render_row() -> void:
 		_save())
 	row.add_child(s)
 	_content.add_child(row)
-	_content.add_child(Ink.label("Niższa = płynniej (obraz skalowany przez FSR, napisy zostają ostre).", 16, Ink.TEXT_MUTED))
+	_content.add_child(Kit.label("Niższa = płynniej (obraz skalowany przez FSR, napisy zostają ostre).", 16, Kit.TEXT_MUTED))
 
 
 func _update_zoom_label() -> void:

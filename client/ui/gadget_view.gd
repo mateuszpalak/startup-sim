@@ -7,7 +7,7 @@
 ## card. A click (or keys) picks; Esc puts it away.
 extends Control
 
-const Ink = preload("res://ui/ink_ui.gd")
+const Kit = preload("res://ui/ui_kit.gd")
 
 ## The option picked (index; the last one = off).
 signal pick(choice: int)
@@ -107,10 +107,10 @@ func _lift_panel(text: String) -> void:
 	reader.add_theme_stylebox_override("pressed", _flat(Color("#25272c"), 8, 3))
 	reader.draw.connect(func():
 		var led := Color("#3ddc6a") if carded else Color("#e0453a")
-		reader.draw_circle(Vector2(24, 32), 9, Ink.INK)
+		reader.draw_circle(Vector2(24, 32), 9, Kit.INK)
 		reader.draw_circle(Vector2(24, 32), 7, led)
 		reader.draw_circle(Vector2(22, 30), 2, Color(1, 1, 1, 0.5))
-		var f := Ink.font()
+		var f := Kit.font()
 		var t := "Karta OK" if carded else "Przyłóż kartę"
 		reader.draw_string(f, Vector2(44, 28), t, HORIZONTAL_ALIGNMENT_LEFT, -1, 17, Color("#f4ead0"))
 		reader.draw_string(f, Vector2(44, 48), "czytnik (K)", HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color("#9aa0a8")))
@@ -152,7 +152,7 @@ static func _flat(color: Color, radius: int, border := 4, margin := 0) -> StyleB
 	s.bg_color = color
 	s.set_corner_radius_all(radius)
 	s.set_border_width_all(border)
-	s.border_color = Ink.INK
+	s.border_color = Kit.INK
 	s.set_content_margin_all(margin)
 	s.anti_aliasing = true
 	return s
@@ -164,7 +164,7 @@ func _key(text: String, color: Color, key_size: Vector2, radius: int, choice: in
 	b.text = text
 	b.focus_mode = Control.FOCUS_NONE
 	b.custom_minimum_size = key_size
-	b.add_theme_font_override("font", Ink.font())
+	b.add_theme_font_override("font", Kit.font())
 	b.add_theme_font_size_override("font_size", font)
 	for state in ["font_color", "font_hover_color", "font_pressed_color"]:
 		b.add_theme_color_override(state, Color("#f4f1ea"))
@@ -181,7 +181,7 @@ func _key(text: String, color: Color, key_size: Vector2, radius: int, choice: in
 func _text(t: String, size: int, color: Color) -> Label:
 	var l := Label.new()
 	l.text = t
-	l.add_theme_font_override("font", Ink.font())
+	l.add_theme_font_override("font", Kit.font())
 	l.add_theme_font_size_override("font_size", size)
 	l.add_theme_color_override("font_color", color)
 	l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
@@ -266,7 +266,7 @@ func _speaker() -> Control:
 	c.draw.connect(func():
 		var m := c.size / 2
 		var r := 56.0 + (sin(Time.get_ticks_msec() / 90.0) * 2.0 if track > 0 else 0.0)
-		c.draw_circle(m, r + 4, Ink.INK)
+		c.draw_circle(m, r + 4, Kit.INK)
 		c.draw_circle(m, r, Color("#3a3d45"))
 		for k in 3:
 			c.draw_arc(m, r * (0.35 + k * 0.2), 0, TAU, 40, Color("#2a2c31"), 3.0, true)
