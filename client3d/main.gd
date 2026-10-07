@@ -22,6 +22,7 @@ const DayScreen = preload("res://ui/day_screen.gd")
 const TitleScreen = preload("res://ui/title_screen.gd")
 const CrashReports = preload("res://net/crash_reports.gd")
 const UserPaths = preload("res://net/user_paths.gd")
+const UserMigration = preload("res://net/user_migration.gd")
 const Updates = preload("res://net/updates.gd")
 const PauseMenu = preload("res://ui/pause_menu.gd")
 const Settings = preload("res://ui/settings.gd")
@@ -84,6 +85,8 @@ func _ready() -> void:
 	# End-to-end scenarios keep their files (login, settings) to themselves.
 	if args.has("scenario"):
 		UserPaths.use_folder("e2e/" + str(args.get("scenario-id", args["scenario"])))
+	else:
+		UserMigration.run_once()
 	Touch.setup(args)
 	if Touch.active:
 		get_tree().root.size_changed.connect(func(): Touch.fit_ui(get_tree().root))

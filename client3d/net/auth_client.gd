@@ -201,6 +201,15 @@ static func remembered() -> Dictionary:
 		"refresh": str(cfg.get_value("session", "refresh", ""))}
 
 
+## The last server and nick, with or without a login token (the 2D client's
+## are carried over without one): {address, nick} or {}.
+static func last_server() -> Dictionary:
+	var cfg := ConfigFile.new()
+	if cfg.load(UserPaths.at("auth.cfg")) != OK or str(cfg.get_value("session", "address", "")) == "":
+		return {}
+	return {"address": str(cfg.get_value("session", "address", "")), "nick": str(cfg.get_value("session", "nick", ""))}
+
+
 static func remember(address: String, nick: String, token: String) -> void:
 	var cfg := ConfigFile.new()
 	cfg.set_value("session", "address", address)

@@ -15,6 +15,31 @@ symulatorze iOS bez osobnych ustawień (na komputerze zostaje Forward+).
 Kod platform: `client/platform/platform.gd` i `android.gd` (jak w 3D, bez
 profilu jakości 3D).
 
+## Katalogi danych gracza
+
+Klienty mają osobne katalogi `user://` (ustawienia, przypięte certyfikaty
+serwerów, zapamiętane logowanie, `session.cfg` wykrywania awarii, `logs/`
+wysyłane w raporcie awarii). 3D ma `application/config/use_custom_user_dir`
+z nazwą „Startup Sim 3D”; 2D zostaje przy domyślnym katalogu Godota (nazwa
+okna/aplikacji to nadal „Startup Sim”).
+
+| system | 3D | 2D |
+|---|---|---|
+| macOS | `~/Library/Application Support/Startup Sim 3D` | `~/Library/Application Support/Godot/app_userdata/Startup Sim` |
+| Windows | `%APPDATA%\Startup Sim 3D` | `%APPDATA%\Godot\app_userdata\Startup Sim` |
+| Linux | `~/.local/share/Startup Sim 3D` | `~/.local/share/godot/app_userdata/Startup Sim` |
+| iOS / Android | piaskownica aplikacji (osobny identyfikator `…startupsim3d`) | piaskownica aplikacji |
+
+Do wersji 0.4.0 oba klienty dzieliły katalog 2D. Przy pierwszym starcie na
+komputerze 3D jednorazowo kopiuje stamtąd (`client3d/net/user_migration.gd`):
+przypięte certyfikaty (`known_servers.cfg`), ostatni serwer i nick (bez
+tokenu logowania — odświeżenie w jednym kliencie wylogowałoby drugi, więc
+trzeba się zalogować raz jeszcze), głośności, mikrofon i zgodę na raporty
+awarii. Nie kopiuje sesji, logów, ustawień grafiki/okna ani szkicu postaci;
+starego katalogu nie zmienia. Znacznik `migrated_from_2d.cfg` w katalogu 3D
+pilnuje, żeby działo się to raz. Scenariusze e2e (`--scenario`) i
+`STARTUP_SIM_NO_MIGRATE=1` ją pomijają.
+
 ## Budowanie klienta na macOS
 
 ```bash
@@ -178,8 +203,9 @@ Eksport działa bez Windowsa (macOS, Linux albo Git Bash na Windows): presety
 `StartupSim.exe` z wbudowanymi danymi gry (PCK), ikona z `client3d/icons/icon.ico`,
 nazwa, firma i wersja (z `config/version`) we właściwościach pliku. Renderer
 Forward+ na D3D12 (domyślny w Godocie na Windows), a gdy karta/sterownik go
-nie obsługuje — Vulkan. Ustawienia i logi gracza: `%APPDATA%\Godot\app_userdata\Startup Sim`
-(stamtąd raporty awarii biorą log). Przeglądarki w grze (godot_wry) na
+nie obsługuje — Vulkan. Ustawienia i logi gracza: 3D — `%APPDATA%\Startup Sim 3D`,
+2D — `%APPDATA%\Godot\app_userdata\Startup Sim` (stamtąd raporty awarii biorą log;
+zob. [katalogi danych gracza](#katalogi-danych-gracza)). Przeglądarki w grze (godot_wry) na
 Windows na razie nie ma — biuro proponuje otwarcie strony w przeglądarce
 gracza. Mikrofon: Windows nie pyta okienkiem, ale musi być włączony
 „Dostęp do mikrofonu dla aplikacji klasycznych” (Ustawienia → Prywatność);
