@@ -551,8 +551,14 @@ func _sample_input(delta: float) -> int:
 			_autowalk_bits = [0, 1, 2, 4, 8, 5, 9, 6, 10][randi() % 9]
 			_autowalk_timer = randf_range(0.3, 1.5)
 		return _autowalk_bits
-	if not get_window().has_focus():
+	if not get_window().has_focus() and touch == null:
 		return 0
+	return player_bits()
+
+
+## Keys held (or the touch joystick / buttons, which press the same keys)
+## -> input bits.
+func player_bits() -> int:
 	var b := 0
 	# Keys are screen directions; the camera may be turned (world_view),
 	# the input sent stays in map axes.
@@ -1217,12 +1223,14 @@ func _reconcile(server_body: Dictionary, ack: int) -> void:
 func window_open() -> bool:
 	return screen.visible or coffee.visible or gadget.visible or shelf_window.visible or container.visible or dialog.visible \
 		or roll_game.visible or brush_game.visible \
-		or chat_box.visible or log_history.visible
+		or chat_box.visible or log_history.visible or action_menu.visible or door_plaque.visible
 
 
 ## Settings changed in the Esc menu.
 func apply_settings() -> void:
 	set_zoom_level(Settings.zoom)
+	if touch:
+		touch.layout()
 
 
 ## Camera zoom (mouse wheel, + / -): a multiplier of ZOOM.

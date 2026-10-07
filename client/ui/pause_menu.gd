@@ -6,6 +6,7 @@ extends Control
 const Kit = preload("res://ui/ui_kit.gd")
 const SettingsPanel = preload("res://ui/settings_panel.gd")
 const Updates = preload("res://net/updates.gd")
+const Touch = preload("res://touch/touch.gd")
 
 signal to_menu
 signal quit
@@ -36,8 +37,10 @@ func _ready() -> void:
 	for entry in [["Wróć do gry", func(): close(), true], ["Ustawienia", func(): _show(_settings), false],
 			["Wyjdź do menu", func(): close(); to_menu.emit(), false], ["Wyloguj", func(): close(); logout.emit(), false],
 			["Wyjdź z gry", func(): quit.emit(), false]]:
+		if entry[0] == "Wyjdź z gry" and OS.get_name() in ["iOS", "Android"]:
+			continue  # phones close apps themselves
 		var b := Kit.button(entry[0], entry[2])
-		b.custom_minimum_size = Vector2(300, 44)
+		b.custom_minimum_size = Vector2(300, Touch.TARGET if Touch.active else 44.0)
 		b.add_theme_font_size_override("font_size", 24)
 		b.pressed.connect(entry[1])
 		_menu.add_child(b)
@@ -45,6 +48,7 @@ func _ready() -> void:
 	version.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_menu.add_child(version)
 	_settings.visible = false
+	_settings.fixed_height = 190.0  # just the card's margins, the title and "Wróć"
 	_settings.back.connect(func(): _show(_menu))
 	_settings.changed.connect(func(): settings_changed.emit())
 	box.add_child(_settings)
@@ -76,6 +80,9 @@ func _fit() -> void:
 	_dim.size = vs
 	_card.reset_size()
 	_card.position = (vs - _card.size) / 2
+	if Touch.active:
+		var sr := Touch.safe_rect(get_viewport())
+		_card.position = (sr.position + (sr.size - _card.size) / 2).max(sr.position)
 
 
 func _input(event: InputEvent) -> void:

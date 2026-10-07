@@ -41,6 +41,7 @@ var _talk_latched := false
 var _talk_down_ms := 0
 var _busy := false
 var _flash := Vector2.ZERO
+var _last_bar := Rect2()
 var _flash_ms := -10000
 
 
@@ -78,8 +79,14 @@ func layout() -> void:
 	var rs := 26.0 * s
 	_joy_r = 62.0 * s
 	# Action cluster in the corner opposite the joystick.
+	# Narrow screens (portrait): the inventory bar takes the bottom, so
+	# the thumbs go above it.
+	var bar: Rect2 = game.hud.panel_rect() if game else Rect2()
+	var floor_y := sr.end.y
+	if bar.size.x > 0 and bar.position.x < sr.position.x + m + 2 * (ra + rb + 12) + 10:
+		floor_y = minf(floor_y, bar.position.y - 30)
 	var cx := sr.end.x - m - ra - 8 if left else sr.position.x + m + ra + 8
-	var cy := sr.end.y - m - ra - 4
+	var cy := floor_y - m - ra - 4
 	buttons.act.r = ra
 	buttons.act.at = Vector2(cx, cy)
 	var d := ra + rb + 12
@@ -103,8 +110,8 @@ func layout() -> void:
 		x += rs * 2 + 12
 	buttons.close.r = rs
 	buttons.close.at = Vector2(sr.end.x - m - rs, sr.position.y + m + rs + 64)
-	_joy_home = Vector2(sr.position.x + m + _joy_r + 24, sr.end.y - m - _joy_r - 20) if left \
-		else Vector2(sr.end.x - m - _joy_r - 24, sr.end.y - m - _joy_r - 20)
+	_joy_home = Vector2(sr.position.x + m + _joy_r + 24, floor_y - m - _joy_r - 20) if left \
+		else Vector2(sr.end.x - m - _joy_r - 24, floor_y - m - _joy_r - 20)
 	queue_redraw()
 
 
@@ -132,6 +139,10 @@ func joystick_active() -> bool:
 func _process(_d: float) -> void:
 	if game == null:
 		return
+	var bar: Rect2 = game.hud.panel_rect()
+	if bar != _last_bar:
+		_last_bar = bar
+		layout()
 	var busy := _is_busy()
 	if busy != _busy:
 		_busy = busy
@@ -152,7 +163,7 @@ func _process(_d: float) -> void:
 
 
 func _is_busy() -> bool:
-	return game.input_blocked or game.window_open() or game.action_menu.visible or game.door_plaque.visible
+	return game.input_blocked or game.window_open()
 
 
 func _release_all() -> void:
