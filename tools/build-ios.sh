@@ -9,6 +9,7 @@
 #   tools/build-ios.sh archive   -> build/ios/StartupSim.ipa for TestFlight / App Store
 #                                   (needs DEVELOPMENT_TEAM, paid account)
 #   tools/build-ios.sh project   -> only the Xcode project in build/ios (open it in Xcode)
+#   CLIENT=client tools/build-ios.sh ...  -> the same for the 2D client (in build/ios2d*)
 #
 # Who signs: DEVELOPMENT_TEAM (the 10-character Team ID, Xcode → Settings →
 # Accounts) from the environment or tools/ios/signing.env (not in the
@@ -23,19 +24,19 @@
 # and flow, not looks or speed - those only on a phone (Mobile renderer).
 set -euo pipefail
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
-# Mobile and Windows builds exist for the 3D client only (client3d/);
-# CLIENT=client picks another Godot project.
+# Which client: the 3D one (client3d/, default) or CLIENT=client for the 2D
+# one; file names and app ids follow (StartupSim3D-* / StartupSim-*).
 CLIENT=${CLIENT:-client3d}
+. "$ROOT/tools/client.sh"
 [ -f "$ROOT/tools/ios/signing.env" ] && . "$ROOT/tools/ios/signing.env"
 MODE=${1:-sim}
 TEAM=${DEVELOPMENT_TEAM:-}
 SIM=${SIM:-iPhone 18 Pro}
-BUNDLE=pl.mateuszpalak.startupsim3d
 GODOT=${GODOT:-godot}
 
 case "$MODE" in
-  sim) PRESET="iOS Simulator"; OUT="$ROOT/build/ios-sim" ;;
-  device|archive|project) PRESET="iOS"; OUT="$ROOT/build/ios" ;;
+  sim) PRESET="iOS Simulator"; OUT="$ROOT/build/ios$DIR_TAG-sim" ;;
+  device|archive|project) PRESET="iOS"; OUT="$ROOT/build/ios$DIR_TAG" ;;
   *) echo "użycie: $0 sim|device|archive|project"; exit 1 ;;
 esac
 if [ "$MODE" = device ] || [ "$MODE" = archive ]; then
@@ -71,9 +72,9 @@ if [ "$MODE" = sim ]; then
   xcrun simctl boot "$UDID" 2>/dev/null || true
   xcrun simctl bootstatus "$UDID" -b >/dev/null
   open "$(xcode-select -p)/Applications/Simulator.app" --args -CurrentDeviceUDID "$UDID" 2>/dev/null || true
-  xcrun simctl terminate "$UDID" "$BUNDLE" 2>/dev/null || true
+  xcrun simctl terminate "$UDID" "$APP_ID" 2>/dev/null || true
   xcrun simctl install "$UDID" "$APP"
-  xcrun simctl launch "$UDID" "$BUNDLE" "${@:2}"
+  xcrun simctl launch "$UDID" "$APP_ID" "${@:2}"
   echo "gotowe: $SIM ($UDID) — zrzut: xcrun simctl io $UDID screenshot plik.png"
   exit 0
 fi
@@ -91,7 +92,7 @@ if [ "$MODE" = device ]; then
   [ -n "$DEV" ] || { echo "nie widzę telefonu — podłącz go, odblokuj i zaufaj temu Macowi (albo DEVICE=<UDID>)"; exit 1; }
   echo "== instalacja na $DEV"
   xcrun devicectl device install app --device "$DEV" "$APP"
-  xcrun devicectl device process launch --device "$DEV" "$BUNDLE" || \
+  xcrun devicectl device process launch --device "$DEV" "$APP_ID" || \
     echo "zainstalowane; przy pierwszym uruchomieniu: Ustawienia → Ogólne → VPN i urządzenia → zaufaj deweloperowi"
   exit 0
 fi

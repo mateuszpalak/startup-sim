@@ -5,6 +5,7 @@
 #   tools/build-windows.sh            -> dist/StartupSim3D-<version>-windows-x86_64.zip
 #   tools/build-windows.sh --arm64    -> dist/StartupSim3D-<version>-windows-arm64.zip
 #   tools/build-windows.sh --all      -> both
+#   CLIENT=client tools/build-windows.sh  -> dist/StartupSim-<version>-windows-x86_64.zip (2D client)
 #
 # Needs: Godot 4.7.2 + its export templates (GODOT=/path/to/godot to pick one).
 # No in-game browser on Windows yet (tools/build_webview.sh is macOS only):
@@ -17,9 +18,10 @@
 # SmartScreen warns on first start ("More info" -> "Run anyway").
 set -euo pipefail
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
-# Mobile and Windows builds exist for the 3D client only (client3d/);
-# CLIENT=client picks another Godot project.
+# Which client: the 3D one (client3d/, default) or CLIENT=client for the 2D
+# one; file names and app ids follow (StartupSim3D-* / StartupSim-*).
 CLIENT=${CLIENT:-client3d}
+. "$ROOT/tools/client.sh"
 GODOT=${GODOT:-godot}
 case "${1:-}" in
   "") ARCHS="x86_64" ;;
@@ -35,19 +37,19 @@ mkdir -p "$ROOT/dist"
 "$GODOT" --headless --path "$ROOT/$CLIENT" --import >/dev/null 2>&1 || true
 for ARCH in $ARCHS; do
   PRESET="Windows"; [ "$ARCH" = arm64 ] && PRESET="Windows arm64"
-  NAME="StartupSim3D-$VERSION-windows-$ARCH"
-  STAGE="$ROOT/build/$NAME"
+  BASE="$NAME-$VERSION-windows-$ARCH"
+  STAGE="$ROOT/build/$BASE"
   rm -rf "$STAGE" && mkdir -p "$STAGE"
   echo "== eksport z Godota ($PRESET)"
-  LOG="$ROOT/build/$NAME.log"
+  LOG="$ROOT/build/$BASE.log"
   "$GODOT" --headless --path "$ROOT/$CLIENT" --export-release "$PRESET" "$STAGE/StartupSim.exe" 2>&1 | tee "$LOG"
   [ -s "$STAGE/StartupSim.exe" ] || { echo "brak $STAGE/StartupSim.exe"; exit 1; }
   if grep -qE "^(ERROR|SCRIPT ERROR)" "$LOG"; then echo "błędy eksportu — zob. $LOG"; exit 1; fi
   printf 'Startup Sim %s (Windows %s)\r\n\r\nUruchom StartupSim.exe. Windows SmartScreen moze ostrzec przy pierwszym\r\nuruchomieniu: "Wiecej informacji" -> "Uruchom mimo to".\r\nUstawienia i logi: %%APPDATA%%\\Godot\\app_userdata\\Startup Sim\r\n' "$VERSION" "$ARCH" > "$STAGE/README.txt"
-  ZIP="$ROOT/dist/$NAME.zip"
+  ZIP="$ROOT/dist/$BASE.zip"
   rm -f "$ZIP"
   if command -v zip >/dev/null; then
-    (cd "$ROOT/build" && zip -qr9 "$ZIP" "$NAME")
+    (cd "$ROOT/build" && zip -qr9 "$ZIP" "$BASE")
   else  # Git Bash on Windows has no zip
     powershell -NoProfile -Command "Compress-Archive -Path '$(cygpath -w "$STAGE")' -DestinationPath '$(cygpath -w "$ZIP")'"
   fi

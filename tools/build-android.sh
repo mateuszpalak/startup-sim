@@ -2,6 +2,7 @@
 # The Android client.
 #
 #   tools/build-android.sh                 -> build/StartupSim3D-<version>-android-debug.apk
+#                                            (CLIENT=client: StartupSim-<version>-..., the 2D client)
 #   tools/build-android.sh --install       -> the same, installed and started via adb
 #   tools/build-android.sh --release       -> build/StartupSim3D-<version>-android.aab (Google Play)
 #   tools/build-android.sh --release-apk   -> build/StartupSim3D-<version>-android.apk (signed, to sideload)
@@ -15,17 +16,17 @@
 #   GODOT_ANDROID_KEYSTORE_RELEASE_PATH=/path/to/release.keystore
 #   GODOT_ANDROID_KEYSTORE_RELEASE_USER=<alias>
 #   GODOT_ANDROID_KEYSTORE_RELEASE_PASSWORD=<password>
-# The .aab is built with Gradle (the build template lands in client3d/android/,
+# The .aab is built with Gradle (the build template lands in <client>/android/,
 # not in the repository).
 set -euo pipefail
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
-# Mobile and Windows builds exist for the 3D client only (client3d/);
-# CLIENT=client picks another Godot project.
+# Which client: the 3D one (client3d/, default) or CLIENT=client for the 2D
+# one; file names and app ids follow (StartupSim3D-* / StartupSim-*).
 CLIENT=${CLIENT:-client3d}
+. "$ROOT/tools/client.sh"
 GODOT=${GODOT:-godot}
 SDK=${ANDROID_HOME:-$HOME/Library/Android/sdk}
 ADB="$SDK/platform-tools/adb"
-PKG=pl.mateuszpalak.startupsim3d
 VERSION=$(sed -n 's/^config\/version="\(.*\)"/\1/p' "$ROOT/$CLIENT/project.godot")
 mkdir -p "$ROOT/build"
 
@@ -38,15 +39,15 @@ case "${1:-}" in
     if [ "$1" = --release ]; then
       TEMPLATE=()
       [ -d "$ROOT/$CLIENT/android/build" ] || TEMPLATE=(--install-android-build-template)
-      OUT="$ROOT/build/StartupSim3D-$VERSION-android.aab"
+      OUT="$ROOT/build/$NAME-$VERSION-android.aab"
       "$GODOT" --headless --path "$ROOT/$CLIENT" ${TEMPLATE[@]+"${TEMPLATE[@]}"} --export-release "Android AAB" "$OUT"
     else
-      OUT="$ROOT/build/StartupSim3D-$VERSION-android.apk"
+      OUT="$ROOT/build/$NAME-$VERSION-android.apk"
       "$GODOT" --headless --path "$ROOT/$CLIENT" --export-release "Android" "$OUT"
     fi
     ;;
   ""|--install)
-    OUT="$ROOT/build/StartupSim3D-$VERSION-android-debug.apk"
+    OUT="$ROOT/build/$NAME-$VERSION-android-debug.apk"
     "$GODOT" --headless --path "$ROOT/$CLIENT" --export-debug "Android" "$OUT"
     ;;
   *)
@@ -57,5 +58,5 @@ echo "-> $OUT"
 
 if [ "${1:-}" = --install ]; then
   "$ADB" install -r "$OUT"
-  "$ADB" shell monkey -p "$PKG" -c android.intent.category.LAUNCHER 1 >/dev/null
+  "$ADB" shell monkey -p "$APP_ID" -c android.intent.category.LAUNCHER 1 >/dev/null
 fi
