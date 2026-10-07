@@ -104,7 +104,12 @@ func _place() -> void:
 	_row.position = Vector2(sr.end.x - _row.size.x - 18, sr.position.y + 14)
 	_row.scale = Vector2.ONE
 	var h := _row.size.y
-	if Touch.narrow(get_viewport()):  # portrait: a row of its own under the clock
+	if Touch.active and not Touch.narrow(get_viewport()) and _row.size.x > sr.size.x - 380:
+		var k0 := (sr.size.x - 380) / _row.size.x  # beside the clock (top left): a bit smaller
+		_row.scale = Vector2(k0, k0)
+		_row.position.x = sr.end.x - _row.size.x * k0 - 12
+		h *= k0
+	elif Touch.narrow(get_viewport()):  # portrait: a row of its own under the clock
 		var k := minf(1.0, (sr.size.x - 24) / _row.size.x)
 		_row.scale = Vector2(k, k)
 		_row.position = Vector2(sr.end.x - _row.size.x * k - 12, sr.position.y + 66)
