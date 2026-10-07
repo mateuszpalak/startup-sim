@@ -82,7 +82,7 @@ konto (Apple Developer Program, 99 USD/rok): rok, do 100 urządzeń, TestFlight.
 ### TestFlight
 
 1. Płatne konto; w App Store Connect → Aplikacje → „+” → nowa aplikacja z
-   identyfikatorem `pl.mateuszpalak.startupsim3d` (Android ma `com.mateuszpalak.startupsim3d`).
+   identyfikatorem `pl.mateuszpalak.startupsim3d`.
 2. Podbij `application/version` w presecie „iOS” (każdy wysłany build musi
    mieć wyższy numer).
 3. `DEVELOPMENT_TEAM=<Team ID> ASC_DESTINATION=upload tools/build-ios.sh archive`
@@ -148,7 +148,7 @@ avdmanager create avd -n s3d -k "system-images;android-35;google_apis;arm64-v8a"
 emulator -avd s3d -gpu host &
 godot --headless --path client3d --export-debug "Android (emulator)" ../build/emu.apk
 adb install -r build/emu.apk
-adb shell am start -n com.mateuszpalak.startupsim3d/com.godot.game.GodotAppLauncher
+adb shell am start -n pl.mateuszpalak.startupsim3d/com.godot.game.GodotAppLauncher
 ```
 
 Z emulatora komputer to `10.0.2.2` — build debug na Androidzie ma na liście

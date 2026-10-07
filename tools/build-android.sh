@@ -25,7 +25,7 @@ CLIENT=${CLIENT:-client3d}
 GODOT=${GODOT:-godot}
 SDK=${ANDROID_HOME:-$HOME/Library/Android/sdk}
 ADB="$SDK/platform-tools/adb"
-PKG=com.mateuszpalak.startupsim3d
+PKG=pl.mateuszpalak.startupsim3d
 VERSION=$(sed -n 's/^config\/version="\(.*\)"/\1/p' "$ROOT/$CLIENT/project.godot")
 mkdir -p "$ROOT/build"
 
