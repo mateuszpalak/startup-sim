@@ -223,7 +223,7 @@ func _big_button(text: String, primary: bool) -> Button:
 
 
 func _load_defaults() -> void:
-	var r := AuthClient.remembered()
+	var r := AuthClient.last_server()
 	set_address(r.get("address", AuthClient.default_server()))
 	nick_edit.text = r.get("nick", "")
 

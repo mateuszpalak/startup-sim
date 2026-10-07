@@ -32,6 +32,7 @@ func _init() -> void:
 	test_pad_glyphs()
 	test_windows_asset()
 	test_custom_server()
+	test_user_migration()
 	print("%d checks, %d failures" % [checks, failures])
 	quit(1 if failures > 0 else 0)
 
@@ -563,3 +564,67 @@ func test_custom_server() -> void:
 	for n in [ln.server_opt, ln.custom_edit, ln.nick_edit, ln.pass_edit, ln.new_pass_edit, ln.remember_box,
 			ln.status, ln._form, ln._quick, ln._quick_label, ln]:
 		n.free()
+
+
+func _write(path: String, text: String) -> void:
+	var f := FileAccess.open(path, FileAccess.WRITE)
+	f.store_string(text)
+	f.close()
+
+
+func test_user_migration() -> void:
+	var UserMigration = load("res://net/user_migration.gd")
+	var root := OS.get_temp_dir().path_join("s3d_migration_%d" % Time.get_ticks_usec())
+	var old := root.path_join("old")
+	var new := root.path_join("new")
+	DirAccess.make_dir_recursive_absolute(old.path_join("logs"))
+	_write(old.path_join("known_servers.cfg"), '[pins]\n\n"a.example:7777"="PEM-A"\n')
+	_write(old.path_join("auth.cfg"), '[session]\n\naddress="a.example:7777"\nnick="Janusz"\nrefresh="SECRET"\n')
+	_write(old.path_join("settings.cfg"),
+		"[video]\n\nfullscreen=true\nzoom=1.5\n\n[audio]\n\nmusic=0.1\nmic=\"USB\"\n\n[privacy]\n\ncrash_reports_always=true\n")
+	_write(old.path_join("session.cfg"), "[session]\n\nrunning=true\n")
+	_write(old.path_join("character.cfg"), "[character]\n\nnick=\"X\"\n")
+	_write(old.path_join("logs/godot.log"), "log")
+	var before := FileAccess.get_file_as_string(old.path_join("settings.cfg"))
+	var done: PackedStringArray = UserMigration.migrate(old, new)
+	expect(done.size() == 3, "migration copies pins, last server, settings: %s" % [done])
+	var cfg := ConfigFile.new()
+	cfg.load(new.path_join("known_servers.cfg"))
+	expect(cfg.get_value("pins", "a.example:7777", "") == "PEM-A", "pin carried over")
+	cfg = ConfigFile.new()
+	cfg.load(new.path_join("auth.cfg"))
+	expect(cfg.get_value("session", "address") == "a.example:7777" and cfg.get_value("session", "nick") == "Janusz",
+		"last server and nick carried over")
+	expect(cfg.get_value("session", "refresh") == "", "login token not carried over")
+	cfg = ConfigFile.new()
+	cfg.load(new.path_join("settings.cfg"))
+	expect(is_equal_approx(cfg.get_value("audio", "music"), 0.1) and cfg.get_value("audio", "mic") == "USB",
+		"volumes carried over")
+	expect(cfg.get_value("privacy", "crash_reports_always") == true, "crash report consent carried over")
+	expect(not cfg.has_section("video"), "graphics settings not carried over")
+	for f in ["session.cfg", "character.cfg", "logs"]:
+		expect(not FileAccess.file_exists(new.path_join(f)) and not DirAccess.dir_exists_absolute(new.path_join(f)),
+			"%s not carried over" % f)
+	expect(FileAccess.get_file_as_string(old.path_join("settings.cfg")) == before
+		and FileAccess.file_exists(old.path_join("session.cfg")), "old folder untouched")
+	# Runs once: a later change in the old folder isn't copied again.
+	_write(old.path_join("known_servers.cfg"), '[pins]\n\n"b.example:7777"="PEM-B"\n')
+	expect(UserMigration.migrate(old, new).is_empty(), "migration runs once (marker)")
+	# Corrupt / missing files: skipped, still marked done.
+	var bad := root.path_join("bad")
+	var new2 := root.path_join("new2")
+	DirAccess.make_dir_recursive_absolute(bad)
+	_write(bad.path_join("known_servers.cfg"), "[pins\n=garbage")
+	_write(bad.path_join("settings.cfg"), "\u0000\u0001 not a config [")
+	expect(UserMigration.migrate(bad, new2).is_empty(), "corrupt files skipped")
+	expect(FileAccess.file_exists(new2.path_join(UserMigration.MARKER)), "marker written after corrupt files")
+	expect(UserMigration.migrate(root.path_join("none"), root.path_join("new3")).is_empty(), "no old folder: nothing")
+	_remove_tree(root)
+
+
+func _remove_tree(path: String) -> void:
+	for d in DirAccess.get_directories_at(path):
+		_remove_tree(path.path_join(d))
+	for f in DirAccess.get_files_at(path):
+		DirAccess.remove_absolute(path.path_join(f))
+	DirAccess.remove_absolute(path)

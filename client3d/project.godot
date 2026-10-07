@@ -17,6 +17,8 @@ boot_splash/image="res://icons/splash.png"
 boot_splash/stretch_mode=1
 boot_splash/show_image=true
 config/quit_on_go_back=false
+config/use_custom_user_dir=true
+config/custom_user_dir_name="Startup Sim 3D"
 
 [audio]
 

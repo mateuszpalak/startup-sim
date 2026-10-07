@@ -46,7 +46,10 @@ for ARCH in $ARCHS; do
   [ -s "$STAGE/StartupSim.exe" ] || { echo "brak $STAGE/StartupSim.exe"; exit 1; }
   # godot_wry (the in-game browser, macOS only) complains while the editor loads it; it is not exported for Windows
   if grep -E "^(ERROR|SCRIPT ERROR)" "$LOG" | grep -qv "register class 'WebView'"; then echo "błędy eksportu — zob. $LOG"; exit 1; fi
-  printf 'Startup Sim %s (Windows %s)\r\n\r\nUruchom StartupSim.exe. Windows SmartScreen moze ostrzec przy pierwszym\r\nuruchomieniu: "Wiecej informacji" -> "Uruchom mimo to".\r\nUstawienia i logi: %%APPDATA%%\\Godot\\app_userdata\\Startup Sim\r\n' "$VERSION" "$ARCH" > "$STAGE/README.txt"
+  # The 3D client has its own folder (application/config/custom_user_dir_name)
+  USERDIR='%%APPDATA%%\\Godot\\app_userdata\\Startup Sim'
+  [ "$CLIENT" = client3d ] && USERDIR='%%APPDATA%%\\Startup Sim 3D'
+  printf "Startup Sim %s (Windows %s)\r\n\r\nUruchom StartupSim.exe. Windows SmartScreen moze ostrzec przy pierwszym\r\nuruchomieniu: \"Wiecej informacji\" -> \"Uruchom mimo to\".\r\nUstawienia i logi: $USERDIR\r\n" "$VERSION" "$ARCH" > "$STAGE/README.txt"
   ZIP="$ROOT/dist/$BASE.zip"
   rm -f "$ZIP"
   if command -v zip >/dev/null; then
