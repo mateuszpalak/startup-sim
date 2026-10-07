@@ -35,6 +35,7 @@ func _ready() -> void:
 		cb.text = pair[1]
 		_style_check(cb)
 		_content.add_child(cb)
+	_full.visible = not Touch.is_mobile()  # always full screen there
 	_full.button_pressed = Settings.fullscreen
 	_battery.button_pressed = Settings.battery
 	_crashes.button_pressed = Settings.crash_reports_always

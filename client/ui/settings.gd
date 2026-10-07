@@ -73,7 +73,9 @@ static func apply_audio() -> void:
 
 
 static func apply_window() -> void:
-	var want := DisplayServer.WINDOW_MODE_FULLSCREEN if fullscreen else DisplayServer.WINDOW_MODE_WINDOWED
+	# Phones / tablets: always full screen (Platform.is_mobile() after the merge).
+	var mobile := OS.has_feature("mobile") or OS.has_feature("ios") or OS.has_feature("android")
+	var want := DisplayServer.WINDOW_MODE_FULLSCREEN if fullscreen or mobile else DisplayServer.WINDOW_MODE_WINDOWED
 	if DisplayServer.window_get_mode() != want:
 		DisplayServer.window_set_mode(want)
 

@@ -41,6 +41,17 @@ static func setup(args: Dictionary) -> void:
 		Input.emulate_touch_from_mouse = true
 
 
+## (Same as client/platform/platform.gd is_mobile / can_quit on 2d-platforms;
+## switch the callers to Platform.* once both branches are merged.)
+static func is_mobile() -> bool:
+	return OS.has_feature("mobile") or OS.has_feature("ios") or OS.has_feature("android")
+
+
+## iOS guidelines / Android: the system closes apps, no "Quit" button.
+static func can_quit() -> bool:
+	return not (OS.has_feature("ios") or OS.has_feature("android"))
+
+
 static func _mobile_os() -> bool:
 	return OS.get_name() in ["iOS", "Android"]
 

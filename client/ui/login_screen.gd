@@ -7,6 +7,9 @@ extends Control
 const Ink = preload("res://ui/ink_ui.gd")
 const TouchFit = preload("res://ui/touch_fit.gd")
 const AuthClient = preload("res://net/auth_client.gd")
+const NetClient = preload("res://net/net_client.gd")
+## The last item of the server list: type an address (a home server).
+const CUSTOM_ITEM := "Inny serwer…"
 
 ## Logged in: `grant` = {nick, ticket, refresh, character}.
 signal logged_in(address: String, grant: Dictionary, remember: bool)
@@ -16,6 +19,8 @@ var auth                         # AuthClient node (from main)
 var server_opt := OptionButton.new()
 var _servers: Array = []     # [{name, address}] in the list
 var nick_edit := LineEdit.new()
+var custom_edit := LineEdit.new()
+var _custom_row: Control
 var pass_edit := LineEdit.new()
 var new_pass_edit := LineEdit.new()
 var remember_box := CheckBox.new()
@@ -86,6 +91,15 @@ func _ready() -> void:
 	inner.add_child(_form)
 	_fill_servers()
 	_field("Serwer", server_opt)
+	custom_edit.placeholder_text = "adres:port, np. 192.168.1.20:7777"
+	custom_edit.max_length = 255
+	_custom_row = _field("Adres serwera (spoza listy gry)", custom_edit)
+	var warn := _label("Serwer spoza listy — loguj się tylko na serwerze, któremu ufasz. Jego certyfikat zostanie zapamiętany przy pierwszym połączeniu.", 13, Color(1, 0.85, 0.5, 0.9))
+	warn.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	warn.custom_minimum_size.x = 380
+	_custom_row.add_child(warn)
+	_custom_row.visible = false
+	server_opt.item_selected.connect(func(_i): _update_custom())
 	nick_edit.max_length = 16
 	nick_edit.placeholder_text = "np. Ola"
 	_field("Nick (imię postaci)", nick_edit)
@@ -115,7 +129,7 @@ func _ready() -> void:
 	_change_btn = Ink.button("Zmień hasło")
 	_change_btn.pressed.connect(_toggle_change)
 	_form.add_child(_change_btn)
-	for e in [nick_edit, pass_edit, new_pass_edit]:
+	for e in [custom_edit, nick_edit, pass_edit, new_pass_edit]:
 		e.text_submitted.connect(func(_t): _go("password" if _changing else "login"))
 
 	_trust_btn = Ink.button("Zaufaj nowemu certyfikatowi serwera", false, true)
@@ -141,27 +155,41 @@ func _fill_servers() -> void:
 	_servers = AuthClient.servers()
 	for s in _servers:
 		server_opt.add_item(s.name)
+	server_opt.add_item(CUSTOM_ITEM)
+
+
+func _custom_selected() -> bool:
+	return server_opt.selected == _servers.size()
+
+
+func _update_custom() -> void:
+	if _custom_row:
+		_custom_row.visible = _custom_selected()
 
 
 
 ## The chosen server's address.
 func address() -> String:
+	if _custom_selected():
+		var a := custom_edit.text.strip_edges()
+		return a if not NetClient.parse_address(a).is_empty() else ""
 	var i := server_opt.selected
 	return _servers[i].address if i >= 0 and i < _servers.size() else AuthClient.default_server()
 
 
-## Choose a server by address (one not on the list — a dev --server — is added).
+## Choose a server by address (one not on the list, e.g. a remembered home
+## server or a dev --server, goes to "Inny serwer…").
 func set_address(a: String) -> void:
+	server_opt.select(0)
 	for i in _servers.size():
 		if _servers[i].address == a:
 			server_opt.select(i)
+			_update_custom()
 			return
-	if a == "" or not OS.has_feature("editor"):
-		server_opt.select(0)
-		return
-	_servers.append({"name": AuthClient.server_name(a), "address": a})
-	server_opt.add_item(AuthClient.server_name(a))
-	server_opt.select(_servers.size() - 1)
+	if a != "":
+		custom_edit.text = a
+		server_opt.select(_servers.size())
+	_update_custom()
 
 
 func _fit() -> void:
@@ -250,6 +278,9 @@ func _go(what: String) -> void:
 	var addr := address()
 	var nick := nick_edit.text.strip_edges()
 	var pw := pass_edit.text
+	if addr == "" and _custom_selected():
+		set_status("Wpisz adres serwera, np. 192.168.1.20:7777.", true)
+		return
 	if addr == "" or nick == "" or pw == "":
 		set_status("Wybierz serwer, wpisz nick i hasło.", true)
 		return

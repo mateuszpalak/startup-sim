@@ -77,6 +77,8 @@ func _ready() -> void:
 	box.add_child(_menu)
 	for entry in [["Graj", func(): play.emit(), true], ["Ustawienia", func(): _show(_settings), false],
 			["O grze", func(): _show(_about), false], ["Wyjdź", func(): quit.emit(), false]]:
+		if entry[0] == "Wyjdź" and not Touch.can_quit():
+			continue  # iOS guidelines / Android: the system closes apps
 		var b := Ink.button(entry[0], entry[2])
 		b.custom_minimum_size = Vector2(320, 58 if Touch.active else 48)
 		b.add_theme_font_size_override("font_size", 26)
