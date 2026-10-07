@@ -57,7 +57,7 @@ Emulowany OpenGL jest bardzo wolny (start ok. 2 min, budowa pięter blokuje
 grę na tyle długo, że klient łapie „Łączenie ponownie”). Argumenty
 deweloperskie po `--`, np.
 `tools/build-ios.sh sim -- --nick=Ala --server=127.0.0.1:7777 --autoconnect`.
-Zrzuty: [ekran tytułowy](../media/ios/tytul.png), [w grze](../media/ios/gra.png).
+Zrzuty w symulatorze są tylko do sprawdzania UI (renderer OpenGL); zrzuty dotyku: [HUD](../media/3d/dotyk.jpg), [komputer](../media/3d/dotyk_komputer.jpg).
 
 ### Na własny telefon
 
