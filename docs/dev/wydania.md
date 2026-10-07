@@ -35,7 +35,7 @@ tools/build-ios.sh project   # sam projekt Xcode w build/ios (do otwarcia w Xcod
 ```
 
 Godot eksportuje projekt Xcode (preset „iOS”, `client3d/export_presets.cfg`:
-identyfikator `com.mateuszpalak.startupsim3d`, iOS 16+, iPhone i iPad, tylko
+identyfikator `pl.mateuszpalak.startupsim3d`, iOS 16+, iPhone i iPad, tylko
 poziomo, ikona `client3d/icons/icon_ios.png` — kwadrat bez przezroczystości,
 obraz do krawędzi; ikony telefonów, także adaptacyjne Androida, robi z
 `icon.svg` skrypt `python3 tools/make_icons.py`), a `xcodebuild` go buduje i podpisuje. W repozytorium nie ma
@@ -82,7 +82,7 @@ konto (Apple Developer Program, 99 USD/rok): rok, do 100 urządzeń, TestFlight.
 ### TestFlight
 
 1. Płatne konto; w App Store Connect → Aplikacje → „+” → nowa aplikacja z
-   identyfikatorem `com.mateuszpalak.startupsim3d`.
+   identyfikatorem `pl.mateuszpalak.startupsim3d` (Android ma `com.mateuszpalak.startupsim3d`).
 2. Podbij `application/version` w presecie „iOS” (każdy wysłany build musi
    mieć wyższy numer).
 3. `DEVELOPMENT_TEAM=<Team ID> ASC_DESTINATION=upload tools/build-ios.sh archive`
