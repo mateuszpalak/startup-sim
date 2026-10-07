@@ -1,8 +1,6 @@
 ## F3 debug overlay.
 extends CanvasLayer
 
-const Kit = preload("res://ui/ui_kit.gd")
-
 var game
 var label := Label.new()
 var _timer := 0.0
@@ -11,10 +9,13 @@ var _timer := 0.0
 func _ready() -> void:
 	layer = 10
 	var panel := PanelContainer.new()
-	panel.add_theme_stylebox_override("panel", Kit.box("hud"))
-	panel.position = Vector2(16, 76)  # below the game clock
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color(0, 0, 0, 0.6)
+	sb.set_content_margin_all(8)
+	panel.add_theme_stylebox_override("panel", sb)
+	panel.position = Vector2(8, 56)  # below the game clock
 	add_child(panel)
-	Kit.style_label(label, 13, Kit.TEXT)
+	label.add_theme_font_size_override("font_size", 14)
 	panel.add_child(label)
 
 

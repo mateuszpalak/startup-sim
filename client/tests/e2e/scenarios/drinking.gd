@@ -23,14 +23,8 @@ func run() -> void:
 		return
 	if not await walk(0, 20, 53):  # at the till
 		return
-	# The guard walks the aisles: when he's the nearest, E talks to him
-	# instead of the cashier - press again until paid.
-	for i in 10:
-		await press_e()
-		await wait(2.5)
-		if money() != start_money:
-			break
-	if not check(money() == start_money - 45_00, "paying 45 zł (paid %d)" % (start_money - money())):
+	await press_e()
+	if not await until(func(): return money() == start_money - 45_00, 5.0, "paying 45 zł"):
 		return
 	log_step("bought the drinks")
 

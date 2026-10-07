@@ -1,4 +1,4 @@
-# The Windows client: on a Windows runner, export the build with Godot
+# The Windows client (the 3D one, client3d/): on a Windows runner, export the build with Godot
 # (tools/build-windows.sh), run the client's unit tests there too and keep
 # the zips as an artifact. On a release tag (v*) the zips are attached to
 # that GitHub release (created if it doesn't exist yet).
@@ -10,7 +10,7 @@ on:
     tags: ["v*"]
     paths-ignore: ["docs/**", "**.md", "server/**"]
   pull_request:
-    paths: ["client/**", "tools/build-windows.sh", ".github/workflows/windows.yml"]
+    paths: ["client3d/**", "tools/build-windows.sh", ".github/workflows/windows.yml"]
   workflow_dispatch:
 
 permissions:
@@ -39,7 +39,7 @@ jobs:
           path: |
             ~/godot
             ~/AppData/Roaming/Godot/export_templates
-          key: godot-windows-${{ env.GODOT_VERSION }}
+          key: godot-windows-${{ env.GODOT_VERSION }}-v2
       - name: Pobierz Godota i szablony eksportu
         if: steps.godot-cache.outputs.cache-hit != 'true'
         run: |
@@ -47,21 +47,25 @@ jobs:
           mkdir -p ~/godot
           curl -sSfL -o godot.zip "$base/Godot_v${GODOT_VERSION}-stable_win64.exe.zip"
           unzip -q godot.zip -d ~/godot && rm godot.zip
-          mv "$HOME/godot/Godot_v${GODOT_VERSION}-stable_win64_console.exe" ~/godot/godot.exe
           curl -sSfL -o tpl.tpz "$base/Godot_v${GODOT_VERSION}-stable_export_templates.tpz"
           unzip -q tpl.tpz -d tpl && rm tpl.tpz
           dest=~/AppData/Roaming/Godot/export_templates/${GODOT_VERSION}.stable
           mkdir -p "$dest"
           mv tpl/templates/windows_* tpl/templates/version.txt "$dest/"
           rm -rf tpl
+      # The console wrapper finds the real exe by its own file name, so both
+      # keep the names they ship with.
+      - name: Ścieżka do Godota
+        run: echo "GODOT=$HOME/godot/Godot_v${GODOT_VERSION}-stable_win64_console.exe" >> "$GITHUB_ENV"
       - name: Import projektu
-        run: ~/godot/godot.exe --headless --path client --import || true
+        run: |
+          "$GODOT" --headless --path client3d --import || true
       - name: Testy klienta (na Windows)
         run: |
-          ~/godot/godot.exe --headless --path client -s tests/run_tests.gd 2>&1 | tee godot-tests.log
+          "$GODOT" --headless --path client3d -s tests/run_tests.gd 2>&1 | tee godot-tests.log
           grep -q ", 0 failures" godot-tests.log
       - name: Eksport (x86_64 + arm64)
-        run: GODOT=~/godot/godot.exe tools/build-windows.sh --all
+        run: tools/build-windows.sh --all
       - name: Sprawdź exe
         run: |
           for z in dist/*.zip; do

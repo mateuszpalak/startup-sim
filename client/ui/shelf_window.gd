@@ -2,9 +2,7 @@
 ## 1-9) takes one - unpaid until you pay at the till.
 extends Control
 
-const Kit = preload("res://ui/ui_kit.gd")
-const Touch = preload("res://touch/touch.gd")
-const ItemIcons = preload("res://ui/item_icons.gd")
+const Ink = preload("res://ui/ink_ui.gd")
 
 const ItemArt = preload("res://game/item_art.gd")
 
@@ -20,18 +18,18 @@ var _list := VBoxContainer.new()
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	visible = false
-	_panel.add_theme_stylebox_override("panel", Kit.box("paper"))
+	_panel.add_theme_stylebox_override("panel", Ink.box("paper"))
 	add_child(_panel)
 	var col := VBoxContainer.new()
 	col.add_theme_constant_override("separation", 8)
 	_panel.add_child(col)
-	Kit.style_label(_title, 20, Kit.TEXT_INK)
+	Ink.style_label(_title, 20, Ink.TEXT_INK)
 	col.add_child(_title)
 	_list.add_theme_constant_override("separation", 6)
 	col.add_child(_list)
 	var hint := Label.new()
-	hint.text = Touch.say("1–9 weź · Esc zamknij · płaci się przy kasie", "Weź to, co chcesz · płaci się przy kasie")
-	Kit.style_label(hint, 16, Kit.TEXT_MUTED)
+	hint.text = "1–9 weź · Esc zamknij · płaci się przy kasie"
+	Ink.style_label(hint, 16, Ink.TEXT_MUTED)
 	col.add_child(hint)
 	_panel.resized.connect(_place)
 	get_viewport().size_changed.connect(_place)
@@ -42,7 +40,6 @@ func _place() -> void:
 	position = Vector2.ZERO
 	size = vs
 	_panel.position = Vector2((vs.x - _panel.size.x) / 2, vs.y - _panel.size.y - 110)
-	Touch.place_center(_panel, get_viewport())
 
 
 static func zl(gr: int) -> String:
@@ -62,12 +59,12 @@ func show_shelf(p: Dictionary) -> void:
 		var icon := Control.new()
 		icon.custom_minimum_size = Vector2(32, 32)
 		var kind: int = g.kind
-		icon.draw.connect(func(): ItemIcons.draw(icon, kind, Rect2(Vector2(0, 0), Vector2.ONE * 16.0 * (2.0))))
+		icon.draw.connect(func(): ItemArt.draw(icon, kind, Vector2(0, 0), 2.0))
 		row.add_child(icon)
 		var name := Label.new()
 		name.text = "%d. %s" % [i + 1, g.name]
 		name.custom_minimum_size = Vector2(200, 0)
-		Kit.style_label(name, 16, Kit.TEXT_INK)
+		Ink.style_label(name, 16, Ink.TEXT_INK)
 		name.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		name.size_flags_horizontal = Control.SIZE_EXPAND_FILL  # a long name: prices and buttons stay in line
 		row.add_child(name)
@@ -75,10 +72,10 @@ func show_shelf(p: Dictionary) -> void:
 		price.text = zl(g.price)
 		price.custom_minimum_size = Vector2(80, 0)
 		price.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-		Kit.style_label(price, 16, Color("#8f5a1a"))
+		Ink.style_label(price, 16, Color("#8f5a1a"))
 		price.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		row.add_child(price)
-		var b := Kit.button("Weź", true)
+		var b := Ink.button("Weź", true)
 		b.focus_mode = Control.FOCUS_NONE
 		b.pressed.connect(func(): take.emit(shelf, kind))
 		row.add_child(b)

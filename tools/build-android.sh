@@ -15,15 +15,18 @@
 #   GODOT_ANDROID_KEYSTORE_RELEASE_PATH=/path/to/release.keystore
 #   GODOT_ANDROID_KEYSTORE_RELEASE_USER=<alias>
 #   GODOT_ANDROID_KEYSTORE_RELEASE_PASSWORD=<password>
-# The .aab is built with Gradle (the build template lands in client/android/,
+# The .aab is built with Gradle (the build template lands in client3d/android/,
 # not in the repository).
 set -euo pipefail
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
+# Mobile and Windows builds exist for the 3D client only (client3d/);
+# CLIENT=client picks another Godot project.
+CLIENT=${CLIENT:-client3d}
 GODOT=${GODOT:-godot}
 SDK=${ANDROID_HOME:-$HOME/Library/Android/sdk}
 ADB="$SDK/platform-tools/adb"
 PKG=com.mateuszpalak.startupsim3d
-VERSION=$(sed -n 's/^config\/version="\(.*\)"/\1/p' "$ROOT/client/project.godot")
+VERSION=$(sed -n 's/^config\/version="\(.*\)"/\1/p' "$ROOT/$CLIENT/project.godot")
 mkdir -p "$ROOT/build"
 
 case "${1:-}" in
@@ -34,17 +37,17 @@ case "${1:-}" in
     fi
     if [ "$1" = --release ]; then
       TEMPLATE=()
-      [ -d "$ROOT/client/android/build" ] || TEMPLATE=(--install-android-build-template)
+      [ -d "$ROOT/$CLIENT/android/build" ] || TEMPLATE=(--install-android-build-template)
       OUT="$ROOT/build/StartupSim-$VERSION.aab"
-      "$GODOT" --headless --path "$ROOT/client" ${TEMPLATE[@]+"${TEMPLATE[@]}"} --export-release "Android AAB" "$OUT"
+      "$GODOT" --headless --path "$ROOT/$CLIENT" ${TEMPLATE[@]+"${TEMPLATE[@]}"} --export-release "Android AAB" "$OUT"
     else
       OUT="$ROOT/build/StartupSim-$VERSION.apk"
-      "$GODOT" --headless --path "$ROOT/client" --export-release "Android" "$OUT"
+      "$GODOT" --headless --path "$ROOT/$CLIENT" --export-release "Android" "$OUT"
     fi
     ;;
   ""|--install)
     OUT="$ROOT/build/StartupSim-$VERSION-debug.apk"
-    "$GODOT" --headless --path "$ROOT/client" --export-debug "Android" "$OUT"
+    "$GODOT" --headless --path "$ROOT/$CLIENT" --export-debug "Android" "$OUT"
     ;;
   *)
     sed -n '2,8p' "$0"; exit 1 ;;

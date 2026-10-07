@@ -5,6 +5,8 @@
 #   tools/build-macos.sh            -> build/StartupSim-<version>.dmg
 #   tools/build-macos.sh --app-only -> build/Startup Sim.app, unsigned (sign it
 #                                      yourself with tools/macos/entitlements.plist)
+#   tools/build-macos.sh --3d [...]  -> the same from the 3D client (client3d/)
+#                                      instead of the 2D one (client/)
 #
 # Needs: Godot 4.7.2 + its export templates, the "Developer ID Application"
 # certificate in the keychain, and permission for the terminal to control
@@ -15,9 +17,15 @@
 # from tools/macos/signing.env (not in the repository), e.g.
 #   IDENTITY="Developer ID Application: Jan Kowalski (TEAMID1234)"
 #   NOTARY_PROFILE=notarytool   # xcrun notarytool store-credentials notarytool --apple-id <you> --team-id <TEAMID>
-# The servers the build offers: client/net/servers.cfg (see servers.example.cfg).
+# The servers the build offers: client/net/servers.cfg (client3d/net/ for --3d) (see servers.example.cfg).
 set -euo pipefail
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
+CLIENT=client
+if [ "${1:-}" = "--3d" ]; then
+  CLIENT=client3d
+  shift
+fi
+export CLIENT
 [ -f "$ROOT/tools/macos/signing.env" ] && . "$ROOT/tools/macos/signing.env"
 IDENTITY=${IDENTITY:-}
 PROFILE=${NOTARY_PROFILE:-}
@@ -28,14 +36,14 @@ if [ "${1:-}" != "--app-only" ] && [ -z "$IDENTITY" ]; then
   echo "brak IDENTITY (Developer ID) — ustaw w środowisku albo w tools/macos/signing.env, albo użyj --app-only"
   exit 1
 fi
-[ -f "$ROOT/client/net/servers.cfg" ] || echo "uwaga: brak client/net/servers.cfg — klient będzie znał tylko serwer lokalny"
+[ -f "$ROOT/$CLIENT/net/servers.cfg" ] || echo "uwaga: brak $CLIENT/net/servers.cfg — klient będzie znał tylko serwer lokalny"
 
 rm -rf "$ROOT/build" && mkdir -p "$ROOT/build"
 echo "== przeglądarka w grze (godot_wry ze źródeł)"
 "$ROOT/tools/build_webview.sh"
 echo "== eksport z Godota"
-godot --headless --path "$ROOT/client" --import >/dev/null 2>&1 || true
-godot --headless --path "$ROOT/client" --export-release "macOS" "$APP"
+godot --headless --path "$ROOT/$CLIENT" --import >/dev/null 2>&1 || true
+godot --headless --path "$ROOT/$CLIENT" --export-release "macOS" "$APP"
 [ -d "$APP" ] || { echo "brak $APP"; exit 1; }
 
 PLIST="$APP/Contents/Info.plist"

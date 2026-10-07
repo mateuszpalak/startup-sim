@@ -1,0 +1,1840 @@
+## In-game world: local prediction + reconciliation, remote interpolation,
+## floors and room-based visibility, camera and debug info.
+extends Node2D
+
+## First snapshot of a session arrived: we are in the world.
+signal entered_world
+
+const Protocol = preload("res://net/protocol.gd")
+const Movement = preload("res://sim/movement.gd")
+const WorldView = preload("res://world3d/world_view.gd")
+const PlayerView = preload("res://game/player_view.gd")
+const RemotePlayer = preload("res://game/remote_player.gd")
+const DebugOverlay = preload("res://ui/debug_overlay.gd")
+const MapData = preload("res://map/map_data.gd")
+const ItemArt = preload("res://game/item_art.gd")
+const ItemView = preload("res://game/item_view.gd")
+const TvView = preload("res://game/tv_view.gd")
+const Audio = preload("res://audio/audio.gd")
+const RollGame = preload("res://ui/roll_game.gd")
+const BrushGame = preload("res://ui/brush_game.gd")
+const DoorPlaque = preload("res://ui/door_plaque.gd")
+const BloodSplash = preload("res://game/blood_splash.gd")
+const ActionMenu = preload("res://ui/action_menu.gd")
+const Notices = preload("res://ui/notices.gd")
+const LogHistory = preload("res://ui/log_history.gd")
+const ChatBox = preload("res://ui/chat_box.gd")
+const InventoryHud = preload("res://ui/inventory_hud.gd")
+const ComputerView = preload("res://game/computer_view.gd")
+const ComputerScreen = preload("res://ui/computer_screen.gd")
+const StatsHud = preload("res://ui/stats_hud.gd")
+const StallDoorView = preload("res://game/stall_door_view.gd")
+const ElevatorDoorView = preload("res://game/elevator_door_view.gd")
+const RideMask = preload("res://game/ride_mask.gd")
+const ShelfWindow = preload("res://ui/shelf_window.gd")
+const ContainerWindow = preload("res://ui/container_window.gd")
+const CoffeeWindow = preload("res://ui/coffee_window.gd")
+const VehicleView = preload("res://game/vehicle_view.gd")
+const WeatherFx = preload("res://ui/weather_fx.gd")
+const DialogWindow = preload("res://ui/dialog_window.gd")
+const GadgetView = preload("res://ui/gadget_view.gd")
+const TrayView = preload("res://game/tray_view.gd")
+const PuddleView = preload("res://game/puddle_view.gd")
+const SmokeView = preload("res://game/smoke_view.gd")
+const LightView = preload("res://game/light_view.gd")
+const Settings = preload("res://ui/settings.gd")
+const Kit = preload("res://ui/ui_kit.gd")
+const Touch = preload("res://touch/touch.gd")
+const TouchControls = preload("res://touch/touch_controls.gd")
+const Coords = preload("res://world3d/coords.gd")
+
+## Nick / bubble tags are drawn at screen scale (the 3D world places them).
+const ZOOM := 1.0
+## Remote players are rendered this far in the past (2 snapshots at 20 Hz).
+const INTERP_DELAY_SEC := 0.1
+## Each Input packet repeats this many latest inputs (covers packet loss).
+const INPUT_REDUNDANCY := 4
+## Remote players missing from snapshots for this many ticks are removed.
+const REMOTE_TIMEOUT_TICKS := 5
+## Visual correction error decays with this rate (1/s).
+const ERROR_DECAY := 15.0
+const MAX_PENDING := 240
+## Talk range to NPCs (same as npc::TALK_RADIUS on the server): 3.5 tiles.
+const TALK_RADIUS_PX := 56.0
+const LOG_LINES := 8
+const LOG_TTL_SEC := 30.0
+const Departments = preload("res://net/departments.gd")
+
+var net
+var building
+## The 3D presentation (world3d/): mirrors the 2D views below, which stay
+## as invisible state holders (positions, facing, looks, tags).
+var world_view := WorldView.new()
+## Parent of the 2D world drawing (hidden: the 3D world shows it).
+var hidden_2d := Node2D.new()
+var tick_hz := 20
+var nick := ""
+var world := Node2D.new()
+var sounds := preload("res://audio/game_sounds.gd").new()
+var voice := preload("res://audio/voice.gd").new()
+var me := PlayerView.new()
+var camera := Camera2D.new()
+var overlay := DebugOverlay.new()
+var status_layer := CanvasLayer.new()
+var status_label := Label.new()
+var hint_label := Label.new()
+var log_label := Label.new()
+var _log: Array = []  # [msec, text]
+var kinds := {}          # id -> entity kind (player / NPC)
+var floor_items := {}    # entity id -> ItemView (items lying on the floor)
+var puddles := {}        # entity id -> PuddleView (toilet accidents)
+var puddle_layer := Node2D.new()  # on the floor, under the people and items
+## The TVs ("floor:x:y" -> [TvView, floor]) and the boombox's music (Media).
+var tvs := {}
+var boombox := AudioStreamPlayer2D.new()
+var boombox_music := {}  # the Media entry playing (track, started, floor, x, y, holder)
+var inventory: Array = [] # hands + pockets (from the server)
+var hud := InventoryHud.new()
+var computers := {}      # entity id -> ComputerView (laptops on desks)
+var vehicles := {}       # entity id -> VehicleView (cars, bikes, taxis, trams)
+var commute_mode := 5    # how we came today (Clock.mode): where "[E] home" is
+var trays := {}          # entity id -> TrayView (sweets in the chill room)
+var screen := ComputerScreen.new()
+var screen_layer := CanvasLayer.new()
+var stats_hud := StatsHud.new()
+var stall_doors := {}    # floor -> Array of StallDoorView
+var elevator_doors := {} # floor -> Array of ElevatorDoorView
+## The elevators (from Doors), indexed like `building.lift_ids`: where each
+## car is, where it is heading (Protocol.NO_FLOOR = standing), moving.
+var lifts := []
+var ride_mask := RideMask.new()
+var clock_label := Label.new()
+var clock_panel: Control = null
+## The hint as the game words it (with "[E] ..."; the label may show it
+## without keys on a touch screen).
+var hint_text := ""
+var daylight := CanvasModulate.new()   # time-of-day tint of the world
+var game_minute := 8 * 60
+var weather := Protocol.WEATHER_SUNNY
+var weather_fx := WeatherFx.new()
+## Smoke in the rooms + detectors (over the world); fire alarm on screen.
+var smoke_view := SmokeView.new()
+## Room brightness (windows, lamps, time of day, weather) and the switches.
+var light_view := LightView.new()
+var fire_alarm := false
+var alarm_tint := ColorRect.new()
+var alarm_label := Label.new()
+## The world's paper-and-ink look (post-process over the world).
+var mood_layer := CanvasLayer.new()
+var mood := ColorRect.new()
+## Text in the world (nicks, bubbles, room names) above the ink effect.
+var label_layer := CanvasLayer.new()
+var smoke_layer := CanvasLayer.new()
+var weather_layer := CanvasLayer.new()
+var dialog := DialogWindow.new()
+var gadget := GadgetView.new()  # the TV remote / the boombox
+var roll_game := RollGame.new()  # rolling a cigarette (F with tobacco)
+var brush_game := BrushGame.new()  # scrubbing a skid mark off a toilet
+var stain_here := false  # a skid mark on the toilet next to us: E = the brush
+## A vote (or 0: close) - for the home screen, which covers the game.
+signal vote_dialog(p: Dictionary)
+
+var action_menu := ActionMenu.new()  # Tab: what can be done here
+var _queued_interact := false  # an E picked in the action menu (next input sample)
+var door_plaque := DoorPlaque.new()  # a door plaque read up close (E by a door)
+## The room whose plaque E would read right now (0 = E does something else).
+var plaque_here := 0
+var notices := Notices.new()      # cards in the corner (Notice)
+var log_history := LogHistory.new()  # H: the day's log
+var chat_box := ChatBox.new()     # Enter: typed chat
+var shelf_window := ShelfWindow.new()
+var _shelf_at := Vector2.ZERO     # where the shelf window was opened (walk away = close)
+var container := ContainerWindow.new()
+var _container_at := Vector2.ZERO
+var _container_closed_ms := -10000
+## On-screen controls (touch screens only, touch/touch_controls.gd).
+var touch: Control = null
+var touch_layer := CanvasLayer.new()
+var coffee := CoffeeWindow.new()  # the coffee machine's panel
+var _coffee_at := Vector2.ZERO
+var _coffee_closed_ms := -10000
+var depts := {}          # id -> department (after the contract)
+var appearances := {}    # id -> appearance dict (from PlayerInfo)
+var own_appearance := {}
+## Set while a full-screen UI (job portal) is open: no movement input.
+var input_blocked := false
+var job_title := ""
+var department := 0
+var _pending_say := {}   # id -> [msec, text]: said before the speaker was visible
+var remotes := {}        # id -> RemotePlayer
+var nicks := {}          # id -> String
+var info_requested := {} # id -> msec of last request
+
+# Local prediction state: pred is a Movement.body() (floor, pos, prev, lock).
+var have_state := false
+var pred := {}
+var prev_pos := Vector2i.ZERO   # position one physics step ago (render lerp)
+var pending: Array = []  # [seq, bits], oldest first
+var seq := 0
+var last_ack := 0
+var error_offset := Vector2.ZERO
+var corrections := 0
+
+# Server time / snapshot state.
+var latest_tick := 0
+var est_tick := 0.0
+var have_time := false
+var room_id := 0
+var floor_index := 0
+var visible_count := 0
+var interp_frames := 0
+var interp_underruns := 0
+
+# Dev helpers: --autowalk (random walk), --goto=<leg>;<leg>;... where a leg is
+# a room name or "x,y" tile on the current floor, "E" (press interact once) or
+# "wait:N" (stand still N seconds). E.g. "27,29;E;wait:2;34,6;Recepcja".
+var autowalk := false
+## An end-to-end scenario driving the character (tests/e2e/scenario.gd).
+var script_driver = null
+var _autowalk_bits := 0
+var _autowalk_timer := 0.0
+var goto_legs: PackedStringArray = []
+var goto_delay := 3.0
+var _goto_path: Array[Vector2i] = []
+var _goto_floor := -1   # floor the current path was planned on
+
+
+func setup(p_net, p_building, welcome: Dictionary, p_nick: String, args: Dictionary) -> void:
+	if DisplayServer.get_name() != "headless":
+		preload("res://ui/item_icons.gd").prewarm()
+	RenderingServer.set_default_clear_color(Color("#15171f"))  # the night around the building
+	label_layer.layer = 7
+	label_layer.follow_viewport_enabled = false  # tags are put on screen by world_view
+	add_child(label_layer)
+	PlayerView.label_root = label_layer
+	PlayerView.tags_placed_externally = true
+	hidden_2d.visible = false
+	add_child(hidden_2d)
+	net = p_net
+	building = p_building
+	nick = p_nick
+	tick_hz = welcome.tick_hz
+	autowalk = args.has("autowalk")
+	if args.get("goto", "") != "":
+		goto_legs = args["goto"].split(";")
+	goto_delay = float(args.get("goto-delay", "3"))
+	net.packet_received.connect(_on_packet)
+	sounds.game = self
+	add_child(sounds)
+	voice.game = self
+	voice.dev_tone = args.has("voice-tone")
+	add_child(voice)
+	voice.send.connect(func(s: int, w: bool, data: PackedByteArray):
+		if net.is_playing():
+			net.send(Protocol.encode_voice(net.token, s, w, data)))
+	var audio = Audio.inst
+	if audio:
+		audio.world = world
+
+	var map0 = building.get_floor(0)
+	world_view.setup(self, building)
+	world.y_sort_enabled = true
+	hidden_2d.add_child(puddle_layer)
+	hidden_2d.add_child(ride_mask)
+	hidden_2d.add_child(world)
+	boombox.bus = "Music"
+	boombox.max_distance = 320.0
+	boombox.attenuation = 1.6
+	world.add_child(boombox)
+	light_view.setup(building)
+	hidden_2d.add_child(light_view)  # its state lights the 3D rooms (world_view)
+	# Smoke over the ink effect (drawn in its own style), under the weather.
+	smoke_layer.layer = 5
+	smoke_layer.follow_viewport_enabled = true
+	smoke_layer.visible = false  # TODO 3D smoke (world3d)
+	add_child(smoke_layer)
+	smoke_view.setup(building)
+	smoke_layer.add_child(smoke_view)
+	for f in world_view.floors:
+		var m = building.get_floor(f)
+		stall_doors[f] = []
+		elevator_doors[f] = []
+		for y in m.height:
+			for x in m.width:
+				var ttype = m.legend.get(m.tile_chars[y * m.width + x], {}).get("type")
+				if ttype == "elevator_door":
+					var ev := ElevatorDoorView.new()
+					ev.tile = Vector2i(x, y)
+					ev.position = Movement.to_px(Movement.tile_center(x, y))
+					var is_door := func(dx: int) -> bool: return m.legend.get(m.tile_chars[y * m.width + x + dx], {}).get("type") == "elevator_door"
+					ev.display = is_door.call(-1) and is_door.call(1)  # the middle one
+					ev.lift = building.lift_at_door(f, Vector2i(x, y))
+					ev.visible = false
+					world.add_child(ev)
+					elevator_doors[f].append(ev)
+				if ttype == "stall_door":
+					var dv := StallDoorView.new()
+					dv.tile = Vector2i(x, y)
+					dv.across = m.is_blocked(x - 1, y) and m.is_blocked(x + 1, y)  # in a wall running left-right
+					dv.position = Movement.to_px(Movement.tile_center(x, y))
+					dv.visible = false
+					world.add_child(dv)
+					stall_doors[f].append(dv)
+
+	me.setup(net.player_id, nick, ZOOM)
+	me.highlight = true
+	me.visible = false
+	world.add_child(me)
+	camera.zoom = Vector2(ZOOM, ZOOM)
+	camera.limit_left = 0
+	camera.limit_top = 0
+	camera.limit_right = map0.width * map0.tile_px
+	camera.limit_bottom = map0.height * map0.tile_px
+	me.add_child(camera)
+	camera.make_current()
+
+	add_child(overlay)
+	overlay.game = self
+	overlay.visible = args.has("debug")
+
+	status_layer.layer = 11
+	add_child(status_layer)
+	# HUD text as glass chips (ui_kit): the status at the top, the hint above
+	# the inventory bar, the log bottom left, the clock top left.
+	for l in [status_label, hint_label]:
+		l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		l.add_theme_stylebox_override("normal", Kit.box("hud"))
+		l.visible = false
+		l.resized.connect(_fit_hud_text)
+		status_layer.add_child(l)
+	Kit.style_label(status_label, 22, Kit.TEXT)
+	Kit.style_label(hint_label, 18, Kit.TEXT)
+	get_viewport().size_changed.connect(_fit_hud_text)
+	log_label.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
+	log_label.position = Vector2(16, -236)
+	log_label.size = Vector2(470, 220)
+	log_label.vertical_alignment = VERTICAL_ALIGNMENT_BOTTOM
+	log_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	Kit.style_label(log_label, 15, Kit.TEXT)
+	log_label.add_theme_constant_override("line_spacing", 3)
+	log_label.add_theme_constant_override("outline_size", 6)
+	log_label.add_theme_color_override("font_outline_color", Color(Kit.DARK, 0.55))
+	log_label.add_theme_constant_override("shadow_offset_y", 1)
+	log_label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.35))
+	status_layer.add_child(log_label)
+	status_layer.add_child(hud)
+	hud.slot_clicked.connect(_pocket_key)
+	status_layer.add_child(stats_hud)
+	var cp := Kit.panel("hud")
+	clock_panel = cp
+	cp.position = Vector2(16, 14)
+	var crow := HBoxContainer.new()
+	crow.add_theme_constant_override("separation", 10)
+	cp.add_child(crow)
+	var wicon := Control.new()
+	wicon.custom_minimum_size = Vector2(28, 28)
+	wicon.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	wicon.draw.connect(func():
+		var night := game_minute < 6 * 60 or game_minute >= 20 * 60
+		var ic: String = {2: "cloud", 3: "rain", 4: "rain", 5: "fog"}.get(weather, "moon" if night else "sun")
+		Kit.draw_icon(wicon, ic, Vector2(14, 14), 12.0, Kit.GOLD if ic in ["sun", "moon"] else Kit.TEXT, 2.2))
+	clock_label.draw.connect(wicon.queue_redraw)
+	crow.add_child(wicon)
+	Kit.style_label(clock_label, 18, Kit.TEXT)
+	crow.add_child(clock_label)
+	status_layer.add_child(cp)
+	add_child(daylight)
+	mood_layer.layer = 4  # over the world, under the weather and the HUD
+	add_child(mood_layer)
+	mood.set_anchors_preset(Control.PRESET_FULL_RECT)
+	mood.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var mat := ShaderMaterial.new()
+	mat.shader = load("res://game/mood.gdshader")
+	mood.material = mat
+	Settings.load_once()
+	mood.visible = false  # the 2D ink-and-paper post effect: not for the 3D world
+	mood_layer.add_child(mood)
+	alarm_tint.set_anchors_preset(Control.PRESET_FULL_RECT)
+	alarm_tint.color = Color(0.9, 0.05, 0.05, 0.0)
+	alarm_tint.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	status_layer.add_child(alarm_tint)
+	status_layer.move_child(alarm_tint, 0)  # under the HUD
+	alarm_label.set_anchors_preset(Control.PRESET_CENTER_TOP)
+	alarm_label.position = Vector2(-330, 110)
+	alarm_label.size = Vector2(660, 40)
+	alarm_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	alarm_label.text = "ALARM POŻAROWY — wyjdź z budynku!"
+	Kit.style_label(alarm_label, 26, Color.WHITE)
+	alarm_label.add_theme_stylebox_override("normal", Kit.box("alarm"))
+	alarm_label.visible = false
+	status_layer.add_child(alarm_label)
+	weather_layer.layer = 6  # over the world and the smoke, under the HUD
+	add_child(weather_layer)
+	weather_layer.add_child(weather_fx)
+	weather_fx.lightning.connect(func(): sounds.on_lightning(weather_fx.outdoors))
+	status_layer.add_child(shelf_window)
+	status_layer.add_child(container)
+	container.action.connect(func(which: int, act: int, arg: int, kind: int):
+			if net.is_playing():
+				net.send(Protocol.encode_container_action(net.token, which, act, arg, kind)))
+	status_layer.add_child(coffee)
+	coffee.action.connect(func(machine: int, act: int):
+			if net.is_playing():
+				net.send(Protocol.encode_coffee_action(net.token, machine, act)))
+	coffee.closed.connect(func():
+			_coffee_closed_ms = Time.get_ticks_msec()
+			if net.is_playing():
+				net.send(Protocol.encode_coffee_action(net.token, coffee.state.get("machine", 0), Protocol.COFFEE_CLOSE)))
+	container.closed.connect(func():
+			_container_closed_ms = Time.get_ticks_msec()
+			if net.is_playing():
+				net.send(Protocol.encode_container_action(net.token, container.which, Protocol.CONTAINER_CLOSE)))
+	shelf_window.take.connect(func(shelf: int, kind: int):
+			if net.is_playing():
+				net.send(Protocol.encode_shop_take(net.token, shelf, kind)))
+	screen_layer.layer = 12
+	add_child(screen_layer)
+	screen.my_id = net.player_id
+	screen.name_of = func(id: int) -> String: return nick if id == net.player_id else nicks.get(id, "?")
+	screen.action.connect(_computer_action)
+	screen.task_action.connect(func(n: int, act: int, task: int, arg: int, text: String):
+		if net.is_playing():
+			net.send(Protocol.encode_task_action(net.token, n, act, task, arg, text)))
+	screen.mail_action.connect(func(n: int, act: int, id: int, to: String, subj: String, body: String):
+		if net.is_playing():
+			net.send(Protocol.encode_mail_action(net.token, n, act, id, to, subj, body)))
+	screen.hr_action.connect(func(act: int, arg: int):
+		if net.is_playing():
+			net.send(Protocol.encode_hr_action(net.token, act, arg)))
+	screen.company_action.connect(func(act: int, target: int, value: int, text: String):
+		if net.is_playing():
+			net.send(Protocol.encode_company_action(net.token, act, target, value, text)))
+	screen.order.connect(func(dish: int):
+			if net.is_playing():
+				net.send(Protocol.encode_lunch_order(net.token, dish)))
+	screen.book.connect(func(start: int, topic: int):
+			if net.is_playing():
+				net.send(Protocol.encode_calendar_book(net.token, start, topic)))
+	status_layer.add_child(dialog)
+	status_layer.add_child(roll_game)
+	status_layer.add_child(brush_game)
+	brush_game.scrubbed.connect(_send_action.bind(Protocol.ACTION_SCRUB))
+	status_layer.add_child(door_plaque)
+	status_layer.add_child(action_menu)
+	status_layer.add_child(notices)
+	status_layer.move_child(notices, shelf_window.get_index())  # under the windows
+	status_layer.add_child(log_history)
+	status_layer.add_child(chat_box)
+	chat_box.sent.connect(func(text: String):
+		if net.is_playing():
+			net.send(Protocol.encode_chat_say(net.token, text)))
+	roll_game.rolled.connect(func(q: int):
+		if net.is_playing():
+			net.send(Protocol.encode_roll(net.token, q)))
+	dialog.name_of = func(id: int) -> String: return nicks.get(id, "?")
+	dialog.answer.connect(func(id: int, choice: int):
+			if net.is_playing():
+				net.send(Protocol.encode_dialog_answer(net.token, id, choice)))
+	status_layer.add_child(gadget)
+	gadget.pick.connect(func(choice: int):
+			if net.is_playing():
+				net.send(Protocol.encode_dialog_answer(net.token, gadget.dialog_id, choice))
+			if not gadget.lift:
+				gadget.close())  # (the lift's panel: the server closes it, or shows it again)
+	screen_layer.add_child(screen)
+	if Touch.active:
+		touch_layer.layer = 13  # over the HUD and the computer (its close button)
+		add_child(touch_layer)
+		touch = TouchControls.new()
+		touch.game = self
+		touch_layer.add_child(touch)
+	add_child(world_view)  # last: it reads the state the rest updated this frame
+	_show_floor(0)
+	set_zoom_level.call_deferred(float(args["zoom"]) if args.has("zoom") else Settings.zoom)
+
+
+func _show_floor(f: int) -> void:
+	smoke_view.set_floor(f)
+	light_view.set_floor(f)
+	_below_floor = -1
+	world_view.show_floor(f)
+	for k in stall_doors:
+		for dv in stall_doors[k]:
+			dv.visible = (k == f)
+	for k in elevator_doors:
+		for ev in elevator_doors[k]:
+			ev.visible = (k == f)
+
+
+## Session lost; the net client is getting a new one. Freeze local simulation.
+func on_reconnecting(reason: String) -> void:
+	have_state = false
+	status_label.text = "Łączenie ponownie… (%s)" % reason if reason != "" else "Łączenie ponownie…"
+	status_label.visible = true
+
+
+## New session after an automatic reconnect: new player id/token, fresh state.
+func reset_session(welcome: Dictionary) -> void:
+	tick_hz = welcome.tick_hz
+	for r in remotes.values():
+		r.queue_free()
+	remotes.clear()
+	nicks.clear()
+	kinds.clear()
+	for iv in floor_items.values():
+		iv.queue_free()
+	floor_items.clear()
+	for pv in puddles.values():
+		pv.queue_free()
+	puddles.clear()
+	for cv in computers.values():
+		cv.queue_free()
+	computers.clear()
+	screen.set_seated(false)
+	screen.chats.clear()
+	for f in world_view.floors:
+		building.get_floor(f).set_closed_tiles([])
+	screen.my_id = net.player_id
+	inventory = []
+	hud.update_slots([])
+	me.set_held(0)
+	appearances.clear()
+	depts.clear()
+	info_requested.clear()
+	pending.clear()
+	seq = 0
+	last_ack = 0
+	error_offset = Vector2.ZERO
+	have_state = false
+	have_time = false
+	latest_tick = 0
+	room_id = 0
+	me.visible = false
+	me.set_seed(net.player_id)
+	if not own_appearance.is_empty():
+		me.set_appearance(own_appearance)
+	status_label.visible = false
+
+
+func set_own_appearance(a: Dictionary) -> void:
+	own_appearance = a
+	me.set_appearance(a)
+
+
+## Position from the job portal (department becomes official with the contract).
+func set_job(title: String, dept: int) -> void:
+	job_title = title
+	department = dept
+	_refresh_own_label()
+
+
+func _label_for(nick_text: String, dept: int) -> String:
+	var short := Departments.short_of(dept)
+	return "%s · %s" % [nick_text, short] if short != "" else nick_text
+
+
+func _refresh_own_label() -> void:
+	var official: bool = have_state and (pred.access & MapData.ACCESS_CARD) != 0
+	me.set_nick(_label_for(nick, department if official else 0))
+
+
+func _sample_input(delta: float) -> int:
+	if input_blocked or me.status in Protocol.ACT_STUCK:
+		return 0
+	if script_driver != null:
+		return 0 if screen.visible or dialog.visible else script_driver.next_input(delta)
+	if not goto_legs.is_empty() or not _goto_path.is_empty():
+		var g := _goto_input(delta)  # dev script also drives the computer screen / dialogs
+		return 0 if screen.visible or dialog.visible else g
+	if dialog.visible or roll_game.visible or brush_game.visible or chat_box.typing():
+		return 0
+	if screen.visible:
+		return 0
+	if autowalk:
+		_autowalk_timer -= delta
+		if _autowalk_timer <= 0.0:
+			_autowalk_bits = [0, 1, 2, 4, 8, 5, 9, 6, 10][randi() % 9]
+			_autowalk_timer = randf_range(0.3, 1.5)
+		return _autowalk_bits
+	if not get_window().has_focus() and touch == null:
+		return 0
+	return player_bits()
+
+
+## Keys held (or the touch joystick / buttons, which press the same keys)
+## -> input bits.
+func player_bits() -> int:
+	var b := 0
+	# Keys are screen directions; the camera may be turned (world_view),
+	# the input sent stays in map axes.
+	var sd: Vector2i = touch.move_dir() if touch else Vector2i.ZERO
+	if Input.is_physical_key_pressed(KEY_W) or Input.is_physical_key_pressed(KEY_UP):
+		sd.y -= 1
+	if Input.is_physical_key_pressed(KEY_S) or Input.is_physical_key_pressed(KEY_DOWN):
+		sd.y += 1
+	if Input.is_physical_key_pressed(KEY_A) or Input.is_physical_key_pressed(KEY_LEFT):
+		sd.x -= 1
+	if Input.is_physical_key_pressed(KEY_D) or Input.is_physical_key_pressed(KEY_RIGHT):
+		sd.x += 1
+	var md := world_view.screen_to_map(sd.clamp(-Vector2i.ONE, Vector2i.ONE))
+	if md.y < 0: b |= Movement.IN_UP
+	if md.y > 0: b |= Movement.IN_DOWN
+	if md.x < 0: b |= Movement.IN_LEFT
+	if md.x > 0: b |= Movement.IN_RIGHT
+	if Input.is_physical_key_pressed(KEY_E) or _queued_interact:
+		if stain_here:
+			if not brush_game.visible:
+				brush_game.start()  # not sitting on that: the brush
+		else:
+			b |= Movement.IN_INTERACT
+	_queued_interact = false
+	return b
+
+
+func _goto_input(delta: float) -> int:
+	if goto_delay > 0.0:
+		goto_delay -= delta
+		return 0
+	if _goto_path.is_empty() and not goto_legs.is_empty():
+		var leg := goto_legs[0]
+		goto_legs.remove_at(0)
+		if leg == "E":
+			goto_delay = 0.3
+			_read_plaque()
+			return Movement.IN_INTERACT
+		if leg.begins_with("wait:"):
+			goto_delay = float(leg.substr(5))
+			return 0
+		if leg.begins_with("dlg:"):  # dlg:<choice> answers the open dialog
+			dialog._choose(int(leg.substr(4)))
+			goto_delay = 0.5
+			return 0
+		if leg.begins_with("shop:"):  # shop:<shelf>:<kind> takes one off a shelf
+			net.send(Protocol.encode_shop_take(net.token, int(leg.get_slice(":", 1)), int(leg.get_slice(":", 2))))
+			goto_delay = 0.4
+			return 0
+		if leg == "esc":  # dev: press Esc (the game menu)
+			var ev := InputEventKey.new()
+			ev.keycode = KEY_ESCAPE
+			ev.physical_keycode = KEY_ESCAPE
+			ev.pressed = true
+			Input.parse_input_event(ev)
+			goto_delay = 0.3
+			return 0
+		if leg.begins_with("talk:") or leg.begins_with("whisper:"):  # dev voice chat
+			voice.dev_talk(1 if leg.begins_with("talk:") else 2, float(leg.get_slice(":", 1)))
+			goto_delay = 0.2
+			return 0
+		if leg == "L":  # lock / unlock the stall
+			net.send(Protocol.encode_door_action(net.token))
+			goto_delay = 0.3
+			return 0
+		if leg.begins_with("pc:"):  # computer screen, see ComputerScreen.dev_command
+			screen.dev_command(leg.substr(3))
+			goto_delay = 0.6
+			return 0
+		if leg.begins_with("item:"):  # item:take0..2 / put / drop / give / use
+			var a := leg.substr(5)
+			match a:
+				"put": _item_action(Protocol.ITEM_PUT_AWAY, 0)
+				"drop": _item_action(Protocol.ITEM_DROP, 0)
+				"give": _item_action(Protocol.ITEM_GIVE, 0)
+				"use": _item_action(Protocol.ITEM_USE, 0)
+				_: _item_action(Protocol.ITEM_TAKE_OUT, int(a.substr(4)))
+			goto_delay = 0.4
+			return 0
+		_goto_path = _plan_path(leg)
+		_goto_floor = pred.floor
+		goto_delay = 0.3
+	if not _goto_path.is_empty() and pred.floor != _goto_floor:
+		_goto_path.clear()  # the stairs / elevator took us elsewhere: leg done
+		return 0
+	while not _goto_path.is_empty():
+		var c := Movement.tile_center(_goto_path[0].x, _goto_path[0].y)
+		var p: Vector2i = pred.pos
+		var b := 0
+		if c.x - p.x > Movement.SPEED / 2: b |= Movement.IN_RIGHT
+		elif c.x - p.x < -Movement.SPEED / 2: b |= Movement.IN_LEFT
+		if c.y - p.y > Movement.SPEED / 2: b |= Movement.IN_DOWN
+		elif c.y - p.y < -Movement.SPEED / 2: b |= Movement.IN_UP
+		if b != 0:
+			return b
+		_goto_path.pop_front()
+	return 0
+
+
+## Touch: the joystick (or the action button) takes over from a tap-walk.
+func touch_walk_cancel() -> void:
+	goto_legs.clear()
+	_goto_path.clear()
+
+
+## Touch: a tap on the world. On a person or a piece of furniture: walk up
+## to it and press E; on the floor: walk there.
+func touch_tap_world(sp: Vector2) -> void:
+	if not have_state or input_blocked or me.status in Protocol.ACT_STUCK:
+		return
+	var map = building.get_floor(pred.floor)
+	var y := Coords.floor_y(pred.floor)
+	var rig = world_view.rig
+	var me_px := Movement.to_px(pred.pos)
+	var me_tile := Movement.tile_of_pos(pred.pos)
+	var target := Vector2i(-1, -1)
+	var interact := false
+	# Somebody under the finger (their middle is ~0.9 m up).
+	var body = rig.floor_point(sp, y + 0.9)
+	if body != null:
+		var bp := Coords.world_to_px(body)
+		var best := 14.0
+		for id in remotes:
+			var r = remotes[id]
+			if r.visible and r.position.distance_to(bp) < best:
+				best = r.position.distance_to(bp)
+				target = Vector2i(floori(r.position.x / 16.0), floori(r.position.y / 16.0))
+				interact = true
+	if not interact:
+		# Furniture: its top is ~0.7 m up; else the floor itself.
+		for h in [0.7, 0.0]:
+			var hit = rig.floor_point(sp, y + h)
+			if hit == null:
+				continue
+			var t := Vector2i((Coords.world_to_px(hit) / 16.0).floor())
+			if t.x < 0 or t.y < 0 or t.x >= map.width or t.y >= map.height:
+				continue
+			if map.is_blocked(t.x, t.y):
+				target = t
+				interact = true
+				break
+			if h == 0.0:
+				target = t
+	if target.x < 0:
+		return
+	touch_walk_cancel()
+	goto_delay = 0.0
+	if touch:
+		touch.flash_at(sp)
+	if not interact:
+		goto_legs = ["%d,%d" % [target.x, target.y]]
+		return
+	if Vector2(target * 16 + Vector2i(8, 8)).distance_to(me_px) <= 26.0:
+		goto_legs = ["E"]  # already next to it
+		return
+	# The free tile next to it closest to us.
+	var best_t := Vector2i(-1, -1)
+	var best_d := INF
+	for dy in [-1, 0, 1]:
+		for dx in [-1, 0, 1]:
+			var n: Vector2i = target + Vector2i(dx, dy)
+			if (dx == 0 and dy == 0 and map.is_blocked(n.x, n.y)) or n.x < 0 or n.y < 0 or n.x >= map.width or n.y >= map.height:
+				continue
+			if map.is_blocked(n.x, n.y):
+				continue
+			var dd := Vector2(n - me_tile).length() + (0.5 if dx != 0 and dy != 0 else 0.0)
+			if dd < best_d:
+				best_d = dd
+				best_t = n
+	if best_t.x < 0:
+		return
+	goto_legs = ["%d,%d" % [best_t.x, best_t.y], "E"]
+
+
+## Dev helper; plans on the current floor only.
+func _plan_path(leg: String) -> Array[Vector2i]:
+	var map = building.get_floor(pred.floor)
+	var astar := AStarGrid2D.new()
+	astar.region = Rect2i(0, 0, map.width, map.height)
+	astar.diagonal_mode = AStarGrid2D.DIAGONAL_MODE_NEVER
+	astar.update()
+	var goal := Vector2i(-1, -1)
+	for y in map.height:
+		for x in map.width:
+			# Tiles we can't enter (walls, gates without a pass) are solid.
+			# Closed doors (elevator, stall) count as passable: walk up and wait.
+			if map.is_blocked(x, y) or (map.blocks(x, y, pred.access, MapData.DIR_UP) and not map.is_closed(x, y)):
+				astar.set_point_solid(Vector2i(x, y))
+			elif goal.x < 0 and map.room_name(map.room_at_tile(x, y)) == leg:
+				goal = Vector2i(x + 2, y + 2)  # a bit inside the room
+	if leg.contains(","):
+		goal = Vector2i(int(leg.get_slice(",", 0)), int(leg.get_slice(",", 1)))
+	if goal.x < 0 or map.is_blocked(goal.x, goal.y):
+		push_warning("goto: can't find '%s'" % leg)
+		return []
+	return astar.get_id_path(Movement.tile_of_pos(pred.pos), goal)
+
+
+func _physics_process(delta: float) -> void:
+	if not have_state or not net.is_playing():
+		return
+	var bits := _sample_input(delta)
+	seq += 1
+	pending.append([seq, bits])
+	if pending.size() > MAX_PENDING:
+		pending.pop_front()
+	var before_floor: int = pred.floor
+	prev_pos = pred.pos
+	pred = Movement.step(building, pred, bits)
+	if pred.floor != before_floor:
+		prev_pos = pred.pos  # changed floors: no lerp across the jump
+		_show_floor(pred.floor)
+	var d := Movement.input_dir(bits)
+	if d.y > 0: me.set_facing(0)
+	elif d.y < 0: me.set_facing(1)
+	elif d.x < 0: me.set_facing(2)
+	elif d.x > 0: me.set_facing(3)
+	var k := mini(pending.size(), INPUT_REDUNDANCY)
+	var inputs := PackedByteArray()
+	for i in range(pending.size() - k, pending.size()):
+		inputs.append(pending[i][1])
+	net.send(Protocol.encode_input(net.token, latest_tick, seq, inputs))
+
+
+## Media: what the TVs show and where the boombox plays.
+func _on_media(p: Dictionary) -> void:
+	for s in p.screens:
+		var key := "%d:%d:%d" % [s.floor, s.x, s.y]
+		if not tvs.has(key):
+			var tv := TvView.new()
+			tv.position = Vector2(s.x * 16, s.y * 16)
+			world.add_child(tv)
+			tvs[key] = [tv, s.floor]
+		var view = tvs[key][0]
+		view.weather = Protocol.WEATHER_NAMES.get(weather, "")
+		view.show_channel(s.channel, (est_tick - s.started) / float(tick_hz))
+	boombox_music = p.music[0] if not p.music.is_empty() else {}
+	gadget.track = boombox_music.get("track", 0)
+	gadget.tv_channel = 0
+	var best := INF
+	# the TV nearest to us on our floor (media can come before our first state)
+	for s in (p.screens if pred.has("pos") else []):
+		var me_px := Movement.to_px(pred.pos)
+		var d := me_px.distance_to(Vector2(s.x * 16, s.y * 16))
+		if s.floor == pred.floor and d < best:
+			best = d
+			gadget.tv_channel = s.channel
+	if boombox_music.is_empty():
+		boombox.stop()
+		return
+	if Audio.inst == null:
+		return
+	var stream = Audio.inst.stream("boombox_%d" % boombox_music.track, true)
+	if stream == null:
+		return
+	var length: float = stream.get_length()
+	var at := fposmod((est_tick - boombox_music.started) / float(tick_hz), length)
+	if boombox.stream != stream or not boombox.playing:
+		boombox.stream = stream
+		boombox.play(at)
+	elif absf(boombox.get_playback_position() - at) > 0.6 and absf(boombox.get_playback_position() - at) < length - 0.6:
+		boombox.seek(at)  # drifted: everybody hears the same bar
+
+
+## TVs only on our floor; the boombox follows whoever carries it.
+func _update_media() -> void:
+	for key in tvs:
+		tvs[key][0].visible = tvs[key][1] == floor_index
+	if boombox_music.is_empty():
+		return
+	var holder: int = boombox_music.holder
+	var pos := Vector2(boombox_music.x, boombox_music.y) / float(Movement.SUBPIXELS)
+	if holder == net.player_id:
+		pos = me.position
+	elif holder != 0 and remotes.has(holder):
+		pos = remotes[holder].position
+	boombox.position = pos
+	boombox.volume_db = -4.0 if boombox_music.floor == floor_index else -80.0
+
+
+## The status and hint chips: sized to their text, centred.
+func _fit_hud_text() -> void:
+	var vs := get_viewport().get_visible_rect().size
+	for l in [status_label, hint_label]:
+		var want: Vector2 = l.get_combined_minimum_size()
+		if l.size != want:
+			l.size = want
+	var sr := Touch.safe_rect(get_viewport())
+	status_label.position = Vector2((vs.x - status_label.size.x) / 2, sr.position.y + 24)
+	if clock_panel:
+		clock_panel.position = sr.position + Vector2(16, 14)
+	if Touch.active:  # above the joystick
+		log_label.size = Vector2(minf(420, vs.x * 0.4), 200)
+		log_label.position = Vector2(sr.position.x + 16, sr.end.y - 200 - 190)
+	hint_label.position = Vector2((vs.x - hint_label.size.x) / 2, hud.top() - hint_label.size.y - 10)
+
+
+func _process(delta: float) -> void:
+	_update_media()
+	if hint_label.visible or status_label.visible:
+		_fit_hud_text()
+	# Fire alarm: the screen pulses red.
+	var pulse := 0.5 + 0.5 * sin(Time.get_ticks_msec() / 1000.0 * TAU * 1.5)
+	alarm_tint.color.a = 0.16 * pulse if fire_alarm else 0.0
+	alarm_label.modulate.a = 0.55 + 0.45 * pulse
+	# Drunk: the view sways a little (more the more drunk).
+	if ride_mask.visible:
+		pass  # the elevator shakes it (_update_ride)
+	elif me.drunk > 0 and me.status != Protocol.ACT_PASSED_OUT:
+		var t := Time.get_ticks_msec() / 1000.0
+		var amp := 1.5 * me.drunk
+		camera.offset = Vector2(sin(t * 0.9) * amp, sin(t * 1.3) * amp * 0.5)
+	else:
+		camera.offset = Vector2.ZERO
+	if have_state:
+		error_offset *= exp(-ERROR_DECAY * delta)
+		if error_offset.length_squared() < 0.0025:
+			error_offset = Vector2.ZERO
+		var frac := Engine.get_physics_interpolation_fraction()
+		me.position = Movement.to_px(prev_pos).lerp(Movement.to_px(pred.pos), frac) + error_offset
+		_update_hint()
+		if not _log.is_empty():
+			_refresh_log()
+	for id in floor_items.keys():
+		if latest_tick - floor_items[id].last_seen_tick > REMOTE_TIMEOUT_TICKS:
+			floor_items[id].queue_free()
+			floor_items.erase(id)
+	if shelf_window.visible and have_state and Movement.to_px(pred.pos).distance_to(_shelf_at) > 20.0:
+		shelf_window.close()  # walked away from the shelf
+	if container.visible and have_state and Movement.to_px(pred.pos).distance_to(_container_at) > 20.0:
+		container.close()  # walked away
+	if coffee.visible and have_state and Movement.to_px(pred.pos).distance_to(_coffee_at) > 20.0:
+		coffee.close()
+	if have_state:
+		_update_stall_doors()
+		_update_ride()
+		_update_weather()
+	for id in puddles.keys():
+		if latest_tick - puddles[id].last_seen_tick > REMOTE_TIMEOUT_TICKS:
+			puddles[id].queue_free()
+			puddles.erase(id)
+	for id in trays.keys():
+		if latest_tick - trays[id].last_seen_tick > REMOTE_TIMEOUT_TICKS:
+			trays[id].queue_free()
+			trays.erase(id)
+	for id in vehicles.keys():
+		if latest_tick - vehicles[id].last_seen_tick > REMOTE_TIMEOUT_TICKS:
+			vehicles[id].queue_free()
+			vehicles.erase(id)
+	for id in computers.keys():
+		if latest_tick - computers[id].last_seen_tick > REMOTE_TIMEOUT_TICKS:
+			computers[id].queue_free()
+			computers.erase(id)
+	if have_time:
+		est_tick += delta * tick_hz
+		var render_tick := est_tick - INTERP_DELAY_SEC * tick_hz
+		for id in remotes.keys():
+			var r = remotes[id]
+			if latest_tick - r.last_seen_tick > REMOTE_TIMEOUT_TICKS:
+				r.queue_free()
+				remotes.erase(id)
+			else:
+				var underrun: bool = r.update_render(render_tick)
+				# Only players still present in the latest snapshot count; ones
+				# that just left the room naturally run out of samples.
+				if r.last_seen_tick == latest_tick and r.samples.size() >= 3:
+					interp_frames += 1
+					if underrun:
+						interp_underruns += 1
+
+
+func _on_packet(p: Dictionary) -> void:
+	match p.type:
+		Protocol.T_SNAPSHOT:
+			_on_snapshot(p)
+		Protocol.T_INVENTORY:
+			inventory = p.slots
+			hud.update_slots(inventory)
+			me.set_held(inventory[0].kind if not inventory.is_empty() else 0)
+			container.set_inventory(inventory)
+			coffee.set_held(inventory[0].kind if not inventory.is_empty() else 0)
+		Protocol.T_DOORS:
+			var dm = building.get_floor(p.floor)
+			if dm:
+				dm.set_closed_tiles(p.tiles)
+			lifts = p.lifts
+		Protocol.T_SHELF:
+			shelf_window.show_shelf(p)
+			_shelf_at = Movement.to_px(pred.pos)
+		Protocol.T_COFFEE_MACHINE:
+			if coffee.visible or Time.get_ticks_msec() - _coffee_closed_ms >= 800:
+				if not coffee.visible:
+					_coffee_at = Movement.to_px(pred.pos)
+				coffee.show_machine(p)
+		Protocol.T_CONTAINER:
+			# (A refresh already on its way when the window was closed: ignored.)
+			if container.visible or Time.get_ticks_msec() - _container_closed_ms >= 800:
+				if not container.visible:
+					_container_at = Movement.to_px(pred.pos)
+					container.set_inventory(inventory)
+				container.show_container(p)
+		Protocol.T_SMOKE:
+			smoke_view.on_smoke(p)
+		Protocol.T_LIGHTS:
+			light_view.on_lights(p)
+		Protocol.T_CLOCK:
+			commute_mode = p.mode
+			fire_alarm = p.get("alarm", 0) == 1
+			smoke_view.alarm = fire_alarm
+			alarm_label.visible = fire_alarm
+			game_minute = p.minute
+			var part := "noc" if p.night else ("rano" if p.minute < 10 * 60 else ("dzień" if p.minute < 18 * 60 else "wieczór"))
+			weather = p.weather
+			clock_label.text = "Dzień %d · %02d:%02d · %s · %s" % [p.day, p.minute / 60, p.minute % 60, part, Protocol.WEATHER_NAMES.get(weather, "")]
+			_update_light()
+			screen.set_world({"day": p.day, "minute": p.minute, "weather": Protocol.WEATHER_NAMES.get(weather, ""),
+				"company": p.company, "nick": nick, "department": Departments.name_of(department, "")})
+		Protocol.T_STATS:
+			stats_hud.update_stats(p)
+			me.set_smelly(p.hygiene < 25)
+			me.set_drunk(Protocol.drunk_tier(p.alcohol))
+		Protocol.T_COMPUTER:
+			screen.on_computer(p)
+		Protocol.T_NOTICE:
+			notices.push(p.icon, p.text)
+			log_history.add("[%02d:%02d] %s %s" % [game_minute / 60, game_minute % 60, Notices.SYMBOLS.get(p.icon, "•"), p.text])
+			if Audio.inst:
+				Audio.inst.play("notify", -8.0)
+		Protocol.T_MEDIA:
+			_on_media(p)
+		Protocol.T_HR_INFO:
+			screen.on_hr(p)
+		Protocol.T_CALENDAR:
+			screen.on_calendar(p)
+		Protocol.T_LUNCH_MENU:
+			screen.on_lunch(p)
+		Protocol.T_COMPANY_OFFERS, Protocol.T_COMPANY_PEOPLE:
+			screen.on_company(p)
+		Protocol.T_DIALOG:
+			if p.id in [GadgetView.TV_DIALOG, GadgetView.BOOMBOX_DIALOG] or (p.npc == 0 and p.id != 0):
+				gadget.lift_floor = pred.floor
+				gadget.open(p)  # the remote / the boombox / the lift's panel, not a dialog
+			else:
+				if p.id == 0 and gadget.lift:
+					gadget.close()  # the lift's panel closed (by the server)
+				dialog.on_dialog(p)
+			if p.id in [0, Protocol.DIALOG_VOTE]:
+				vote_dialog.emit(p)  # the home screen shows the vote too
+		Protocol.T_CHAT:
+			screen.on_chat(p)
+		Protocol.T_TASK_BOARD:
+			screen.on_task_board(p)
+		Protocol.T_TASK_DETAIL:
+			screen.on_task_detail(p)
+		Protocol.T_WORK_MAIL:
+			screen.on_work_mail(p)
+		Protocol.T_MAIL_STATE:
+			screen.on_mail_state(p)
+		Protocol.T_SOUND:
+			sounds.on_sound(p)
+			for s in p.sounds:
+				if s[0] == Protocol.SOUND_STAB:
+					var splash := BloodSplash.new()
+					splash.position = Vector2(s[1], s[2]) / float(Movement.SUBPIXELS)
+					world.add_child(splash)
+		Protocol.T_VOICE_FROM:
+			voice.on_voice(p)
+		Protocol.T_SAY:
+			sounds.on_say(p.id, remotes[p.id].position if remotes.has(p.id) else me.position, p.id == net.player_id)
+			var who: String = nicks.get(p.id, "?")
+			if p.id == net.player_id:
+				who = nick
+				me.say(p.text)
+			elif remotes.has(p.id):
+				remotes[p.id].say(p.text)
+			else:
+				_pending_say[p.id] = [Time.get_ticks_msec(), p.text]
+			_log.append([Time.get_ticks_msec(), "%s: %s" % [who, p.text]])
+			log_history.add("[%02d:%02d] %s: %s" % [game_minute / 60, game_minute % 60, who, p.text])
+			if _log.size() > LOG_LINES:
+				_log.pop_front()
+			_refresh_log()
+		Protocol.T_PLAYER_INFO:
+			for e in p.players:
+				if e.id == net.player_id:
+					set_own_appearance(e.appearance)  # a saved character: its look from the server
+					continue
+				nicks[e.id] = e.nick
+				depts[e.id] = e.department
+				if kinds.get(e.id, Protocol.KIND_PLAYER) == Protocol.KIND_PLAYER:
+					appearances[e.id] = e.appearance
+					if remotes.has(e.id):
+						remotes[e.id].set_appearance(e.appearance)
+				info_requested.erase(e.id)
+				if remotes.has(e.id):
+					remotes[e.id].set_nick(_label_for(e.nick, e.department))
+
+
+func _on_snapshot(p: Dictionary) -> void:
+	var tick: int = p.tick
+	if tick < latest_tick:
+		return  # stale / reordered
+	if tick > latest_tick:
+		latest_tick = tick
+		visible_count = 0
+		if p.floor != floor_index:
+			# Another floor: nobody from the old one is visible any more.
+			for r in remotes.values():
+				r.queue_free()
+			remotes.clear()
+			for iv in floor_items.values():
+				iv.queue_free()
+			floor_items.clear()
+			for pv in puddles.values():
+				pv.queue_free()
+			puddles.clear()
+			for cv in computers.values():
+				cv.queue_free()
+			computers.clear()
+		elif p.room != room_id and p.frag_cnt == 1:
+			# Another room: drop whoever isn't in the new (complete) set right
+			# away; people visible from both rooms (e.g. the porter) stay.
+			var present := {}
+			for e in p.entities:
+				present[e.id] = true
+			for id in remotes.keys():
+				if not present.has(id):
+					remotes[id].queue_free()
+					remotes.erase(id)
+		room_id = p.room
+		floor_index = p.floor
+		_update_below_view()
+		if not have_time or absf(tick - est_tick) > 5.0:
+			est_tick = tick
+			have_time = true
+		else:
+			est_tick += (tick - est_tick) * 0.1
+		_reconcile(Movement.body(p.floor, Vector2i(p.self_x, p.self_y), p.self_prev_input, p.self_lock, p.self_access, p.self_slow != 0, p.self_drunk), p.last_input_seq)
+		me.set_status(p.self_activity, p.self_slow != 0)
+		me.visible = p.self_activity != Protocol.ACT_RIDING  # inside the vehicle
+		screen.set_seated(p.self_activity == Protocol.ACT_COMPUTER)
+	visible_count += p.entities.size()
+	var unknown := []
+	var now := Time.get_ticks_msec()
+	for e in p.entities:
+		if e.kind == Protocol.KIND_ITEM:
+			var iv = floor_items.get(e.id)
+			if iv == null:
+				iv = ItemView.new()
+				world.add_child(iv)
+				floor_items[e.id] = iv
+			iv.setup(e.held)
+			iv.position = Vector2(e.x, e.y) / float(Movement.SUBPIXELS)
+			iv.last_seen_tick = tick
+			continue
+		if e.kind == Protocol.KIND_PUDDLE:
+			var pv = puddles.get(e.id)
+			if pv == null:
+				pv = PuddleView.new()
+				pv.setup(e.id, e.held)
+				puddle_layer.add_child(pv)
+				puddles[e.id] = pv
+			pv.position = Vector2(e.x, e.y) / float(Movement.SUBPIXELS)
+			pv.last_seen_tick = tick
+			kinds[e.id] = e.kind
+			continue
+		if e.kind == Protocol.KIND_TRAY:
+			var tv = trays.get(e.id)
+			if tv == null:
+				tv = TrayView.new()
+				world.add_child(tv)
+				trays[e.id] = tv
+			tv.set_state(e.held, e.activity)
+			tv.position = Vector2(e.x, e.y) / float(Movement.SUBPIXELS)
+			tv.last_seen_tick = tick
+			kinds[e.id] = e.kind
+			continue
+		if e.kind == Protocol.KIND_VEHICLE:
+			var vv = vehicles.get(e.id)
+			if vv == null:
+				vv = VehicleView.new()
+				world.add_child(vv)
+				vehicles[e.id] = vv
+			vv.setup(e.held, e.id)
+			vv.push(Vector2(e.x, e.y) / float(Movement.SUBPIXELS), e.flags)
+			vv.last_seen_tick = tick
+			kinds[e.id] = e.kind
+			continue
+		if e.kind == Protocol.KIND_COMPUTER:
+			var cv = computers.get(e.id)
+			if cv == null:
+				cv = ComputerView.new()
+				world.add_child(cv)
+				computers[e.id] = cv
+			cv.set_flags(e.flags)
+			cv.position = Vector2(e.x, e.y) / float(Movement.SUBPIXELS)
+			cv.last_seen_tick = tick
+			kinds[e.id] = e.kind
+			continue
+		var r = remotes.get(e.id)
+		if r == null:
+			r = RemotePlayer.new()
+			var npc: bool = e.kind == Protocol.KIND_NPC
+			r.look = (e.flags >> 3) & 7 if npc else 0
+			r.setup(e.id, _label_for(nicks.get(e.id, "..."), depts.get(e.id, 0)), ZOOM)
+			if not npc and appearances.has(e.id):
+				r.set_appearance(appearances[e.id])
+			world.add_child(r)
+			remotes[e.id] = r
+			if _pending_say.has(e.id):
+				if now - _pending_say[e.id][0] < 4000:
+					r.say(_pending_say[e.id][1])
+				_pending_say.erase(e.id)
+		r.push_sample(tick, Vector2(e.x, e.y) / float(Movement.SUBPIXELS), e.flags)
+		r.set_status(e.activity, (e.flags & Protocol.FLAG_SLOW) != 0)
+		r.set_smelly((e.flags & Protocol.FLAG_SMELLY) != 0)
+		r.set_umbrella(e.kind == Protocol.KIND_PLAYER and (e.flags & Protocol.FLAG_UMBRELLA) != 0)
+		if e.kind == Protocol.KIND_PLAYER:
+			r.set_drunk((e.flags & Protocol.FLAG_DRUNK_MASK) >> Protocol.FLAG_DRUNK_SHIFT)
+			voice.set_drunk(e.id, (e.flags & Protocol.FLAG_DRUNK_MASK) >> Protocol.FLAG_DRUNK_SHIFT)
+		r.set_held(e.held)
+		kinds[e.id] = e.kind
+		if not nicks.has(e.id) and now - info_requested.get(e.id, -100000) > 500:
+			info_requested[e.id] = now
+			unknown.append(e.id)
+	if not unknown.is_empty() and net.is_playing():
+		net.send(Protocol.encode_info_request(net.token, unknown))
+
+
+## Server state (at input `ack`) + replay of the inputs it hasn't seen yet.
+func _reconcile(server_body: Dictionary, ack: int) -> void:
+	if ack < last_ack:
+		return
+	last_ack = ack
+	while not pending.is_empty() and pending[0][0] <= ack:
+		pending.pop_front()
+	var nb := server_body
+	for inp in pending:
+		nb = Movement.step(building, nb, inp[1])
+	if not have_state:
+		have_state = true
+		pred = nb
+		prev_pos = nb.pos
+		me.position = Movement.to_px(nb.pos)
+		me.visible = true
+		_show_floor(nb.floor)
+		_refresh_own_label()
+		entered_world.emit()
+		return
+	if nb.pos != pred.pos or nb.floor != pred.floor:
+		corrections += 1
+		if nb.floor != pred.floor:
+			error_offset = Vector2.ZERO  # different floor: snap
+			prev_pos = nb.pos
+			_show_floor(nb.floor)
+		else:
+			error_offset += Movement.to_px(pred.pos) - Movement.to_px(nb.pos)
+			if error_offset.length() > 48.0:
+				error_offset = Vector2.ZERO  # large jump: snap
+			prev_pos += nb.pos - pred.pos
+	var access_changed: bool = nb.access != pred.access
+	pred = nb  # also picks up server-side changes (e.g. a new pass)
+	if access_changed:
+		_refresh_own_label()
+
+
+## Something in the game takes Esc itself (a window is open).
+func window_open() -> bool:
+	return screen.visible or coffee.visible or gadget.visible or shelf_window.visible or container.visible or dialog.visible \
+		or roll_game.visible or brush_game.visible \
+		or chat_box.visible or log_history.visible or action_menu.visible or door_plaque.visible
+
+
+## Settings changed in the Esc menu.
+func apply_settings() -> void:
+	set_zoom_level(Settings.zoom)
+	if touch:
+		touch.layout()
+
+
+## Camera zoom (mouse wheel, + / -): a multiplier of ZOOM.
+const ZOOM_MIN := 0.6
+const ZOOM_MAX := 2.0
+var zoom_level := 1.0
+
+
+func set_zoom_level(z: float) -> void:
+	zoom_level = clampf(z, ZOOM_MIN, ZOOM_MAX)
+	world_view.set_zoom(zoom_level)
+
+
+func _unhandled_input(event: InputEvent) -> void:
+	if event is InputEventMouseButton and event.pressed and not screen.visible and not input_blocked:
+		if event.button_index == MOUSE_BUTTON_WHEEL_UP:
+			set_zoom_level(zoom_level * 1.1)
+		elif event.button_index == MOUSE_BUTTON_WHEEL_DOWN:
+			set_zoom_level(zoom_level / 1.1)
+	if event is InputEventKey and event.pressed and not input_blocked and not screen.visible:
+		if event.physical_keycode in [KEY_EQUAL, KEY_KP_ADD]:
+			set_zoom_level(zoom_level * 1.15)
+		elif event.physical_keycode in [KEY_MINUS, KEY_KP_SUBTRACT]:
+			set_zoom_level(zoom_level / 1.15)
+	if not (event is InputEventKey and event.pressed and not event.echo) or input_blocked or screen.visible or not have_state:
+		return
+	match event.physical_keycode:
+		KEY_ENTER, KEY_KP_ENTER:
+			if not dialog.visible:
+				chat_box.open()
+				get_viewport().set_input_as_handled()
+		KEY_E:
+			_read_plaque()
+		KEY_TAB:
+			action_menu.open(_actions_here())
+			get_viewport().set_input_as_handled()
+		KEY_H:
+			log_history.toggle()
+		KEY_1, KEY_2, KEY_3:
+			_pocket_key(event.physical_keycode - KEY_1)
+		KEY_Q:
+			_item_action(Protocol.ITEM_DROP, 0)
+		KEY_G:
+			_item_action(Protocol.ITEM_GIVE, 0)
+		KEY_F:
+			if me.held == ItemArt.TOBACCO:
+				roll_game.start()  # roll one first (the server checks it's paid for)
+			else:
+				_item_action(Protocol.ITEM_USE, 0)
+		KEY_L:
+			if net.is_playing():
+				net.send(Protocol.encode_door_action(net.token))
+		KEY_R:
+			if net.is_playing():
+				net.send(Protocol.encode_action(net.token, Protocol.ACTION_MENU))
+		KEY_X:
+			if net.is_playing():
+				net.send(Protocol.encode_action(net.token, Protocol.ACTION_ATTACK))
+
+
+## Tab: the actions that make sense here and now, with their keys.
+func _actions_here() -> Array:
+	var out := []
+	var add := func(key: String, text: String, run: Callable, icon: Variant = "") -> void:
+		out.append({"key": key, "text": text, "run": run, "icon": icon})
+	var hint: String = hint_text if hint_label.visible else ""
+	if hint.begins_with("[E] "):
+		var what := hint.substr(4).get_slice("  ·  ", 0)
+		add.call("E", what, _menu_interact, "hand")
+	var held: int = me.held
+	if held != 0:
+		var name := ItemArt.item_name(held).to_lower()
+		if held == ItemArt.TOBACCO:
+			add.call("F", "Skręć papierosa", func(): roll_game.start(), "roll")
+		else:
+			add.call("F", "Użyj: %s" % name, func(): _item_action(Protocol.ITEM_USE, 0), held)
+		add.call("Q", "Upuść: %s" % name, func(): _item_action(Protocol.ITEM_DROP, 0), held)
+	for i in range(1, mini(inventory.size(), 4)):
+		var k: int = inventory[i].kind
+		if k != 0:
+			var pocket := i - 1
+			add.call(str(i), "Wyjmij z kieszeni: %s" % ItemArt.item_name(k).to_lower(), func(): _pocket_key(pocket), k)
+	if held in ItemArt.SMALL:
+		add.call("1–3", "Schowaj do kieszeni", func(): _item_action(Protocol.ITEM_PUT_AWAY, 0), "pocket")
+	# Someone right next to you: give, hit.
+	var me_px := Movement.to_px(pred.pos)
+	var near := ""
+	for id in remotes:
+		if kinds.get(id) == Protocol.KIND_PLAYER and remotes[id].position.distance_to(me_px) <= 32.0:
+			near = nicks.get(id, "?")
+			break
+	if near != "":
+		if held != 0:
+			add.call("G", "Podaj: %s" % near, func(): _item_action(Protocol.ITEM_GIVE, 0), "give")
+		var knife: bool = held == ItemArt.KNIFE
+		add.call("X", ("Dźgnij: %s" if knife else "Uderz: %s") % near, _send_action.bind(Protocol.ACTION_ATTACK), ItemArt.KNIFE if knife else "hit")
+	var m = building.get_floor(pred.floor)
+	if m and m.room_types.get(room_id, "") == "stall":
+		add.call("L", "Zamknij / otwórz kabinę", _send_door_action, "lock")
+	if room_id != 0:
+		add.call("R", "Psoty…", _send_action.bind(Protocol.ACTION_MENU), "mischief")
+	add.call("Enter", "Napisz na czacie", func(): chat_box.open(), "chat")
+	add.call("H", "Dziennik dnia", func(): log_history.toggle(), "log")
+	return out
+
+
+## The menu's E: a plaque is read here; anything else goes to the server.
+func _menu_interact() -> void:
+	if plaque_here != 0:
+		_read_plaque()
+	else:
+		_queued_interact = true
+
+
+func _send_action(action: int) -> void:
+	if net.is_playing():
+		net.send(Protocol.encode_action(net.token, action))
+
+
+func _send_door_action() -> void:
+	if net.is_playing():
+		net.send(Protocol.encode_door_action(net.token))
+
+
+## E by a door with nothing else to do: read its plaque (E again: put away).
+func _read_plaque() -> void:
+	if door_plaque.visible:
+		door_plaque.close()
+	elif plaque_here != 0:
+		var m = building.get_floor(pred.floor)
+		door_plaque.open(plaque_here, m.room_name(plaque_here), m.plaque_icon(plaque_here))
+
+
+## Pocket key: take it out, or put back what's in hands if that pocket is empty.
+func _pocket_key(pocket: int) -> void:
+	var slot: Dictionary = inventory[pocket + 1] if pocket + 1 < inventory.size() else {"kind": 0}
+	if slot.kind == 0 and me.held in ItemArt.SMALL:
+		_item_action(Protocol.ITEM_PUT_AWAY, 0)
+	else:
+		_item_action(Protocol.ITEM_TAKE_OUT, pocket)
+
+
+func _computer_action(action: int, conv: int, arg: int, text: String) -> void:
+	if net.is_playing():
+		net.send(Protocol.encode_computer_action(net.token, action, conv, arg, text))
+
+
+func _item_action(action: int, slot: int) -> void:
+	if net.is_playing():
+		net.send(Protocol.encode_item_action(net.token, action, slot))
+
+
+## Context hint at the bottom of the screen: elevator, NPC to talk to, or a
+## gate that needs a pass.
+func _update_hint() -> void:
+	hint_text = ""
+	var text := ""
+	plaque_here = 0
+	if me.status == Protocol.ACT_HELD:
+		hint_label.text = "Zatrzymano cię — chwilę stoisz w miejscu…"
+		hint_label.visible = true
+		return
+	if STUCK_HINTS.has(me.status):
+		hint_label.text = STUCK_HINTS[me.status]
+		hint_label.visible = true
+		return
+	if voice.talking != 0:
+		# Push-to-talk: who hears us.
+		if voice.talking == 1:
+			hint_label.text = "Mówisz do wszystkich w pomieszczeniu…"
+		elif voice.whisper_to >= 0:
+			hint_label.text = "Szepczesz do: %s" % nicks.get(voice.whisper_to, "?")
+		else:
+			hint_label.text = "Szept: nikogo obok — podejdź bliżej"
+		hint_label.visible = true
+		return
+	var map = building.get_floor(pred.floor)
+	var t := Movement.tile_of_pos(pred.pos)
+	var link: Dictionary = map.link_at(t.x, t.y) if map else {}
+	if not link.is_empty() and link.kind == "elevator":
+		# In the cabin: the car stands here -> the panel of floor buttons; else riding.
+		var l := _lift(building.lift_ids.find(link.id))
+		var standing: bool = not l.moving and l.floor == pred.floor
+		if standing and building.elevator_floors(link.id).size() > 1:
+			text = "[E] Wybierz piętro"
+		else:
+			text = "Jedziemy…"
+	elif map:
+		text = _elevator_call_hint(map)
+	if text == "":
+		# Same choice as the server: the cashier first (E at the till pays even
+		# with the guard closer), then NPCs standing at their post, then nearest.
+		var me_px := Movement.to_px(pred.pos)
+		var best_id := -1
+		var best_key := Vector3(INF, INF, INF)
+		for id in remotes:
+			var d: float = remotes[id].position.distance_to(me_px)
+			if kinds.get(id) == Protocol.KIND_NPC and d <= TALK_RADIUS_PX:
+				var moving: bool = remotes[id].samples.size() > 0 and (remotes[id].samples[-1][2] & 4) != 0
+				var key := Vector3(0.0 if nicks.get(id) == "Kasjer" else 1.0, 1.0 if moving else 0.0, d)
+				if key < best_key:
+					best_key = key
+					best_id = id
+		if best_id >= 0:
+			var who: String = nicks.get(best_id, "?")
+			text = "[E] Kasjer — zapłać za zakupy" if who == "Kasjer" else "[E] Porozmawiaj: %s" % who
+	if text == "" and map:
+		# Kitchenette things (the nearest within 1.5 tiles).
+		var kitchen_names := {"cupboard": "[E] Zajrzyj do szafki", "dishwasher": "[E] Zmywarka", "fridge": "[E] Lodówka", "kitchen_sink": "[E] Zlew"}
+		var best_d := INF
+		for dy in range(-2, 3):
+			for dx in range(-2, 3):
+				var kx: int = t.x + dx
+				var ky: int = t.y + dy
+				if kx < 0 or ky < 0 or kx >= map.width or ky >= map.height:
+					continue
+				var ktype: String = map.legend.get(map.tile_chars[ky * map.width + kx], {}).get("type", "")
+				# The machine, fruit bowl and sanitizer stand in the same row:
+				# nearer than a cupboard, they get their own hint (below).
+				if not kitchen_names.has(ktype) and not ktype in ["coffee_machine", "fruit_bowl", "sanitizer"]:
+					continue
+				var kd: float = ((Vector2(kx, ky) + Vector2(0.5, 0.5)) * map.tile_px).distance_to(Movement.to_px(pred.pos))
+				if kd <= map.tile_px * 1.5 and kd < best_d:
+					best_d = kd
+					text = kitchen_names.get(ktype, "")
+	if text == "" and map and pred.floor == 0:
+		# The way home (like the server): our car / bike, or the spot on foot /
+		# at the tram stop / taxi stand; the tram stop always works.
+		var me_p := Movement.to_px(pred.pos)
+		var spots := {}
+		for pair in [[1, "walk_home"], [4, "taxi"], [5, "tram_stop"]]:
+			if map.places.has(pair[1]):
+				spots[pair[0]] = map.places[pair[1]]
+		if spots.has(commute_mode):
+			var sp: Vector2 = (Vector2(spots[commute_mode]) + Vector2(0.5, 0.5)) * map.tile_px
+			if sp.distance_to(me_p) <= map.tile_px * 2:
+				text = "[E] Wracam do domu"
+		elif commute_mode == 3 or commute_mode == 2:
+			var want_kind := 1 if commute_mode == 3 else 2
+			for id in vehicles:
+				if vehicles[id].kind == want_kind and vehicles[id].position.distance_to(me_p) <= map.tile_px * 2:
+					text = "[E] Wracam do domu (%s)" % ("samochodem" if commute_mode == 3 else "rowerem")
+					break
+		if text == "" and spots.has(5):
+			var tram: Vector2 = (Vector2(spots[5]) + Vector2(0.5, 0.5)) * map.tile_px
+			if tram.distance_to(me_p) <= map.tile_px * 2:
+				text = "[E] Wracam do domu (tramwajem)"
+	if text == "" and map:
+		# Light switch within reach (1 tile, like the server).
+		var me_c := Movement.to_px(pred.pos)
+		for r in map.room_switch:
+			var st: Vector2i = map.room_switch[r]
+			var sc: Vector2 = (Vector2(st) + Vector2(0.5, 0.5)) * map.tile_px
+			if sc.distance_to(me_c) <= map.tile_px:
+				text = "[E] Zgaś światło" if light_view._on.has(r) else "[E] Włącz światło"
+				break
+	if text == "" and map:
+		# Coffee machine within reach (same radius as the server: 1.5 tiles).
+		for dy in range(-2, 3):
+			for dx in range(-2, 3):
+				var tx: int = t.x + dx
+				var ty: int = t.y + dy
+				if tx < 0 or ty < 0 or tx >= map.width or ty >= map.height:
+					continue
+				if map.legend.get(map.tile_chars[ty * map.width + tx], {}).get("type") != "coffee_machine":
+					continue
+				if Movement.to_px(Movement.tile_center(tx, ty)).distance_to(Movement.to_px(pred.pos)) <= 24.0:
+					if me.held != 0:
+						text = "Najpierw odłóż to, co trzymasz (1–3 / Q)"
+					elif me.status == Protocol.ACT_BREWING:
+						text = "Parzenie kawy…"
+					else:
+						text = "[E] Zrób kawę"
+	if text == "":
+		var me_px4 := Movement.to_px(pred.pos)
+		for id in trays:
+			if trays[id].position.distance_to(me_px4) <= 24.0:
+				text = "[E] Weź: %s (%d szt.)" % [ItemArt.item_name(trays[id].kind), trays[id].pieces]
+	if text == "" and map:
+		text = _desk_hint(map)
+	if text == "" and map:
+		text = _spot_hint(map)
+	if map:
+		text = _stall_hint(map, t, text)
+	if text == "":
+		var me_px2 := Movement.to_px(pred.pos)
+		for id in floor_items:
+			if floor_items[id].position.distance_to(me_px2) <= 20.0:
+				text = "[E] Podnieś: %s" % ItemArt.item_name(floor_items[id].kind)
+				break
+	if text == "" and me.held != 0:
+		var me_px3 := Movement.to_px(pred.pos)
+		for id in remotes:
+			if kinds.get(id) == Protocol.KIND_PLAYER and remotes[id].position.distance_to(me_px3) <= 32.0:
+				text = "[G] Podaj %s: %s" % [ItemArt.item_name(me.held).to_lower(), nicks.get(id, "?")]
+				break
+	var e_free := text == ""  # nothing else for E: a door plaque, if one's here
+	if text == "" and map:
+		for dy in [-1, -2, 0, 1]:
+			for dx in [-1, 0, 1]:
+				var need: int = map.need_at(t.x + dx, t.y + dy)
+				if need != 0 and (pred.access & need) == 0:
+					if need & MapData.ACCESS_BOARD:
+						text = "Zarząd — wstęp tylko na umówione spotkanie (kalendarz na komputerze)"
+					elif need & MapData.ACCESS_KEY:
+						text = "Magazynek zamknięty — klucz wisi przy recepcji (gdy nikogo tam nie ma…)"
+					elif need & MapData.ACCESS_GUEST:
+						text = "Tylko z kartą (windy, schody, parking) — przepustkę da portier w portierni"
+					else:
+						text = "Wstęp tylko dla obsługi"
+	# A skid mark on the toilet right here: E scrubs it.
+	stain_here = false
+	var me_at := Movement.to_px(pred.pos)
+	for pv in puddles.values():
+		if pv.stain and pv.position.distance_to(me_at) <= 24.0:
+			stain_here = true
+			text = "[E] Umyj sedes szczotką"
+	var facing: Vector2i = [Vector2i(0, 1), Vector2i(0, -1), Vector2i(-1, 0), Vector2i(1, 0)][me.facing]
+	plaque_here = map.plaque_at(t.x, t.y, room_id, facing) if e_free and map else 0
+	if plaque_here != 0:
+		text = "[E] Przeczytaj tabliczkę" if text == "" else text + "  ·  [E] tabliczka"
+	if door_plaque.visible and plaque_here != door_plaque.room:
+		door_plaque.close()  # walked off
+	if text == "" and voice.whisper_to >= 0:
+		text = "[V] mów · [B] szept: %s" % nicks.get(voice.whisper_to, "?")
+	hint_text = text
+	hint_label.text = _touch_words(text) if touch else text
+	hint_label.visible = text != ""
+
+
+## Touch screens: no keys in the hint ("[E] Usiądź" -> "Usiądź", the hand
+## button does it).
+static func _touch_words(text: String) -> String:
+	var re := RegEx.create_from_string("\\[[^\\]]{1,5}\\] ")
+	return re.sub(text.replace("[V] mów · [B] szept", "Mów / Szept"), "", true)
+
+
+## Outdoors: rain / fog on screen, an umbrella if you carry one, a darker
+## sky; indoors the lights are on (the weather tints less).
+func _update_weather() -> void:
+	var m = building.get_floor(pred.floor)
+	var outdoors: bool = m != null and m.room_outdoor.has(room_id)
+	var wet := weather == Protocol.WEATHER_RAIN or weather == Protocol.WEATHER_STORM
+	var carries := false
+	for s in inventory:
+		carries = carries or s.kind == ItemArt.UMBRELLA
+	me.set_umbrella(outdoors and wet and carries and me.status != Protocol.ACT_RIDING)
+	if outdoors != weather_fx.outdoors or weather != weather_fx.weather:
+		weather_fx.set_state(weather, outdoors)
+		_update_light()
+
+
+func _update_light() -> void:
+	var tint := Color(1, 1, 1)
+	match weather:
+		Protocol.WEATHER_CLOUDY: tint = Color(0.88, 0.88, 0.92)
+		Protocol.WEATHER_RAIN: tint = Color(0.74, 0.76, 0.84)
+		Protocol.WEATHER_STORM: tint = Color(0.6, 0.62, 0.72)
+		Protocol.WEATHER_FOG: tint = Color(0.9, 0.9, 0.92)
+	# Brightness is per room now (LightView); keep only a hint of the sky's
+	# colour (warm dawn, golden evening) over everything.
+	var sky := daylight_color(game_minute) * tint
+	daylight.color = Color(1, 1, 1).lerp(sky, 0.35)
+	light_view.minute = game_minute
+	light_view.weather = weather
+
+
+## World tint by the time of day: warm dawn, white day, golden evening,
+## blue dusk (the office closes at 22:00).
+static func daylight_color(minute: int) -> Color:
+	var keys := [
+		[6 * 60, Color(0.72, 0.68, 0.78)],
+		[7 * 60 + 30, Color(1.0, 0.93, 0.85)],
+		[9 * 60, Color(1, 1, 1)],
+		[17 * 60, Color(1, 1, 1)],
+		[19 * 60, Color(1.0, 0.88, 0.74)],
+		[21 * 60, Color(0.72, 0.72, 0.9)],
+		[22 * 60, Color(0.55, 0.57, 0.78)],
+	]
+	if minute <= keys[0][0]:
+		return keys[0][1]
+	for i in range(1, keys.size()):
+		if minute <= keys[i][0]:
+			var t := float(minute - keys[i - 1][0]) / float(keys[i][0] - keys[i - 1][0])
+			return (keys[i - 1][1] as Color).lerp(keys[i][1], t)
+	return keys[-1][1]
+
+
+## Riding the elevator: only the cabin is visible, and it shakes a little.
+func _update_ride() -> void:
+	var m = building.get_floor(pred.floor)
+	var t := Movement.tile_of_pos(pred.pos)
+	var link: Dictionary = m.link_at(t.x, t.y) if m else {}
+	var riding: bool = not link.is_empty() and link.kind == "elevator" and _lift(building.lift_ids.find(link.id)).moving
+	if riding:
+		var r: Rect2i = link.rect
+		ride_mask.show_cabin(Rect2(Vector2(r.position) * m.tile_px, Vector2(r.size) * m.tile_px).grow(2))
+		camera.offset = Vector2(randf_range(-0.35, 0.35), randf_range(-0.35, 0.35))
+		_set_door_views_visible(false)  # nothing of the floor outside the car
+		_set_floor_extras_visible(false)
+	elif ride_mask.visible:
+		ride_mask.visible = false
+		camera.offset = Vector2.ZERO
+		_set_door_views_visible(true)
+		_set_floor_extras_visible(true)
+
+
+## On a balcony: the floor below shows through the open air (under this
+## floor's picture, a bit darker - it's further away); the server sends
+## who is down there, on the same grid.
+var _below_floor := -1
+
+
+func _update_below_view() -> void:
+	# (3D: the street level is always shown under the upper floors.)
+	_below_floor = building.floor_below(floor_index, room_id)
+
+
+## Smoke, detectors and room names are drawn over the ride mask: hide them
+## while riding.
+func _set_floor_extras_visible(on: bool) -> void:
+	smoke_view.visible = on
+
+
+func _set_door_views_visible(on: bool) -> void:
+	for dv in stall_doors.get(pred.floor, []):
+		dv.visible = on
+	for ev in elevator_doors.get(pred.floor, []):
+		ev.visible = on
+
+
+## Doors open while somebody stands in them (and aren't locked).
+func _update_stall_doors() -> void:
+	var m = building.get_floor(pred.floor)
+	var people: Array[Vector2] = [me.position]
+	for id in remotes:
+		people.append(remotes[id].position)
+	for dv in stall_doors.get(pred.floor, []):
+		var busy := false
+		for pos in people:
+			if absf(pos.x - dv.position.x) < 12.0 and absf(pos.y - dv.position.y) < 11.0:
+				busy = true
+				break
+		dv.set_state(m.is_closed(dv.tile.x, dv.tile.y), busy)
+	for ev in elevator_doors.get(pred.floor, []):
+		var l := _lift(ev.lift)
+		ev.set_state(m.is_closed(ev.tile.x, ev.tile.y), l.floor, l.target)
+
+
+## In a stall: lock / unlock (L). Outside next to a locked stall: "Zajęte".
+func _stall_hint(map, t: Vector2i, text: String) -> String:
+	var in_doorway: bool = map.legend.get(map.tile_chars[t.y * map.width + t.x], {}).get("type") == "stall_door"
+	if map.room_types.get(room_id, "") == "stall" and not in_doorway:
+		var locked := false
+		for dv in stall_doors.get(pred.floor, []):
+			if map.room_at_tile(dv.tile.x, dv.tile.y) == room_id:
+				locked = map.is_closed(dv.tile.x, dv.tile.y)
+		var l := "[L] Otwórz kabinę" if locked else "[L] Zamknij kabinę"
+		return l if text == "" else "%s   %s" % [text, l]
+	if text == "":
+		for dv in stall_doors.get(pred.floor, []):
+			if map.is_closed(dv.tile.x, dv.tile.y) and absi(dv.tile.x - t.x) <= 1 and absi(dv.tile.y - t.y) <= 1:
+				return "Zajęte"
+	return text
+
+
+## What you can't walk away from, and the hint meanwhile.
+const STUCK_HINTS := {Protocol.ACT_VOMITING: "Wymiotujesz…", Protocol.ACT_PASSED_OUT: "Odsypiasz… (chwilę potrwa)",
+	Protocol.ACT_KNOCKED_OUT: "Znokautowany… gwiazdki krążą (chwilę potrwa)", Protocol.ACT_PEEING: "Sikasz…",
+	Protocol.ACT_POOPING: "Kucasz… (natura wzywa)"}
+const SPOT_HINTS := {"shelf": "[E] Zobacz półkę", "medicine_cabinet": "[E] Apteczka", "key_hook": "[E] Klucz do magazynku",
+	"liquor_cabinet": "[E] Barek", "plant": "[E] Przeszukaj doniczkę", "bin": "[E] Przeszukaj kosz", "trash_bin": "[E] Kosz na śmieci", "sofa": "[E] Usiądź na sofie", "toilet": "[E] Skorzystaj z toalety", "urinal": "[E] Pisuar",
+	"ashtray": "[E] Zapal", "fruit_bowl": "[E] Weź owoc", "sink": "[E] Umyj ręce", "sanitizer": "[E] Zdezynfekuj ręce"}
+
+
+## Next to the elevator doors (outside the cabin): call it / wait / step in.
+func _elevator_call_hint(map) -> String:
+	# The nearest door within reach (between two lifts: like the server).
+	var me_px := Movement.to_px(pred.pos)
+	var best = null
+	for ev in elevator_doors.get(pred.floor, []):
+		var d: float = ev.position.distance_to(me_px)
+		if d <= 24.0 and (best == null or d < best.position.distance_to(me_px)):
+			best = ev
+	if best == null:
+		return ""
+	var need: int = map.need_at(best.tile.x, best.tile.y)
+	if need != 0 and (pred.access & need) == 0:
+		return "Winda tylko z kartą — przepustkę da portier w portierni"
+	if not map.is_closed(best.tile.x, best.tile.y):
+		return "Winda otwarta — wejdź"
+	var l := _lift(best.lift)
+	if l.target == pred.floor:
+		return "Winda jedzie… (%s)" % ElevatorDoorView.floor_label(l.floor)
+	return "[E] Wezwij windę"
+
+
+## Elevator `i`'s state (a standing car downstairs until Doors says).
+func _lift(i: int) -> Dictionary:
+	return lifts[i] if i >= 0 and i < lifts.size() else {"floor": 0, "target": Protocol.NO_FLOOR, "moving": false}
+
+
+## Sofa / toilet / ashtray / fruit bowl within reach (1.5 tiles, as the server).
+func _spot_hint(map) -> String:
+	if me.status in [Protocol.ACT_SOFA, Protocol.ACT_TOILET, Protocol.ACT_SMOKING, Protocol.ACT_WASHING]:
+		return "[E] Wstań" if me.status != Protocol.ACT_SMOKING else "[E] Zgaś papierosa"
+	var me_px := Movement.to_px(pred.pos)
+	var t := Movement.tile_of_pos(pred.pos)
+	for dy in range(-2, 3):
+		for dx in range(-2, 3):
+			var tx: int = t.x + dx
+			var ty: int = t.y + dy
+			if tx < 0 or ty < 0 or tx >= map.width or ty >= map.height:
+				continue
+			var type: String = map.legend.get(map.tile_chars[ty * map.width + tx], {}).get("type", "")
+			if type == "shelf" and map.room_types.get(map.room_at_tile(tx, ty), "") != "shop":
+				continue  # only shop shelves have goods
+			if SPOT_HINTS.has(type) and Movement.to_px(Movement.tile_center(tx, ty)).distance_to(me_px) <= 24.0:
+				return SPOT_HINTS[type]
+	return ""
+
+
+## Desk within reach (same rule as the server: nearest desk tile, 1.25 tiles).
+func _desk_hint(map) -> String:
+	var me_px := Movement.to_px(pred.pos)
+	var t := Movement.tile_of_pos(pred.pos)
+	var best := Vector2i(-1, -1)
+	var best_d := 20.0
+	for dy in range(-2, 3):
+		for dx in range(-2, 3):
+			var tx: int = t.x + dx
+			var ty: int = t.y + dy
+			if tx < 0 or ty < 0 or tx >= map.width or ty >= map.height:
+				continue
+			if map.legend.get(map.tile_chars[ty * map.width + tx], {}).get("type") != "desk":
+				continue
+			if map.room_types.get(map.room_at_tile(tx, ty), "") != "department":
+				continue
+			var d := Movement.to_px(Movement.tile_center(tx, ty)).distance_to(me_px)
+			if d <= best_d:
+				best_d = d
+				best = Vector2i(tx, ty)
+	if best.x < 0:
+		return ""
+	var center := Movement.to_px(Movement.tile_center(best.x, best.y))
+	for id in computers:
+		if computers[id].position.distance_to(center) < 2.0:
+			var f: int = computers[id].flags
+			var whose: String = nicks.get(id, "?")
+			if f & Protocol.PC_FLAG_IN_USE:
+				return "Komputer: %s — ktoś przy nim siedzi" % whose
+			return "[E] Komputer: %s%s" % [whose, " (zablokowany)" if f & Protocol.PC_FLAG_LOCKED else ""]
+	if me.held == ItemArt.LAPTOP:
+		return "[E] Połóż laptop na biurku"
+	return ""
+
+
+func _refresh_log() -> void:
+	var now := Time.get_ticks_msec()
+	while not _log.is_empty() and now - _log[0][0] > LOG_TTL_SEC * 1000:
+		_log.pop_front()
+	var lines := PackedStringArray()
+	for l in _log:
+		lines.append(l[1])
+	log_label.text = "\n".join(lines)
+
+
+func debug_text() -> String:
+	var t := Movement.tile_of_pos(pred.pos) if have_state else Vector2i.ZERO
+	return "\n".join([
+		"FPS: %d" % Engine.get_frames_per_second(),
+		"Ping: %.0f ms" % net.rtt_ms,
+		"Tick serwera: %d  (render %.1f)" % [latest_tick, est_tick - INTERP_DELAY_SEC * tick_hz],
+		"Piętro: %s  Pokój: %s (id %d)" % [building.floor_name(floor_index), building.room_name(floor_index, room_id), room_id],
+		"Widoczni gracze: %d" % visible_count,
+		"Gracz #%d %s  kafel (%d, %d)" % [net.player_id, nick, t.x, t.y],
+		"Uprawnienia: %s" % _access_text(),
+		"Stanowisko: %s" % (("%s (dział %s), umowa %s" % [job_title, Departments.name_of(department), "podpisana" if have_state and (pred.access & MapData.ACCESS_CARD) else "jeszcze nie"]) if department else "-"),
+		"Inputy w locie: %d  korekty: %d" % [pending.size(), corrections],
+		"Bufor interpolacji pusty: %.2f%% klatek" % (100.0 * interp_underruns / maxi(interp_frames, 1)),
+		"Ruch: %.1f KB/s in / %.1f KB/s out" % [net.bytes_in_per_sec / 1024.0, net.bytes_out_per_sec / 1024.0],
+		"Serwer: %s  zmiany gniazda: %d  ponowne połączenia: %d" % [net.server_ip, net.rebinds, net.reconnects],
+	])
+
+
+func _access_text() -> String:
+	if not have_state:
+		return "-"
+	var parts := PackedStringArray()
+	if pred.access & MapData.ACCESS_GUEST:
+		parts.append("przepustka gościa")
+	if pred.access & MapData.ACCESS_CARD:
+		parts.append("karta pracownika")
+	if pred.access & MapData.ACCESS_SERVICE:
+		parts.append("obsługa")
+	return ", ".join(parts) if not parts.is_empty() else "brak"

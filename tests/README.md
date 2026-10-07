@@ -24,6 +24,7 @@ python3 tests/e2e/run.py                 # wszystkie (ok. 7 min)
 python3 tests/e2e/run.py founder         # wybrane
 python3 tests/e2e/run.py --list
 python3 tests/e2e/run.py --shard 1/3     # jedna z trzech części (tak dzieli je CI)
+python3 tests/e2e/run.py --client client3d  # to samo z klientem 3D (domyślnie 2D: client/)
 GODOT=/ścieżka/do/godot python3 tests/e2e/run.py
 ```
 
@@ -43,7 +44,7 @@ GODOT=/ścieżka/do/godot python3 tests/e2e/run.py
 | `storeroom` | apteczka na recepcji (witamina), klucz do magazynku — odmowa przy recepcjonistce, wzięty w jej przerwie obiadowej, cola z magazynku |
 | `chat` | dwóch graczy: powiadomienie o mailu, czat tekstowy do pokoju, szept i krzyk |
 | `drinking` | alkohol ze sklepu zapłacony przy kasie, upojenie, wymioty, zataczanie się |
-| `touch` | sterowanie dotykiem (`--touch`): przycisk akcji kładzie laptop i sadza przy komputerze, ✕ wstaje, menu akcji, „Mów” trzyma V, szczypanie przybliża, joystick chodzi, stuknięcie w podłogę prowadzi tam |
+| `touch` | (tylko 3D) sterowanie dotykiem (`--touch`): przycisk akcji kładzie laptop i sadza przy komputerze, ✕ wstaje, menu akcji, „Mów” trzyma V, szczypanie przybliża, joystick chodzi, stuknięcie w podłogę prowadzi tam |
 | `fight` | dwóch graczy: nóż z szafki w aneksie, bójka do nokautu, ochrona biegnie; menu psot (R) |
 
 Każdy scenariusz dostaje własny serwer (osobny port, katalog tymczasowy z

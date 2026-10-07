@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
-"""Phone icons from client/icons/icon.svg (needs rsvg-convert and magick).
+"""Phone icons from client3d/icons/icon.svg (needs rsvg-convert and magick).
 
 The desktop icon is a rounded tile with a rim and transparent corners; phones
 mask the icon themselves, so they get the picture full-bleed instead:
 
-  client/icons/icon_ios.png                     1024 px, opaque (App Store)
-  client/icons/android/icon_192.png             legacy launcher icon
-  client/icons/android/adaptive_background_432.png  sky, moon, city, street
-  client/icons/android/adaptive_foreground_432.png  the mug (transparent),
+  client3d/icons/icon_ios.png                     1024 px, opaque (App Store)
+  client3d/icons/android/icon_192.png             legacy launcher icon
+  client3d/icons/android/adaptive_background_432.png  sky, moon, city, street
+  client3d/icons/android/adaptive_foreground_432.png  the mug (transparent),
                                                      inside the 66 % safe zone
 
 Usage: python3 tools/make_icons.py
@@ -18,7 +18,7 @@ import subprocess
 import tempfile
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-ICONS = ROOT / "client" / "icons"
+ICONS = ROOT / "client3d" / "icons"
 SRC = (ICONS / "icon.svg").read_text()
 
 # Pieces of icon.svg (by their comments / elements).

@@ -4,8 +4,7 @@
 ## - a short "Dzień N" card whenever the personal day number goes up.
 extends Control
 
-const Kit = preload("res://ui/ui_kit.gd")
-const Touch = preload("res://touch/touch.gd")
+const Ink = preload("res://ui/ink_ui.gd")
 
 const Protocol = preload("res://net/protocol.gd")
 
@@ -28,9 +27,9 @@ var _title := Label.new()
 var _sub := Label.new()
 var _info := Label.new()
 var _sky := Control.new()
-var _modes := HFlowContainer.new()  # wraps on a narrow (upright) phone
+var _modes := HBoxContainer.new()
 var _mode_buttons := {}   # mode -> Button
-var _skip := Kit.button("Pomiń czekanie  »", true)
+var _skip := Ink.button("Pomiń czekanie  »", true)
 var _vote := PanelContainer.new()
 var _vote_text := Label.new()
 var _vote_row := HBoxContainer.new()
@@ -51,21 +50,15 @@ func _ready() -> void:
 	for l in [_title, _sub, _info]:
 		l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		l.add_theme_color_override("font_color", Color.WHITE)
-		l.add_theme_constant_override("shadow_offset_y", 3)
-		l.add_theme_constant_override("shadow_outline_size", 6)
-		l.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.3))
-		if Touch.active:
-			l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		l.add_theme_constant_override("outline_size", 8)
+		l.add_theme_color_override("font_outline_color", Ink.INK)
 		col.add_child(l)
-	_title.add_theme_font_override("font", Kit.font_bold())
-	_sub.add_theme_font_override("font", Kit.font_bold())
 	_title.add_theme_font_size_override("font_size", 64)
 	_sub.add_theme_font_size_override("font_size", 24)
 	_info.add_theme_font_size_override("font_size", 20)
 	_info.add_theme_color_override("font_color", Color(1, 1, 1, 0.8))
-	_modes.alignment = FlowContainer.ALIGNMENT_CENTER
-	_modes.add_theme_constant_override("h_separation", 10)
-	_modes.add_theme_constant_override("v_separation", 10)
+	_modes.alignment = BoxContainer.ALIGNMENT_CENTER
+	_modes.add_theme_constant_override("separation", 10)
 	col.add_child(_modes)
 	for id in MODES:
 		var b := Button.new()
@@ -87,13 +80,13 @@ func _ready() -> void:
 	# Someone else's "skip the waiting": a vote.
 	var vote_row := CenterContainer.new()
 	col.add_child(vote_row)
-	_vote.add_theme_stylebox_override("panel", Kit.box("paper"))
+	_vote.add_theme_stylebox_override("panel", Ink.box("paper"))
 	_vote.custom_minimum_size = Vector2(560, 0)
 	vote_row.add_child(_vote)
 	var vcol := VBoxContainer.new()
 	vcol.add_theme_constant_override("separation", 10)
 	_vote.add_child(vcol)
-	Kit.style_label(_vote_text, 18, Kit.TEXT_INK)
+	Ink.style_label(_vote_text, 18, Ink.TEXT_INK)
 	_vote_text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_vote_text.custom_minimum_size = Vector2(520, 0)
 	vcol.add_child(_vote_text)
@@ -113,7 +106,7 @@ func on_vote(p: Dictionary) -> void:
 	for c in _vote_row.get_children():
 		c.queue_free()
 	for i in p.options.size():
-		var b := Kit.button(p.options[i], i == 0)
+		var b := Ink.button(p.options[i], i == 0)
 		b.focus_mode = Control.FOCUS_NONE
 		var choice: int = i
 		b.pressed.connect(func(): vote.emit(choice); _vote.visible = false)
@@ -126,11 +119,6 @@ func _fit() -> void:
 	size = get_viewport_rect().size
 	_bg.size = size
 	_sky.size = size
-	if Touch.active:  # an upright phone: the vote card fits the width
-		var w := minf(560.0, size.x - 32.0)
-		_vote.custom_minimum_size.x = w
-		_vote_text.custom_minimum_size.x = w - 40.0
-		_title.add_theme_font_size_override("font_size", 48 if size.x < 700 else 64)
 
 
 static func hhmm(m: int) -> String:
@@ -173,7 +161,7 @@ func _render_modes() -> void:
 		b.disabled = m[2] > clock.money
 		var chosen: bool = id == clock.mode
 		for st in ["normal", "hover", "pressed", "disabled"]:
-			b.add_theme_stylebox_override(st, Kit.button_box(st, chosen) if chosen else (Kit.box("glass_hover") if st == "hover" else Kit.box("glass_card")))
+			b.add_theme_stylebox_override(st, Ink.button_box(st, chosen) if chosen else Ink.box("hud"))
 		var fc := Color.WHITE
 		for k in ["font_color", "font_hover_color", "font_pressed_color"]:
 			b.add_theme_color_override(k, fc)
@@ -214,7 +202,7 @@ func _render() -> void:
 				_info.text = "Teraz %s. Do biura znowu rano — gdy wszyscy są w domu, czas leci szybciej." % hhmm(clock.minute)
 		Protocol.PLACE_COMMUTING:
 			visible = true
-			_bg.color = Color("#d8906c")
+			_bg.color = Color("#f2a65a").darkened(0.35)
 			_title.text = "Dzień %d" % clock.day
 			var name: String = MODES.get(clock.mode, ["?"])[0]
 			if clock.arrive == Protocol.NO_TIME:
@@ -239,47 +227,17 @@ func _render() -> void:
 			_info.text = hhmm(clock.minute)
 
 
-## The sky over the whole card: a smooth gradient from the base colour,
-## the sun with a soft glow (moon and stars at night) and low-poly hills
-## along the bottom (as in the 3D world); not over the short day card.
+## Moon at night (the sun when home early), rising sun on the way to work.
 func _draw_sky() -> void:
-	var place: int = clock.get("place", -1)
-	if place not in [Protocol.PLACE_HOME, Protocol.PLACE_COMMUTING]:
-		return
-	var w := size.x
-	var h := size.y
-	var base := _bg.color
-	var night: bool = place == Protocol.PLACE_HOME and clock.get("night", true)
-	var top := base.darkened(0.25)
-	var horizon := base.lightened(0.35) if not night else base.lightened(0.12)
-	_sky.draw_polygon(PackedVector2Array([Vector2(0, 0), Vector2(w, 0), Vector2(w, h * 0.75), Vector2(0, h * 0.75)]),
-		PackedColorArray([top, top, horizon, horizon]))
-	_sky.draw_rect(Rect2(0, h * 0.75 - 1, w, h * 0.25 + 1), horizon)
-	var c := Vector2(w * 0.74, h * 0.24 + (40.0 if place == Protocol.PLACE_COMMUTING else 0.0))
-	if night:
-		for i in 40:
-			var sp := Vector2(fmod(i * 197.0 + 31, w), fmod(i * 83.0 + 17, h * 0.55))
-			_sky.draw_circle(sp, 1.0 + fmod(i * 0.37, 1.0), Color(1, 1, 1, 0.3 + 0.5 * fmod(i * 0.37, 1.0)), true, -1.0, true)
-		for k in 4:
-			_sky.draw_circle(c, 36.0 + k * 14.0, Color(1, 1, 0.9, 0.05), true, -1.0, true)
-		Kit.draw_disc(_sky, c, 36, Color("#f4f1c9"))
-		Kit.draw_disc(_sky, c + Vector2(14, -8), 32, top.lerp(base, 0.3))
-	else:
-		for k in 5:
-			_sky.draw_circle(c, 44.0 + k * 22.0, Color(1, 0.92, 0.7, 0.07), true, -1.0, true)
-		Kit.draw_disc(_sky, c, 44, Color("#ffd98a"))
-	# Hills: three faceted ridges, nearer = darker and greener.
-	var cols := [base.lerp(Color("#9c8fc4"), 0.5), base.lerp(Color("#6f9fb0"), 0.55), base.lerp(Color("#5d9a7a"), 0.65)]
-	if night:
-		cols = cols.map(func(col): return col.darkened(0.45))
-	for layer in 3:
-		var pts := PackedVector2Array([Vector2(0, h)])
-		var x := 0.0
-		var k := 0
-		while x < w + 80:
-			var y := h * (0.72 + layer * 0.08) + sin(k * 1.7 + layer * 2.1) * 22.0 + cos(k * 0.9 + layer) * 14.0
-			pts.append(Vector2(x, y))
-			x += 90.0 + fmod(k * 37.0 + layer * 11.0, 60.0)
-			k += 1
-		pts.append(Vector2(w + 80, h))
-		_sky.draw_colored_polygon(pts, cols[layer])
+	var c := Vector2(size.x / 2, size.y * 0.22)
+	match clock.get("place", -1):
+		Protocol.PLACE_HOME when not clock.get("night", true):
+			Ink.draw_disc(_sky, c, 40, Color("#ffd166"))
+		Protocol.PLACE_HOME:
+			Ink.draw_disc(_sky, c, 36, Color("#f4f1c9"))
+			Ink.draw_disc(_sky, c + Vector2(14, -8), 32, Color("#0d1330"))
+			for i in 24:
+				var sp := Vector2(fmod(i * 197.0, size.x), fmod(i * 83.0, size.y * 0.5))
+				_sky.draw_rect(Rect2(sp, Vector2(2, 2)), Color(1, 1, 1, 0.3 + 0.5 * fmod(i * 0.37, 1.0)))
+		Protocol.PLACE_COMMUTING:
+			Ink.draw_disc(_sky, c + Vector2(0, 30), 44, Color("#ffd166"))

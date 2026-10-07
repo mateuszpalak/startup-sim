@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """End-to-end gameplay tests: the real server and the real Godot client
-(headless), driven by scenario scripts (client/tests/e2e/scenarios/*.gd).
+(headless), driven by scenario scripts (<client>/tests/e2e/scenarios/*.gd).
+Both clients share the scenarios: --client client (2D, default) or
+--client client3d; a scenario whose scripts a client lacks is skipped.
 
     python3 tests/e2e/run.py                 # every scenario
     python3 tests/e2e/run.py workday founder # some of them
@@ -25,7 +27,7 @@ import time
 
 ROOT = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))
 SERVER_DIR = os.path.join(ROOT, "server")
-CLIENT_DIR = os.path.join(ROOT, "client")
+CLIENT_DIR = os.path.join(ROOT, "client")  # --client changes it
 CLIENT_TIMEOUT = 300  # seconds per client process (scenarios stop themselves at 240)
 
 EMPLOYED = ["--start-employed", "--allow-guests", "--no-save"]
@@ -208,6 +210,12 @@ def scenario(name, phases, godot, binary, port, logs):
     return ok, results
 
 
+def supported(name):
+    """Does the chosen client have every script the scenario drives?"""
+    scripts = [c[0] for phase in SCENARIOS[name] for c in phase["clients"]]
+    return all(os.path.exists(os.path.join(CLIENT_DIR, "tests", "e2e", "scenarios", s + ".gd")) for s in scripts)
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("names", nargs="*")
@@ -215,11 +223,15 @@ def main():
     ap.add_argument("--logs", default=None)
     ap.add_argument("--port", type=int, default=7900)
     ap.add_argument("--shard", default=None, help="k/n: only part k of n (CI runs the parts in parallel)")
+    ap.add_argument("--client", default="client", choices=["client", "client3d"],
+                    help="which Godot client to drive: client (2D) or client3d (3D)")
     a = ap.parse_args()
+    global CLIENT_DIR
+    CLIENT_DIR = os.path.join(ROOT, a.client)
     if a.list:
         print("\n".join(SCENARIOS))
         return 0
-    names = a.names or list(SCENARIOS)
+    names = a.names or [n for n in SCENARIOS if supported(n)]
     if a.shard:
         k, n = (int(x) for x in a.shard.split("/"))
         if not 1 <= k <= n:

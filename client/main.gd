@@ -15,7 +15,7 @@ const NetClient = preload("res://net/net_client.gd")
 const Building = preload("res://map/building.gd")
 const Game = preload("res://game/game.gd")
 const CharacterScreen = preload("res://ui/character_screen.gd")
-const Kit = preload("res://ui/ui_kit.gd")
+const Ink = preload("res://ui/ink_ui.gd")
 const Desktop = preload("res://ui/desktop.gd")
 const Protocol = preload("res://net/protocol.gd")
 const DayScreen = preload("res://ui/day_screen.gd")
@@ -28,9 +28,6 @@ const Settings = preload("res://ui/settings.gd")
 const Audio = preload("res://audio/audio.gd")
 const AuthClient = preload("res://net/auth_client.gd")
 const LoginScreen = preload("res://ui/login_screen.gd")
-const TitleBackdrop = preload("res://ui/title_backdrop_3d.gd")
-const Touch = preload("res://touch/touch.gd")
-const Platform = preload("res://platform/platform.gd")
 
 const BUILDING_PATH := "res://maps/building.json"
 
@@ -55,7 +52,6 @@ var updates := Updates.new()
 var update_layer := CanvasLayer.new()   # "a new version" over every screen
 var login_layer := CanvasLayer.new()
 var login := LoginScreen.new()
-var backdrop: Node = null   # the live 3D world behind the menus
 ## The logged-in account: {address, nick, ticket, refresh, key} ({} = a
 ## guest). `key` seals the game packets; it only ever comes over HTTPS.
 var session := {}
@@ -71,10 +67,10 @@ var _last_place := -1
 
 func _ready() -> void:
 	# Pixel font and frames everywhere (also text drawn with the fallback font).
-	ThemeDB.fallback_font = Kit.font()
+	ThemeDB.fallback_font = Ink.font()
 	ThemeDB.fallback_font_size = 16
-	ThemeDB.get_default_theme().merge_with(Kit.theme())
-	get_tree().root.theme = Kit.theme()
+	ThemeDB.get_default_theme().merge_with(Ink.theme())
+	get_tree().root.theme = Ink.theme()
 	for a in OS.get_cmdline_user_args():
 		var kv: PackedStringArray = a.trim_prefix("--").split("=", true, 1)
 		args[kv[0]] = kv[1] if kv.size() > 1 else ""
@@ -82,24 +78,9 @@ func _ready() -> void:
 	# End-to-end scenarios keep their files (login, settings) to themselves.
 	if args.has("scenario"):
 		UserPaths.use_folder("e2e/" + str(args.get("scenario-id", args["scenario"])))
-	Touch.setup(args)
-	if Touch.active:
-		get_tree().root.size_changed.connect(func(): Touch.fit_ui(get_tree().root))
-		Touch.fit_ui(get_tree().root)
-		var lift := preload("res://touch/keyboard_lift.gd").new()
-		lift.fake = float(args.get("fake-keyboard", "0"))
-		add_child(lift)
-	if args.has("quality"):  # dev: --quality=mobile previews the phone profile
-		Platform.forced_profile = str(args["quality"])
 	Settings.load_once()
 	Settings.apply_window()
 	Settings.apply_fps()
-	if args.has("render-scale"):  # dev: --render-scale=0.6 (not saved)
-		Settings.render_scale = clampf(float(args["render-scale"]), 0.25, 1.0)
-	Platform.apply_quality(get_viewport())
-	Settings.apply_render(get_viewport())
-	if args.has("perf"):
-		Engine.max_fps = 0  # measure the headroom (run with --disable-vsync)
 	add_child(audio)
 	Settings.apply_audio()
 	add_child(updates)
@@ -281,9 +262,6 @@ func _on_connected(welcome: Dictionary) -> void:
 	start.get_parent().visible = false
 	get_viewport().gui_release_focus()  # the nick field must not keep eating keys
 	get_window().title = "Startup Sim — %s" % net.nick
-	if backdrop:
-		backdrop.free()
-		backdrop = null
 	game = Game.new()
 	for c in get_children():
 		if c.has_method("next_input"):
@@ -338,7 +316,6 @@ func _on_packet(p: Dictionary) -> void:
 func _process(_d: float) -> void:
 	if args.has("perf"):
 		_perf_report()
-	_update_backdrop()
 	if game:
 		game.input_blocked = portal.visible or day_screen.blocking() or pause.visible  # no walking under the menu
 	# Music: the menu tune on the title / character screens, a calm one at
@@ -359,22 +336,6 @@ var _perf_draws := {}   # script / class -> redraws in this period
 var _perf_hooked := {}  # instance id -> true
 
 
-## The 3D world behind the title / login / character screens: built while
-## one of them shows and no game runs (not headless, it costs a map build).
-func _update_backdrop() -> void:
-	var want: bool = game == null and building.error == "" and DisplayServer.get_name() != "headless" \
-		and (title_layer.visible or login_layer.visible or start.get_parent().visible)
-	if want and backdrop == null:
-		backdrop = TitleBackdrop.new(building)
-		backdrop.mood = int(args.get("title-mood", "-1"))  # dev: a fixed look for screenshots
-		backdrop.shot = int(args.get("title-shot", "-1"))
-		add_child(backdrop)
-		move_child(backdrop, 0)
-	elif not want and backdrop != null:
-		backdrop.queue_free()
-		backdrop = null
-
-
 func _perf_hook(n: Node) -> void:
 	if n is CanvasItem and not _perf_hooked.has(n.get_instance_id()):
 		_perf_hooked[n.get_instance_id()] = true
@@ -393,8 +354,6 @@ func _perf_report() -> void:
 	if now - _perf_at < 2000:
 		return
 	_perf_hook(self)
-	var vp := get_viewport().get_viewport_rid()
-	RenderingServer.viewport_set_measure_render_time(vp, true)
 	if _perf_at > 0:
 		var top := _perf_draws.keys()
 		top.sort_custom(func(a, b): return _perf_draws[a] > _perf_draws[b])
@@ -402,9 +361,8 @@ func _perf_report() -> void:
 		for k in top.slice(0, 6):
 			parts.append("%s %.0f/s" % [k, _perf_draws[k] / ((now - _perf_at) / 1000.0)])
 		print("perf: redraws  " + ", ".join(parts))
-		print("perf: fps %d  process %.2f ms  physics %.2f ms  gpu %.2f ms  render cpu %.2f ms  draw calls %d  items %d  nodes %d" % [
+		print("perf: fps %d  process %.2f ms  physics %.2f ms  draw calls %d  items %d  nodes %d" % [
 			Engine.get_frames_per_second(), 1000.0 * _perf_proc / _perf_frames, 1000.0 * _perf_phys / _perf_frames,
-			RenderingServer.viewport_get_measured_render_time_gpu(vp), RenderingServer.viewport_get_measured_render_time_cpu(vp),
 			Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME),
 			Performance.get_monitor(Performance.RENDER_TOTAL_OBJECTS_IN_FRAME),
 			Performance.get_monitor(Performance.OBJECT_NODE_COUNT)])
@@ -546,28 +504,24 @@ func _show_update(version: String, url: String, required: bool) -> void:
 	for c in update_layer.get_children():
 		c.queue_free()
 	var panel := PanelContainer.new()
-	panel.add_theme_stylebox_override("panel", Kit.box("paper"))
+	panel.add_theme_stylebox_override("panel", Ink.box("paper"))
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 12)
 	panel.add_child(row)
 	var text := "Ta wersja gry (%s) nie pasuje do serwera — pobierz najnowszą." % Updates.current() if required \
 		else "Dostępna nowa wersja gry: %s (masz %s)." % [version, Updates.current()]
-	var label := Kit.label(text, 18, Kit.TEXT_INK)
+	var label := Ink.label(text, 18, Ink.TEXT_INK)
 	label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	row.add_child(label)
-	if Platform.can_self_update():
-		var get_it := Kit.button("Pobierz", true)
-		get_it.pressed.connect(func(): OS.shell_open(url))
-		row.add_child(get_it)
-	else:  # iOS: apps come only from TestFlight / the App Store, no .dmg
-		label.text += "\nZaktualizuj grę w TestFlight."
-	var later := Kit.button("Zamknij" if required else "Później")
+	var get_it := Ink.button("Pobierz", true)
+	get_it.pressed.connect(func(): OS.shell_open(url))
+	row.add_child(get_it)
+	var later := Ink.button("Zamknij" if required else "Później")
 	later.pressed.connect(func(): panel.queue_free())
 	row.add_child(later)
 	update_layer.add_child(panel)
 	panel.reset_size()
 	panel.position = Vector2((get_viewport().get_visible_rect().size.x - panel.size.x) / 2, 16)
-	Kit.pop_in(panel, 0.9, 0.25)
 
 
 ## A normal exit: the next start won't think it crashed.
@@ -586,27 +540,27 @@ func _offer_crash_report(crashed: Dictionary) -> void:
 		_send_crash_report(report, null)
 		return
 	var panel := PanelContainer.new()
-	panel.add_theme_stylebox_override("panel", Kit.box("paper"))
+	panel.add_theme_stylebox_override("panel", Ink.box("paper"))
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 10)
 	box.custom_minimum_size = Vector2(520, 0)
 	panel.add_child(box)
-	box.add_child(Kit.label("Gra zamknęła się niespodziewanie", 26, Kit.TEXT_INK))
-	var info := Kit.label("Wysłać twórcom raport? Pomoże znaleźć błąd. Zawiera koniec dziennika gry " +
-		"(bez haseł), wersję gry, system i nazwę procesora i karty graficznej.", 17, Kit.TEXT_INK, true)
+	box.add_child(Ink.label("Gra zamknęła się niespodziewanie", 26, Ink.TEXT_INK))
+	var info := Ink.label("Wysłać twórcom raport? Pomoże znaleźć błąd. Zawiera koniec dziennika gry " +
+		"(bez haseł), wersję gry, system i nazwę procesora i karty graficznej.", 17, Ink.TEXT_INK, true)
 	info.custom_minimum_size.x = 520  # wrapped text needs a width
 	box.add_child(info)
 	var always := CheckBox.new()
 	always.text = "Wysyłaj zawsze bez pytania (zmienisz w Ustawieniach)"
 	for k in ["font_color", "font_hover_color", "font_pressed_color", "font_focus_color", "font_hover_pressed_color"]:
-		always.add_theme_color_override(k, Kit.TEXT_INK)
+		always.add_theme_color_override(k, Ink.TEXT_INK)
 	box.add_child(always)
-	var status := Kit.label("", 16, Kit.TEXT_INK, true)
+	var status := Ink.label("", 16, Ink.TEXT_INK, true)
 	status.custom_minimum_size.x = 520
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 10)
-	var send := Kit.button("Wyślij raport", true)
-	var skip := Kit.button("Nie wysyłaj")
+	var send := Ink.button("Wyślij raport", true)
+	var skip := Ink.button("Nie wysyłaj")
 	for b in [send, skip]:
 		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		row.add_child(b)
@@ -639,30 +593,11 @@ func _send_crash_report(report: Dictionary, status: Label, panel: Control = null
 
 
 func _notification(what: int) -> void:
-	if AndroidPlatform.handle_back(what):
-		return
 	match what:
 		NOTIFICATION_WM_CLOSE_REQUEST:
 			net.close()
 			get_tree().quit()
 		NOTIFICATION_APPLICATION_FOCUS_OUT:
-			_throttle(true)
+			Settings.apply_fps(false)  # in the background: draw less
 		NOTIFICATION_APPLICATION_FOCUS_IN:
-			_throttle(false)
-		# Phones: the system may end a backgrounded app without telling it;
-		# that is not a crash, so the session counts as clean while paused.
-		NOTIFICATION_APPLICATION_PAUSED:
-			_throttle(true)
-			if CrashReports.enabled(args):
-				CrashReports.end_session()
-			Settings.save()
-		NOTIFICATION_APPLICATION_RESUMED:
-			_throttle(false)
-			if CrashReports.enabled(args):
-				CrashReports.mark_running()
-
-
-## In the background: draw less (benchmarks are never throttled).
-func _throttle(background: bool) -> void:
-	if not args.has("perf"):
-		Settings.apply_fps(not background)
+			Settings.apply_fps(true)

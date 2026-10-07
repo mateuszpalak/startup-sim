@@ -2,8 +2,7 @@
 ## game time, scrollable - the corner log only keeps the last few lines.
 extends PanelContainer
 
-const Kit = preload("res://ui/ui_kit.gd")
-const Touch = preload("res://touch/touch.gd")
+const Ink = preload("res://ui/ink_ui.gd")
 
 const MAX_LINES := 400
 
@@ -14,15 +13,15 @@ var _scroll := ScrollContainer.new()
 
 func _ready() -> void:
 	visible = false
-	add_theme_stylebox_override("panel", Kit.box("paper"))
+	add_theme_stylebox_override("panel", Ink.box("paper"))
 	set_anchors_preset(Control.PRESET_CENTER)
 	custom_minimum_size = Vector2(640, 440)
 	var col := VBoxContainer.new()
 	col.add_theme_constant_override("separation", 8)
 	add_child(col)
 	var title := Label.new()
-	Kit.style_label(title, 22, Kit.TEXT_INK)
-	title.text = Touch.say("Dziennik dnia  (H — zamknij)", "Dziennik dnia")
+	Ink.style_label(title, 22, Ink.TEXT_INK)
+	title.text = "Dziennik dnia  (H — zamknij)"
 	col.add_child(title)
 	_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
@@ -35,7 +34,6 @@ func _ready() -> void:
 func _place() -> void:
 	var vs := get_viewport_rect().size
 	position = (vs - size) / 2
-	Touch.place_center(self, get_viewport())
 
 
 func add(line: String) -> void:
@@ -45,7 +43,7 @@ func add(line: String) -> void:
 		if _list.get_child_count() > 0:
 			_list.get_child(0).queue_free()
 	var l := Label.new()
-	Kit.style_label(l, 15, Kit.TEXT_INK)
+	Ink.style_label(l, 15, Ink.TEXT_INK)
 	l.text = line
 	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_list.add_child(l)
@@ -64,7 +62,6 @@ func toggle() -> void:
 	if visible:
 		_place.call_deferred()
 		_to_bottom.call_deferred()
-		(func(): _place(); Kit.pop_in(self, 0.96, 0.2)).call_deferred()
 
 
 func _to_bottom() -> void:

@@ -5,9 +5,7 @@
 ## closes it.
 extends Control
 
-const Kit = preload("res://ui/ui_kit.gd")
-const Touch = preload("res://touch/touch.gd")
-const ItemIcons = preload("res://ui/item_icons.gd")
+const Ink = preload("res://ui/ink_ui.gd")
 const ItemArt = preload("res://game/item_art.gd")
 const Protocol = preload("res://net/protocol.gd")
 
@@ -39,30 +37,29 @@ var _sig := ""
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	visible = false
-	_panel.add_theme_stylebox_override("panel", Kit.box("paper"))
+	_panel.add_theme_stylebox_override("panel", Ink.box("paper"))
 	add_child(_panel)
 	var col := VBoxContainer.new()
 	col.add_theme_constant_override("separation", 8)
 	_panel.add_child(col)
-	Kit.style_label(_title, 24, Kit.TEXT_INK)
+	Ink.style_label(_title, 24, Ink.TEXT_INK)
 	col.add_child(_title)
-	Kit.style_label(_info, 15, Kit.TEXT_MUTED)
+	Ink.style_label(_info, 15, Ink.TEXT_MUTED)
 	col.add_child(_info)
 	_grid.columns = COLUMNS
 	_grid.add_theme_constant_override("h_separation", 6)
 	_grid.add_theme_constant_override("v_separation", 6)
 	col.add_child(_drop_area(_grid, "inv"))
-	col.add_child(Kit.label("Twoje rzeczy", 16, Kit.TEXT_INK))
+	col.add_child(Ink.label("Twoje rzeczy", 16, Ink.TEXT_INK))
 	_inv.add_theme_constant_override("separation", 6)
 	col.add_child(_drop_area(_inv, "box"))
-	Kit.style_label(_caption, 15, Kit.TEXT_INK)
+	Ink.style_label(_caption, 15, Ink.TEXT_INK)
 	_caption.custom_minimum_size = Vector2(0, 22)
 	col.add_child(_caption)
 	_buttons.add_theme_constant_override("separation", 8)
 	col.add_child(_buttons)
-	col.add_child(Kit.label(Touch.say("Przeciągnij myszką (albo kliknij), żeby wyjąć lub włożyć · Esc zamknij", "Stuknij albo przeciągnij palcem, żeby wyjąć lub włożyć"), 14, Kit.TEXT_MUTED))
+	col.add_child(Ink.label("Przeciągnij myszką (albo kliknij), żeby wyjąć lub włożyć · Esc zamknij", 14, Ink.TEXT_MUTED))
 	_panel.resized.connect(_place)
-	_panel.minimum_size_changed.connect(_place.call_deferred)
 	get_viewport().size_changed.connect(_place)
 
 
@@ -72,7 +69,6 @@ func _place() -> void:
 	size = vs
 	_panel.reset_size()
 	_panel.position = ((vs - _panel.size) / 2).floor()
-	Touch.place_center(_panel, get_viewport())
 
 
 ## `inner` taking drops of things dragged from `from` ("box" / "inv").
@@ -137,7 +133,6 @@ func _fill() -> void:
 		return
 	_sig = sig
 	for c in _grid.get_children() + _inv.get_children() + _buttons.get_children():
-		c.get_parent().remove_child(c)  # out now: the panel must not measure them
 		c.queue_free()
 	var slots: Array = state.get("slots", [])
 	for i in maxi(slots.size(), state.get("capacity", 0)):
@@ -155,14 +150,14 @@ func _fill() -> void:
 			var idle: bool = state.minutes == 0
 			_button("Włącz", Protocol.CONTAINER_START, idle and _count(ItemArt.EMPTY_CUP) > 0 and _count(ItemArt.CUP) == 0)
 			_button("Rozładuj do szafki", Protocol.CONTAINER_UNLOAD, idle and _count(ItemArt.CUP) > 0)
-	var close_b := Kit.button("Zamknij")
+	var close_b := Ink.button("Zamknij")
 	close_b.focus_mode = Control.FOCUS_NONE
 	close_b.pressed.connect(close)
 	_buttons.add_child(close_b)
 
 
 func _button(text: String, act: int, enabled: bool) -> void:
-	var b := Kit.button(text, true)
+	var b := Ink.button(text, true)
 	b.focus_mode = Control.FOCUS_NONE
 	b.disabled = not enabled
 	b.pressed.connect(func(): action.emit(which, act, 0, 0))
@@ -201,27 +196,27 @@ func _slot(kind: int, count: int, label: String, from: String, index: int) -> Co
 
 func _draw_slot(box: Control, kind: int, count: int, from: String, index: int) -> void:
 	var hover: bool = box.get_meta("hover", false) and kind != 0
-	Kit.draw_rrect(box, Rect2(Vector2.ZERO, box.size), Color("#fff1e9") if hover else Kit.CARD_LO, Kit.R_MD,
-		Kit.ACCENT if hover else Color(Kit.TEXT_INK, 0.08), 2)
+	Ink.box("slot_active" if hover else "slot").draw(box.get_canvas_item(), Rect2(Vector2.ZERO, box.size))
 	if kind != 0:
-		ItemIcons.draw(box, kind, Rect2(Vector2(8, 6), Vector2.ONE * (box.size.x - 16)))
+		ItemArt.draw(box, kind, Vector2(10, 8), (box.size.x - 20) / 16.0)
 		if count == 0:  # none left: a faded picture
-			box.draw_rect(Rect2(Vector2(4, 4), box.size - Vector2(8, 8)), Color(Kit.PAPER_HI, 0.65))
-	var f := Kit.font()
+			box.draw_rect(Rect2(Vector2(4, 4), box.size - Vector2(8, 8)), Color(Ink.PAPER_HI, 0.65))
+	var f := Ink.font()
 	if from == "inv":
 		var cap := "ręce" if index == 0 else str(index)
-		box.draw_string(Kit.font_bold(), Vector2(0, box.size.y - 6), cap, HORIZONTAL_ALIGNMENT_CENTER, box.size.x, 12, Kit.TEXT_MUTED)
+		box.draw_string_outline(f, Vector2(6, box.size.y - 6), cap, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, 4, Ink.INK)
+		box.draw_string(f, Vector2(6, box.size.y - 6), cap, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Ink.GOLD)
 	elif kind != 0 and (count != 1 or which not in [Protocol.CONTAINER_FRIDGE, Protocol.CONTAINER_BIN]):
 		var n := "×%d" % count
 		var at := Vector2(box.size.x - 8 - f.get_string_size(n, HORIZONTAL_ALIGNMENT_LEFT, -1, 16).x, box.size.y - 6)
-		Kit.draw_rrect(box, Rect2(at + Vector2(-5, -15), Vector2(f.get_string_size(n, HORIZONTAL_ALIGNMENT_LEFT, -1, 14).x + 10, 19)), Kit.ACCENT, 9)
-		box.draw_string(Kit.font_bold(), at + Vector2(0, -1), n, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color.WHITE)
+		box.draw_string_outline(f, at, n, HORIZONTAL_ALIGNMENT_LEFT, -1, 16, 4, Ink.INK)
+		box.draw_string(f, at, n, HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Ink.GOLD)
 
 
 func _preview(kind: int) -> Control:
 	var c := Control.new()
 	c.size = SLOT
-	c.draw.connect(func(): ItemIcons.draw(c, kind, Rect2(-SLOT / 2 + Vector2(8, 6), SLOT - Vector2(16, 16))))
+	c.draw.connect(func(): ItemArt.draw(c, kind, Vector2(-SLOT.x / 2 + 10, -SLOT.y / 2 + 8), (SLOT.x - 20) / 16.0))
 	return c
 
 

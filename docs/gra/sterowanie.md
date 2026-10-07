@@ -72,8 +72,8 @@
 
 ## Ekran dotykowy (iPhone, iPad)
 
-Na telefonie i tablecie gra sama włącza sterowanie dotykiem (na komputerze:
-`--touch`, wtedy mysz udaje palec).
+Tylko w wersji 3D (`client3d/`). Na telefonie i tablecie gra sama włącza
+sterowanie dotykiem (na komputerze: `--touch`, wtedy mysz udaje palec).
 
 | Gest / przycisk | Co robi |
 |---|---|

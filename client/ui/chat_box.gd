@@ -3,8 +3,7 @@
 ## shouts to the whole floor.
 extends PanelContainer
 
-const Kit = preload("res://ui/ui_kit.gd")
-const Touch = preload("res://touch/touch.gd")
+const Ink = preload("res://ui/ink_ui.gd")
 
 signal sent(text: String)
 
@@ -15,18 +14,18 @@ var _input := LineEdit.new()
 
 func _ready() -> void:
 	visible = false
-	add_theme_stylebox_override("panel", Kit.box("hud"))
+	add_theme_stylebox_override("panel", Ink.box("hud"))
 	set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
 	custom_minimum_size = Vector2(560, 0)
 	var row := HBoxContainer.new()
 	add_child(row)
 	var l := Label.new()
-	Kit.style_label(l, 15, Color(1, 1, 1, 0.8))
+	Ink.style_label(l, 15, Color(1, 1, 1, 0.8))
 	l.text = "Czat:"
 	row.add_child(l)
 	_input.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_input.max_length = MAX_CHARS
-	_input.placeholder_text = Touch.say("do pokoju · /s szept · /k krzyk · Esc — zamknij", "do pokoju · /s szept · /k krzyk")
+	_input.placeholder_text = "do pokoju · /s szept · /k krzyk · Esc — zamknij"
 	_input.text_submitted.connect(_submit)
 	_input.gui_input.connect(func(e: InputEvent):
 		if e is InputEventKey and e.pressed and e.keycode == KEY_ESCAPE:
@@ -39,11 +38,6 @@ func _ready() -> void:
 func _place() -> void:
 	var vs := get_viewport_rect().size
 	position = Vector2((vs.x - size.x) / 2, vs.y - 200)
-	if Touch.active:
-		var sr := Touch.safe_rect(get_viewport())
-		custom_minimum_size.x = minf(560, sr.size.x - 24)
-		size.x = custom_minimum_size.x
-		position = Vector2(sr.position.x + (sr.size.x - size.x) / 2, sr.end.y - 200)
 
 
 ## Typing: the game doesn't walk or react to keys meanwhile.

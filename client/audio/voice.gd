@@ -7,7 +7,6 @@ extends Node
 
 const Adpcm = preload("res://audio/adpcm.gd")
 const Protocol = preload("res://net/protocol.gd")
-const Platform = preload("res://platform/platform.gd")
 
 const RATE := 16000
 const FRAME := 640                # samples per frame (40 ms)
@@ -63,13 +62,10 @@ func _exit_tree() -> void:
 		_mic.stop()
 
 
-## The microphone starts on the first push-to-talk (macOS and iOS ask
-## for permission then).
+## The microphone starts on the first push-to-talk (macOS asks then).
 func _open_mic() -> void:
 	if _mic:
 		return
-	if not Platform.request_microphone():
-		return  # Android: asked now, the next press opens it
 	_mic = AudioStreamPlayer.new()
 	_mic.stream = AudioStreamMicrophone.new()
 	_mic.bus = "Mic"

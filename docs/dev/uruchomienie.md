@@ -7,7 +7,8 @@ testy e2e).
 
 ```bash
 cd server && cargo run --release            # gra na [::]:7777 (UDP) + logowanie HTTPS na :7778; zapis w server/saves/world.db
-godot --path client                         # klient (można odpalić kilka razy): Graj → zaloguj się / załóż konto
+godot --path client                         # klient 2D (można odpalić kilka razy): Graj → zaloguj się / załóż konto
+godot --path client3d                       # klient 3D (te same argumenty; tylko w nim --touch, --safe-area, --fake-keyboard)
 cd server && cargo run --release -- --start-with-card --allow-guests   # wariant dla botów: goście z kartą
 cd server && cargo run --release -- --reset-password Ola                # administrator: nowe jednorazowe hasło
 cd server && cargo run --release -- --list-accounts                     # administrator: lista kont
@@ -118,7 +119,7 @@ budowany ze źródeł z przypiętego commita (v1.0.2) i naszą łatką
 jest skalowany z 1280×720):
 
 ```bash
-tools/build_webview.sh   # → client/addons/godot_wry/ (poza repozytorium), na razie macOS
+tools/build_webview.sh   # → client/addons/godot_wry/ (poza repozytorium), na razie macOS; CLIENT=client3d → client3d/
 ```
 
 Bez tego gra działa normalnie, a przeglądarka proponuje tylko otwarcie strony

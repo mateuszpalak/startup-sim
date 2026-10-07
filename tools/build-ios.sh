@@ -23,6 +23,9 @@
 # and flow, not looks or speed - those only on a phone (Mobile renderer).
 set -euo pipefail
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
+# Mobile and Windows builds exist for the 3D client only (client3d/);
+# CLIENT=client picks another Godot project.
+CLIENT=${CLIENT:-client3d}
 [ -f "$ROOT/tools/ios/signing.env" ] && . "$ROOT/tools/ios/signing.env"
 MODE=${1:-sim}
 TEAM=${DEVELOPMENT_TEAM:-}
@@ -38,12 +41,12 @@ esac
 if [ "$MODE" = device ] || [ "$MODE" = archive ]; then
   [ -n "$TEAM" ] || { echo "brak DEVELOPMENT_TEAM (Team ID z Xcode → Settings → Accounts) — w środowisku albo w tools/ios/signing.env"; exit 1; }
 fi
-[ -f "$ROOT/client/net/servers.cfg" ] || echo "uwaga: brak client/net/servers.cfg — klient będzie znał tylko serwer lokalny"
+[ -f "$ROOT/$CLIENT/net/servers.cfg" ] || echo "uwaga: brak $CLIENT/net/servers.cfg — klient będzie znał tylko serwer lokalny"
 
 echo "== eksport z Godota ($PRESET)"
 rm -rf "$OUT" && mkdir -p "$OUT"
-"$GODOT" --headless --path "$ROOT/client" --import >/dev/null 2>&1 || true
-"$GODOT" --headless --path "$ROOT/client" --export-debug "$PRESET" "$OUT/StartupSim.xcodeproj" >"$OUT/export.log" 2>&1 \
+"$GODOT" --headless --path "$ROOT/$CLIENT" --import >/dev/null 2>&1 || true
+"$GODOT" --headless --path "$ROOT/$CLIENT" --export-debug "$PRESET" "$OUT/StartupSim.xcodeproj" >"$OUT/export.log" 2>&1 \
   || { tail -20 "$OUT/export.log"; exit 1; }
 [ -d "$OUT/StartupSim.xcodeproj" ] || { tail -20 "$OUT/export.log"; exit 1; }
 [ "$MODE" = project ] && { echo "gotowe: $OUT/StartupSim.xcodeproj"; exit 0; }

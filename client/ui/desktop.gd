@@ -4,9 +4,7 @@
 ## re-sends our last action when the server's state shows it got lost.
 extends Control
 
-const Kit = preload("res://ui/ui_kit.gd")
-const Touch = preload("res://touch/touch.gd")
-const AvatarPreview = preload("res://ui/avatar_preview.gd")
+const Ink = preload("res://ui/ink_ui.gd")
 
 const Protocol = preload("res://net/protocol.gd")
 const PlayerView = preload("res://game/player_view.gd")
@@ -52,7 +50,6 @@ var _root := Control.new()
 var _windows := {}        # name -> window PanelContainer
 var _body := {}           # name -> VBoxContainer (window content)
 var _taskbar := HBoxContainer.new()
-var _bar := PanelContainer.new()
 var _clock := Label.new()
 var game_day := 0          # from the server's Clock (0 = not known yet)
 var game_minute := 0
@@ -81,17 +78,6 @@ func _ready() -> void:
 func _fit() -> void:
 	position = Vector2.ZERO
 	size = get_viewport_rect().size
-	if Touch.active and _bar.is_inside_tree():  # the taskbar clear of the notch / home bar
-		var sr := Touch.safe_rect(get_viewport())
-		_bar.offset_left = sr.position.x
-		_bar.offset_right = sr.end.x - size.x
-		_bar.offset_bottom = sr.end.y - size.y
-		_bar.offset_top = _bar.offset_bottom - 60
-
-
-## Where the taskbar starts (windows end above it).
-func _taskbar_top() -> float:
-	return size.y + _bar.offset_top
 
 
 func set_profile(p_nick: String, p_profile: Dictionary) -> void:
@@ -125,9 +111,7 @@ func _build_desktop() -> void:
 	var bg := TextureRect.new()
 	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
 	bg.texture = wallpaper()
-	bg.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
-	bg.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	bg.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+	bg.stretch_mode = TextureRect.STRETCH_SCALE
 	bg.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
 	add_child(bg)
 	_root.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -139,16 +123,15 @@ func _build_desktop() -> void:
 
 	var icons := VBoxContainer.new()
 	icons.position = Vector2(24, 24)
-	if Touch.active:
-		icons.position += Touch.safe_rect(get_viewport()).position
 	icons.add_theme_constant_override("separation", 18)
 	_root.add_child(icons)
 	icons.add_child(_icon("Przeglądarka", "browser", func(): _open_window("browser")))
 	var mail_icon := _icon("Poczta", "mail", func(): _open_window("mail"))
-	Kit.style_label(_mail_icon_badge, 16, Color.WHITE)
+	Ink.style_label(_mail_icon_badge, 16, Color.WHITE)
 	var badge_bg := StyleBoxFlat.new()
-	badge_bg.bg_color = Kit.RED
-	badge_bg.set_corner_radius_all(10)
+	badge_bg.bg_color = Ink.RED
+	badge_bg.border_color = Ink.INK
+	badge_bg.set_border_width_all(Ink.LINE)
 	badge_bg.content_margin_left = 6
 	badge_bg.content_margin_right = 6
 	_mail_icon_badge.add_theme_stylebox_override("normal", badge_bg)
@@ -159,29 +142,20 @@ func _build_desktop() -> void:
 	icons.add_child(_icon("Kosz", "trash", func(): _toast_msg("Kosz jest pusty. Na razie.")))
 
 	# Taskbar.
-	var bar := _bar
-	bar.add_theme_stylebox_override("panel", Kit.box("hud"))
+	var bar := PanelContainer.new()
+	bar.add_theme_stylebox_override("panel", Ink.box("hud"))
 	bar.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
 	bar.offset_top = -52
 	_root.add_child(bar)
-	_fit()
 	var row := HBoxContainer.new()
 	bar.add_child(row)
-	var start_btn := Kit.button("StartOS", true)
+	var start_btn := Ink.button("◆ StartOS")
 	start_btn.tooltip_text = "Menu gry: ustawienia, wyjście"
 	start_btn.pressed.connect(func(): menu_requested.emit())
 	row.add_child(start_btn)
 	_taskbar.add_theme_constant_override("separation", 6)
 	_taskbar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	if Touch.active:  # many windows on a narrow screen: the buttons scroll, the clock stays
-		var sc := ScrollContainer.new()
-		sc.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		sc.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-		sc.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_NEVER
-		sc.add_child(_taskbar)
-		row.add_child(sc)
-	else:
-		row.add_child(_taskbar)
+	row.add_child(_taskbar)
 	_clock.add_theme_font_size_override("font_size", 15)
 	_clock.add_theme_color_override("font_color", Color(1, 1, 1, 0.85))
 	row.add_child(_clock)
@@ -190,63 +164,46 @@ func _build_desktop() -> void:
 	_toast.position = Vector2(-380, 16)
 	_toast.size = Vector2(360, 0)
 	_toast.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	Kit.style_label(_toast, 16, Kit.TEXT)
-	_toast.add_theme_stylebox_override("normal", Kit.box("hud"))
+	Ink.style_label(_toast, 16, Ink.TEXT)
+	_toast.add_theme_stylebox_override("normal", Ink.box("hud"))
 	_toast.visible = false
 	_root.add_child(_toast)
 
 
 ## The desktop wallpaper: a soft dusk sky, a few stars and a dark city
 ## skyline with lit windows (drawn small, smoothly scaled up).
-static var _wall: Texture2D
-
-
-## StartOS wallpaper: a soft dawn gradient over low-poly hills (the game's
-## 3D look), drawn once.
 static func wallpaper() -> Texture2D:
-	if _wall:
-		return _wall
-	var w := 640
-	var h := 360
+	var w := 320
+	var h := 180
 	var img := Image.create(w, h, false, Image.FORMAT_RGBA8)
-	var top := Color("#7fa9d9")
-	var mid := Color("#c9b6e0")
-	var low := Color("#f6c6a4")
-	var rng := RandomNumberGenerator.new()
-	rng.seed = 11
-	# Hill ridges: heights at control points, linearly joined (facets).
-	var ridges := []
-	for layer in 3:
-		var pts := []
-		var x := 0.0
-		while x <= w + 60:
-			pts.append(Vector2(x, h * (0.58 + layer * 0.12) + rng.randf_range(-28, 18) + 6 * layer))
-			x += rng.randf_range(50, 110)
-		ridges.append(pts)
-	var hill_cols := [Color("#9c8fc4"), Color("#8a9fd0").lerp(Color("#7bb59a"), 0.5), Color("#6aa889")]
+	var top := Color("#1f1a2e")
+	var mid := Color("#4a3552")
+	var low := Color("#b0706a")
 	for y in h:
 		var t := float(y) / h
-		var sky := top.lerp(mid, t / 0.5) if t < 0.5 else mid.lerp(low, (t - 0.5) / 0.5)
+		var c := top.lerp(mid, t / 0.6) if t < 0.6 else mid.lerp(low, (t - 0.6) / 0.4)
 		for x in w:
-			var c := sky
-			var sun := Vector2(x, y).distance_to(Vector2(w * 0.7, h * 0.52))
-			c = c.lerp(Color("#fff1d6"), clampf(1.0 - sun / 70.0, 0, 1) * 0.9)
-			for layer in 3:
-				var pts: Array = ridges[layer]
-				for k in pts.size() - 1:
-					if pts[k].x <= x and x < pts[k + 1].x:
-						var a: Vector2 = pts[k]
-						var b: Vector2 = pts[k + 1]
-						var ry := lerpf(a.y, b.y, (x - a.x) / (b.x - a.x))
-						var cov := clampf(y + 0.5 - ry, 0.0, 1.0)  # anti-aliased ridge
-						if cov > 0.0:
-							var shade := 0.05 if b.y < a.y else -0.02
-							c = c.lerp(hill_cols[layer].lightened(shade + (1.0 - (y - ry) / h) * 0.05), cov)
-						break
 			img.set_pixel(x, y, c)
-	_wall = ImageTexture.create_from_image(img)
-	return _wall
-
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 7
+	for k in 60:
+		img.set_pixel(rng.randi_range(0, w - 1), rng.randi_range(0, h / 2), Color(1, 0.95, 0.85, rng.randf_range(0.3, 0.8)))
+	var x := 0
+	while x < w:
+		var bw := rng.randi_range(14, 34)
+		var bh := rng.randi_range(28, 80)
+		var shade := Color("#17121c").lightened(rng.randf_range(0.0, 0.06))
+		for yy in range(h - bh, h):
+			for xx in range(x, mini(x + bw, w)):
+				img.set_pixel(xx, yy, shade)
+		for wy in range(h - bh + 5, h - 3, 7):
+			for wx in range(x + 3, mini(x + bw - 3, w), 5):
+				if rng.randf() < 0.3:
+					for dy in 3:
+						for dx in 2:
+							img.set_pixel(mini(wx + dx, w - 1), mini(wy + dy, h - 1), Color("#e8b85a"))
+		x += bw + rng.randi_range(0, 4)
+	return ImageTexture.create_from_image(img)
 
 func _icon(caption: String, kind: String, on_open: Callable) -> Control:
 	var b := Button.new()
@@ -262,30 +219,99 @@ func _icon(caption: String, kind: String, on_open: Callable) -> Control:
 	l.position = Vector2(0, 54)
 	l.size = Vector2(84, 22)
 	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	l.add_theme_constant_override("shadow_offset_y", 1)
-	l.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.45))
+	l.add_theme_constant_override("outline_size", 4)
+	l.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.6))
 	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	b.add_child(l)
 	return b
 
 
-const APP_ICONS := {
-	"browser": ["globe", Color("#4a9be0")], "mail": ["mail", Color("#e8744f")], "trash": ["trash", Color("#8d8796")],
-	"chat": ["chat", Color("#3fae9e")], "calendar": ["calendar", Color("#e0524f")], "company": ["briefcase", Color("#9a78d8")],
-	"hr": ["user", Color("#e9a23b")], "terminal": ["terminal", Color("#34303c")], "tasks": ["check", Color("#5bb36a")]}
-
-
-## Desktop app icons: a rounded tile in the app's colour with a white line
-## icon (Kit.draw_icon): browser, mail, trash, chat, calendar, company, hr,
-## terminal, tasks.
+## Desktop icons, hand-drawn like the rest of the game (ink outlines):
+## browser, mail, trash, chat, calendar, company, tasks.
 static func draw_icon(c: Control, kind: String) -> void:
-	var spec: Array = APP_ICONS.get(kind, ["star", Kit.ACCENT])
-	var o := Vector2(c.size.x / 2, 25)
-	var r := Rect2(o - Vector2(23, 23), Vector2(46, 46))
-	Kit.draw_rrect(c, Rect2(r.position + Vector2(0, 3), r.size), Color(0, 0, 0, 0.18), 13)
-	Kit.draw_rrect(c, r, spec[1], 13)
-	Kit.draw_rrect(c, Rect2(r.position, Vector2(r.size.x, r.size.y * 0.5)), Color(1, 1, 1, 0.12), 13)
-	Kit.draw_icon(c, spec[0], o, 12.5, Color.WHITE, 2.4)
+	var ink := Ink.INK
+	var o := Vector2(c.size.x / 2, 26)
+	match kind:
+		"browser":  # a globe
+			c.draw_circle(o, 19, ink)
+			c.draw_circle(o, 16.5, Color("#5b8fc2"))
+			var land := PackedVector2Array([o + Vector2(-9, -8), o + Vector2(-2, -11), o + Vector2(3, -5), o + Vector2(-1, 1), o + Vector2(-8, 0)])
+			c.draw_colored_polygon(land, Color("#7a9a4a"))
+			var land2 := PackedVector2Array([o + Vector2(4, 3), o + Vector2(12, 1), o + Vector2(11, 9), o + Vector2(5, 11)])
+			c.draw_colored_polygon(land2, Color("#7a9a4a"))
+			c.draw_arc(o, 16.5, 0, TAU, 32, ink, 2.0, true)
+			c.draw_line(o + Vector2(-16, 0), o + Vector2(16, 0), Color(ink, 0.5), 1.2, true)
+			c.draw_arc(o + Vector2(0, 0), 16.5, PI * 1.5, PI * 2.5, 16, Color(ink, 0.35), 1.2, true)
+			c.draw_arc(o + Vector2(-5, -5), 5, PI * 1.1, PI * 1.5, 6, Color(1, 1, 1, 0.5), 2.0, true)
+		"mail":  # an envelope
+			var r := Rect2(o + Vector2(-20, -13), Vector2(40, 27))
+			c.draw_rect(r.grow(1.5), ink)
+			c.draw_rect(r, Color("#efe4c8"))
+			c.draw_polyline(PackedVector2Array([r.position, o + Vector2(0, 2), Vector2(r.end.x, r.position.y)]), ink, 2.0, true)
+			c.draw_circle(o + Vector2(0, 2), 4, Color("#a8402f"))  # wax seal
+			c.draw_arc(o + Vector2(0, 2), 4, 0, TAU, 12, ink, 1.2, true)
+		"trash":  # a bin
+			var body := PackedVector2Array([o + Vector2(-13, -8), o + Vector2(13, -8), o + Vector2(10, 18), o + Vector2(-10, 18)])
+			c.draw_colored_polygon(body, Color("#9aa3a0"))
+			var closed := body.duplicate()
+			closed.append(body[0])
+			c.draw_polyline(closed, ink, 2.0, true)
+			for k in [-5.0, 0.0, 5.0]:
+				c.draw_line(o + Vector2(k, -4), o + Vector2(k * 0.8, 15), Color(ink, 0.6), 1.5, true)
+			var lid := Rect2(o + Vector2(-16, -14), Vector2(32, 5))
+			c.draw_rect(lid.grow(1.2), ink)
+			c.draw_rect(lid, Color("#b7bfbc"))
+			c.draw_rect(Rect2(o + Vector2(-4, -18), Vector2(8, 4)), ink)
+		"chat":  # two speech bubbles
+			for b in [[Vector2(-7, -5), Color("#f2e7cb")], [Vector2(7, 5), Color("#9fd0c0")]]:
+				var r := Rect2(o + b[0] - Vector2(13, 9), Vector2(26, 18))
+				c.draw_rect(r.grow(1.5), ink)
+				c.draw_rect(r, b[1])
+				var tail := PackedVector2Array([r.position + Vector2(5, 18), r.position + Vector2(3, 24), r.position + Vector2(11, 18)])
+				c.draw_colored_polygon(tail, ink)
+				for k in 3:
+					c.draw_circle(r.get_center() + Vector2(-6 + k * 6, 0), 1.6, ink)
+		"calendar":  # a desk calendar with a red header
+			var r := Rect2(o + Vector2(-17, -16), Vector2(34, 32))
+			c.draw_rect(r.grow(1.5), ink)
+			c.draw_rect(r, Color("#f4ead0"))
+			c.draw_rect(Rect2(r.position, Vector2(34, 9)), Color("#a8402f"))
+			for gy in 3:
+				for gx in 4:
+					c.draw_rect(Rect2(r.position + Vector2(3 + gx * 8, 12 + gy * 6), Vector2(5, 3)), Color(ink, 0.55))
+			c.draw_rect(Rect2(r.position + Vector2(19, 18), Vector2(5, 3)), Color("#a8402f"))
+		"company":  # an office building
+			var r := Rect2(o + Vector2(-13, -19), Vector2(26, 38))
+			c.draw_rect(r.grow(1.5), ink)
+			c.draw_rect(r, Color("#c9b48a"))
+			for wy in 5:
+				for wx in 3:
+					c.draw_rect(Rect2(r.position + Vector2(3 + wx * 8, 3 + wy * 7), Vector2(4, 4)), Color("#e8b85a") if (wx + wy) % 3 else Color(ink, 0.7))
+			c.draw_rect(Rect2(o + Vector2(-3, 11), Vector2(6, 8)), ink)
+		"hr":  # a folder with a document and a stamp
+			var f := Rect2(o + Vector2(-20, -12), Vector2(40, 30))
+			c.draw_rect(Rect2(f.position + Vector2(0, -5), Vector2(16, 7)), Color("#d9a13a"))
+			c.draw_rect(f, Color("#e8b85a"))
+			c.draw_rect(f, ink, false, 2.0)
+			c.draw_rect(Rect2(o + Vector2(-12, -8), Vector2(22, 20)), Color("#fbf8ef"))
+			for k in 3:
+				c.draw_line(o + Vector2(-9, -3 + k * 5), o + Vector2(6, -3 + k * 5), Color(ink, 0.6), 1.2)
+			c.draw_circle(o + Vector2(10, 10), 5, Color("#c0392b"))
+		"terminal":  # a dark window with a prompt
+			var t := Rect2(o + Vector2(-22, -16), Vector2(44, 34))
+			c.draw_rect(t, Color("#1e1f29"))
+			c.draw_rect(t, ink, false, 2.0)
+			c.draw_line(o + Vector2(-16, -6), o + Vector2(-9, -1), Color("#8be9fd"), 2.2, true)
+			c.draw_line(o + Vector2(-9, -1), o + Vector2(-16, 4), Color("#8be9fd"), 2.2, true)
+			c.draw_rect(Rect2(o + Vector2(-5, 3), Vector2(10, 3)), Color("#e6e6e6"))
+		"tasks":  # a board with three columns of cards
+			var r := Rect2(o + Vector2(-19, -15), Vector2(38, 30))
+			c.draw_rect(r.grow(1.5), ink)
+			c.draw_rect(r, Color("#f4ead0"))
+			var cols := [Color("#e0a82e"), Color("#5b8fc2"), Color("#6f8f3e")]
+			for k in 3:
+				for n in 3 - k:
+					c.draw_rect(Rect2(r.position + Vector2(3 + k * 12, 4 + n * 8), Vector2(9, 6)), cols[k])
 
 func _process(_d: float) -> void:
 	if not visible:
@@ -303,18 +329,18 @@ const TITLES := {"browser": "Przeglądarka — praca.example", "mail": "Poczta �
 
 func _open_window(name: String) -> void:
 	if not _windows.has(name):
-		var win := Kit.panel("paper")
+		var win := Ink.panel("paper")
 		var col := VBoxContainer.new()
 		col.add_theme_constant_override("separation", 0)
 		win.add_child(col)
 		var title_bar := PanelContainer.new()
-		title_bar.add_theme_stylebox_override("panel", Kit.box("window_bar"))
+		title_bar.add_theme_stylebox_override("panel", Ink.box("title"))
 		var trow := HBoxContainer.new()
 		title_bar.add_child(trow)
-		var tl := _label(TITLES[name] % [profile.get("email", "")] if name == "mail" else TITLES[name], 16, Kit.TEXT_INK)
+		var tl := _label(TITLES[name] % [profile.get("email", "")] if name == "mail" else TITLES[name], 16, Color.WHITE)
 		tl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		trow.add_child(tl)
-		var close := Kit.icon_button("close", "Zamknij", true, 28.0)
+		var close := Ink.button("X", false, true)
 		close.pressed.connect(func(): _close_window(name))
 		trow.add_child(close)
 		title_bar.gui_input.connect(func(ev): _drag(win, ev))
@@ -337,14 +363,10 @@ func _open_window(name: String) -> void:
 		win.size = wsize
 		var offset: Vector2 = {"browser": Vector2(0, 0), "mail": Vector2(40, 24), "interview": Vector2(80, 12)}[name]
 		win.position = Vector2(140, 20) + offset
-		if Touch.active:  # a small screen: every window full size, switched on the taskbar
-			var sr := Touch.safe_rect(get_viewport())
-			win.position = sr.position + Vector2(6, 6)
-			win.size = Vector2(sr.size.x - 12, _taskbar_top() - sr.position.y - 12)
 		_root.add_child(win)
 		_windows[name] = win
 		_body[name] = body
-		var tbtn := Kit.button({"browser": "Przeglądarka", "mail": "Poczta", "interview": "Rozmowa"}[name])
+		var tbtn := Ink.button({"browser": "Przeglądarka", "mail": "Poczta", "interview": "Rozmowa"}[name])
 		tbtn.pressed.connect(func(): _focus(name))
 		tbtn.name = "task_" + name
 		_taskbar.add_child(tbtn)
@@ -393,13 +415,13 @@ func _render(name: String) -> void:
 # ----------------------------------------------------------------- browser
 
 func _render_browser(body: VBoxContainer) -> void:
-	var addr := _label("🔒  https://praca.example/oferty" if _browser_view == "list" else "🔒  https://praca.example/aplikuj", 13, Kit.TEXT_MUTED)
+	var addr := _label("🔒  https://praca.example/oferty" if _browser_view == "list" else "🔒  https://praca.example/aplikuj", 13, Color("#4a5566"))
 	body.add_child(addr)
 	if _browser_view == "form" and offers.has(_form_offer):
 		_render_form(body, offers[_form_offer])
 		return
 	body.add_child(_label("Praca od zaraz — najnowsze ogłoszenia", 26))
-	body.add_child(_label("Znajdź pracę marzeń (albo chociaż taką z owocowymi czwartkami).", 15, Kit.TEXT_MUTED))
+	body.add_child(_label("Znajdź pracę marzeń (albo chociaż taką z owocowymi czwartkami).", 15, Color("#4a5566")))
 	if not founded and not hired:
 		_render_found_card(body)
 	if offers.is_empty():
@@ -422,9 +444,9 @@ func _render_browser(body: VBoxContainer) -> void:
 		var dept := Departments.name_of(o.department, "")
 		var company: String = o.company + ("  ·  dział " + dept if dept != "" else "")
 		box.add_child(_label(company, 14, Color("#2e6bd9")))
-		box.add_child(_label(o.description, 15, Kit.TEXT_MUTED))
+		box.add_child(_label(o.description, 15, Color("#4a5566")))
 		if o.get("salary_max", 0) > 0:
-			box.add_child(_label("💰 %s brutto / mies." % _range_text(o), 15, Kit.TEXT_INK))
+			box.add_child(_label("💰 %s brutto / mies." % _range_text(o), 15, Color("#1c2430")))
 		if ours:
 			var free: int = o.get("vacancies", 0)
 			var places := "Stanowisko obsadzone" if free == 0 else ("Wolne miejsca: %d" % free)
@@ -446,14 +468,14 @@ func _render_form(body: VBoxContainer, o: Dictionary) -> void:
 	for row in [["Imię", nick], ["E-mail", profile.get("email", "")], ["Miejscowość", profile.get("city", "")],
 			["Wiek", str(profile.get("age", ""))], ["Płeć", g[clampi(profile.get("gender", 0), 0, 2)]]]:
 		var h := HBoxContainer.new()
-		var k := _label(row[0] + ":", 15, Kit.TEXT_MUTED)
+		var k := _label(row[0] + ":", 15, Color("#4a5566"))
 		k.custom_minimum_size = Vector2(130, 0)
 		h.add_child(k)
 		var v := _label(str(row[1]), 15)
 		v.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		h.add_child(v)
 		box.add_child(h)
-	box.add_child(_label("Dlaczego chcesz u nas pracować? (opcjonalnie)", 15, Kit.TEXT_MUTED))
+	box.add_child(_label("Dlaczego chcesz u nas pracować? (opcjonalnie)", 15, Color("#4a5566")))
 	if _motivation.get_parent():
 		_motivation.get_parent().remove_child(_motivation)
 	_motivation.custom_minimum_size = Vector2(0, 90)
@@ -461,7 +483,7 @@ func _render_form(body: VBoxContainer, o: Dictionary) -> void:
 	_motivation.wrap_mode = TextEdit.LINE_WRAPPING_BOUNDARY
 	box.add_child(_motivation)
 	# Expected pay and the form of employment (a mandate: students under 26).
-	box.add_child(_label("Oczekiwane wynagrodzenie (zł brutto / mies.) — widełki: %s" % _range_text(o), 15, Kit.TEXT_MUTED))
+	box.add_child(_label("Oczekiwane wynagrodzenie (zł brutto / mies.) — widełki: %s" % _range_text(o), 15, Color("#4a5566")))
 	var salary := SpinBox.new()
 	salary.min_value = 1000
 	salary.max_value = 100000
@@ -469,9 +491,9 @@ func _render_form(body: VBoxContainer, o: Dictionary) -> void:
 	salary.suffix = "zł"
 	salary.value = snappedf((o.get("salary_min", 6000) + o.get("salary_max", 9000)) / 2.0, 100)
 	salary.custom_minimum_size = Vector2(200, 0)
-	salary.get_line_edit().add_theme_color_override("font_color", Kit.TEXT_INK)
+	salary.get_line_edit().add_theme_color_override("font_color", Color("#1c2430"))
 	box.add_child(salary)
-	box.add_child(_label("Forma zatrudnienia", 15, Kit.TEXT_MUTED))
+	box.add_child(_label("Forma zatrudnienia", 15, Color("#4a5566")))
 	var form := OptionButton.new()
 	for f in [Protocol.EMPLOYMENT_CONTRACT, Protocol.EMPLOYMENT_B2B, Protocol.EMPLOYMENT_MANDATE]:
 		form.add_item(Protocol.EMPLOYMENT_NAMES[f], f)
@@ -480,7 +502,7 @@ func _render_form(body: VBoxContainer, o: Dictionary) -> void:
 	var student := CheckBox.new()
 	student.text = "Jestem studentem / studentką (umowa zlecenie: tylko studenci do 26 lat)"
 	for k in ["font_color", "font_hover_color", "font_pressed_color", "font_focus_color", "font_hover_pressed_color"]:
-		student.add_theme_color_override(k, Kit.TEXT_INK)
+		student.add_theme_color_override(k, Color("#1c2430"))
 	box.add_child(student)
 	var young: bool = int(profile.get("age", 99)) < Protocol.MANDATE_AGE
 	var mandate_ok := func() -> bool: return student.button_pressed and young
@@ -495,7 +517,7 @@ func _render_form(body: VBoxContainer, o: Dictionary) -> void:
 	consent.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	consent.custom_minimum_size = Vector2(300, 0)
 	for k in ["font_color", "font_hover_color", "font_pressed_color", "font_focus_color", "font_hover_pressed_color"]:
-		consent.add_theme_color_override(k, Kit.TEXT_INK)
+		consent.add_theme_color_override(k, Color("#1c2430"))
 	box.add_child(consent)
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 10)
@@ -545,16 +567,15 @@ func _render_mail(body: VBoxContainer) -> void:
 	ids.sort()
 	ids.reverse()
 	if ids.is_empty():
-		body.add_child(_label("Skrzynka odbiorcza jest pusta. Wyślij kilka zgłoszeń!", 17, Kit.TEXT_MUTED))
+		body.add_child(_label("Skrzynka odbiorcza jest pusta. Wyślij kilka zgłoszeń!", 17, Color("#4a5566")))
 		return
 	if _selected_mail < 0 or not mails.has(_selected_mail):
 		_selected_mail = ids[0]
-	var h := BoxContainer.new()
-	h.vertical = _narrow()  # an upright phone: the list over the mail
+	var h := HBoxContainer.new()
 	h.add_theme_constant_override("separation", 14)
 	body.add_child(h)
 	var list := VBoxContainer.new()
-	list.custom_minimum_size = Vector2(0 if _narrow() else 250, 0)
+	list.custom_minimum_size = Vector2(250, 0)
 	h.add_child(list)
 	for id in ids:
 		var m: Dictionary = mails[id]
@@ -562,7 +583,7 @@ func _render_mail(body: VBoxContainer) -> void:
 		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
 		b.text = ("● " if unread.has(id) else "   ") + m.from + "\n   " + m.subject
 		b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		b.custom_minimum_size = Vector2(0 if _narrow() else 250, 52 if Touch.active else 0)
+		b.custom_minimum_size = Vector2(250, 0)
 		b.toggle_mode = true
 		b.button_pressed = id == _selected_mail
 		var mid: int = id
@@ -574,7 +595,7 @@ func _render_mail(body: VBoxContainer) -> void:
 	var view := _card_in(h)
 	view.get_parent().size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	view.add_child(_label(m.subject, 20))
-	view.add_child(_label("Od: " + m.from, 14, Kit.TEXT_MUTED))
+	view.add_child(_label("Od: " + m.from, 14, Color("#4a5566")))
 	view.add_child(HSeparator.new())
 	view.add_child(_label(m.body, 16))
 	match m.action:
@@ -614,18 +635,17 @@ func _go_to_office() -> void:
 func _video_tile(parent: Container, who: String, look: int, appearance: Dictionary, seed_id: int) -> void:
 	var tile := PanelContainer.new()
 	var s := StyleBoxFlat.new()
-	s.bg_color = Color("#3a4252")
-	s.set_corner_radius_all(Kit.R_LG)
-	s.anti_aliasing = true
+	s.bg_color = Color("#20242e")
+	s.border_color = Ink.INK
+	s.set_border_width_all(Ink.LINE)
 	tile.add_theme_stylebox_override("panel", s)
-	tile.custom_minimum_size = Vector2(200, 150) if _narrow() else Vector2(230, 170)
-	tile.clip_children = CanvasItem.CLIP_CHILDREN_AND_DRAW
+	tile.custom_minimum_size = Vector2(230, 170)
 	var stage := Control.new()
 	stage.clip_contents = true
 	tile.add_child(stage)
-	# The person as the 3D avatar (the look lives in a hidden PlayerView).
 	var holder := Node2D.new()
-	holder.visible = false
+	holder.position = Vector2(115, 250)
+	holder.scale = Vector2(9, 9)
 	stage.add_child(holder)
 	var v := PlayerView.new()
 	v.look = look
@@ -633,17 +653,13 @@ func _video_tile(parent: Container, who: String, look: int, appearance: Dictiona
 	v.setup(seed_id, "", 9)
 	if not appearance.is_empty():
 		v.set_appearance(appearance)
-	var cam := AvatarPreview.new()
-	cam.setup(v, Vector2i(230, 170), true)
-	stage.add_child(cam)
 	var name_l := _label(who, 16, Color.WHITE, false)
 	var nb := StyleBoxFlat.new()
-	nb.bg_color = Color(Kit.DARK, 0.65)
-	nb.set_corner_radius_all(9)
-	nb.content_margin_left = 8
-	nb.content_margin_right = 8
+	nb.bg_color = Color(0, 0, 0, 0.6)
+	nb.content_margin_left = 6
+	nb.content_margin_right = 6
 	name_l.add_theme_stylebox_override("normal", nb)
-	name_l.position = Vector2(8, tile.custom_minimum_size.y - 26)
+	name_l.position = Vector2(8, 144)
 	stage.add_child(name_l)
 	parent.add_child(tile)
 
@@ -778,7 +794,7 @@ func _resend_actions(now: int) -> void:
 func _render_found_card(body: VBoxContainer) -> void:
 	var box := _card(body)
 	box.add_child(_label("Załóż własną firmę", 21, Color("#8e44ad")))
-	box.add_child(_label("Biuro w tym budynku czeka na założyciela. Nadaj firmie nazwę — od razu trafisz do zarządu, dostaniesz kartę, laptop i panel do zatrudniania ludzi.", 15, Kit.TEXT_MUTED))
+	box.add_child(_label("Biuro w tym budynku czeka na założyciela. Nadaj firmie nazwę — od razu trafisz do zarządu, dostaniesz kartę, laptop i panel do zatrudniania ludzi.", 15, Color("#4a5566")))
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 10)
 	box.add_child(row)
@@ -786,7 +802,7 @@ func _render_found_card(body: VBoxContainer) -> void:
 	edit.placeholder_text = "Nazwa firmy, np. Pixel Pierogi sp. z o.o."
 	edit.text = _found_name
 	edit.max_length = 40
-	edit.custom_minimum_size = Vector2(160, 48) if Touch.active else Vector2(380, 36)
+	edit.custom_minimum_size = Vector2(380, 36)
 	edit.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	edit.text_changed.connect(func(t: String): _found_name = t)
 	row.add_child(edit)
@@ -855,13 +871,8 @@ func _toast_msg(text: String) -> void:
 				_toast.visible = false)
 
 
-## A phone held upright: side-by-side layouts stack.
-func _narrow() -> bool:
-	return Touch.active and get_viewport_rect().size.x < 700
-
-
-func _label(text: String, size: int, color := Kit.TEXT_INK, wrap := true) -> Label:
-	return Kit.label(text, size, color, wrap)
+func _label(text: String, size: int, color := Ink.TEXT_INK, wrap := true) -> Label:
+	return Ink.label(text, size, color, wrap)
 
 
 func _card(parent: Container) -> VBoxContainer:
@@ -869,7 +880,7 @@ func _card(parent: Container) -> VBoxContainer:
 
 
 func _card_in(parent: Container) -> VBoxContainer:
-	var panel := Kit.panel("card")
+	var panel := Ink.panel("card")
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 8)
 	panel.add_child(box)
@@ -878,6 +889,6 @@ func _card_in(parent: Container) -> VBoxContainer:
 
 
 func _button(text: String, primary := true) -> Button:
-	var b := Kit.button(text, primary)
-	b.custom_minimum_size = Vector2(0, 50 if Touch.active else 36)
+	var b := Ink.button(text, primary)
+	b.custom_minimum_size = Vector2(0, 36)
 	return b

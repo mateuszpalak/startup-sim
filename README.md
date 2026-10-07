@@ -71,6 +71,16 @@ i tekstowym.
 - 🎙️ **Razem** — czat głosowy (do pokoju albo szeptem), czat tekstowy,
   dziennik dnia i powiadomienia.
 
+## Wersja 3D
+
+Obok klienta 2D (`client/`) jest klient 3D (`client3d/`): ten sam serwer,
+ta sama logika gry, świat rysowany w 3D, sterowanie dotykiem i wydania na
+macOS, iOS, Android i Windows. Uruchomienie: `godot --path client3d`.
+Szczegóły: [architektura 3D](docs/dev/architektura-3d.md),
+[wydania](docs/dev/wydania.md).
+
+![Open space w wersji 3D](docs/media/3d/open_space.jpg)
+
 ## Pobierz i graj
 
 Gotowy klient na **macOS** (podpisany i notaryzowany dmg, Intel + Apple
@@ -86,7 +96,8 @@ Wymagania: Rust (rustup), Godot 4.7 (`godot` w PATH).
 
 ```bash
 cd server && cargo run --release   # serwer: gra :7777 (UDP), logowanie :7778 (HTTPS)
-godot --path client                # klient (można odpalić kilka razy)
+godot --path client                # klient 2D (można odpalić kilka razy)
+godot --path client3d              # klient 3D
 ```
 
 Opcje serwera i klienta, boty, CI i wdrożenie:

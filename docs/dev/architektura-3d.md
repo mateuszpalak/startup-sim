@@ -2,11 +2,15 @@
 
 *Architektura: [przegląd](architektura.md) · [klient](architektura-klient.md) · [protokół](protokol.md)*
 
+Klient 3D to osobny projekt Godota w `client3d/`, obok klienta 2D (`client/`);
+oba łączą się z tym samym serwerem (`server/`). Uruchomienie:
+`godot --path client3d`.
+
 Serwer i protokół są bez zmian. Klient 3D zmienia tylko prezentację: cała
 logika (`game.gd`: sieć, predykcja, rekoncyliacja, interpolacja, podpowiedzi,
 UI) zostaje. Widoki 2D (`game/*_view.gd`) dalej istnieją jako **niewidoczne
 nośniki stanu** (pozycja w px, kierunek, status, wygląd, nick, dymek) pod
-`game.hidden_2d`. Warstwa 3D (`client/world3d/`) co klatkę czyta ten stan i
+`game.hidden_2d`. Warstwa 3D (`client3d/world3d/`) co klatkę czyta ten stan i
 go rysuje.
 
 ## Moduły
@@ -31,8 +35,8 @@ go rysuje.
 | `touch/touch.gd` | tryb dotykowy: wykrycie (iOS / Android / ekran dotykowy, `--touch[=phone\|tablet]`), skala UI na telefonie (krótszy bok = 520 jednostek, tablet 720), bezpieczny obszar (`safe_rect`, `--safe-area=l,t,r,b`), `place_center` (okno w bezpiecznym obszarze, zmniejszone do ekranu), `press` / `tap` (sztuczne klawisze) |
 | `touch/touch_controls.gd` | przyciski na ekranie w grze: joystick, E, F/Q/G, Tab, V/B, menu / czat / dziennik, ✕ (Esc) przy oknach; stuknięcie w świat (idź / podejdź i E — `game.touch_tap_world`), szczypanie i obrót dwoma palcami (`camera_rig.turn_by`) |
 | `touch/keyboard_lift.gd` | pole tekstowe nad klawiaturą ekranową (przesuwa CanvasLayer pola; `--fake-keyboard=0.4` udaje klawiaturę) |
-| `tests/render_objects.gd` | podgląd widoków encji: `godot --path client -s tests/render_objects.gd -- /katalog [items vehicles tram night laptops tv tray elevator stalls ride]` |
-| `tests/render_3d.gd` | podgląd bez serwera: `godot --path client -s tests/render_3d.gd -- /katalog [nazwa:piętro:x,y:zoom:obrót:minuta]` |
+| `tests/render_objects.gd` | podgląd widoków encji: `godot --path client3d -s tests/render_objects.gd -- /katalog [items vehicles tram night laptops tv tray elevator stalls ride]` |
+| `tests/render_3d.gd` | podgląd bez serwera: `godot --path client3d -s tests/render_3d.gd -- /katalog [nazwa:piętro:x,y:zoom:obrót:minuta]` |
 
 ## Współrzędne
 

@@ -5,7 +5,7 @@
 ## the movement for both the local player and interpolated remote ones.
 extends Node2D
 
-const Kit = preload("res://ui/ui_kit.gd")
+const Ink = preload("res://ui/ink_ui.gd")
 const ItemArt = preload("res://game/item_art.gd")
 
 const FACING_DOWN := 0
@@ -70,8 +70,6 @@ var nick_label := Label.new()
 ## Nick and speech bubble live in `_tag`, which follows this view from a
 ## layer above the world's ink effect (`label_root`) so text stays sharp.
 static var label_root: Node = null
-## The 3D world places the tags itself (on screen over the 3D heads).
-static var tags_placed_externally := false
 var _tag := Node2D.new()
 var bubble := PanelContainer.new()
 var bubble_label := Label.new()
@@ -90,24 +88,18 @@ func setup(seed_id: int, nick: String, zoom: float) -> void:
 	set_seed(seed_id)
 	nick_label.text = nick
 	var ls := LabelSettings.new()
-	ls.font = Kit.font_bold()
-	ls.font_size = 15
-	ls.font_color = Kit.TEXT
+	ls.font = Ink.font()
+	ls.font_size = 20
+	ls.font_color = Ink.PAPER_HI
+	ls.outline_size = 6
+	ls.outline_color = Ink.INK
 	nick_label.label_settings = ls
-	var pill := StyleBoxFlat.new()
-	pill.bg_color = Color(Kit.DARK, 0.62)
-	pill.set_corner_radius_all(11)
-	pill.anti_aliasing = true
-	pill.content_margin_left = 9
-	pill.content_margin_right = 9
-	pill.content_margin_top = 1
-	pill.content_margin_bottom = 2
-	nick_label.add_theme_stylebox_override("normal", pill)
 	nick_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	nick_label.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
 	# Render the label at screen resolution regardless of camera zoom.
 	nick_label.scale = Vector2.ONE / zoom
-	_fit_nick()
+	nick_label.size = Vector2(200, 24)
+	nick_label.position = Vector2(-100 / zoom, HEAD_TOP - 24 / zoom)
 	if nick_label.get_parent() == null:
 		add_child(_tag)
 		_tag.add_child(nick_label)
@@ -129,15 +121,16 @@ func set_talking(on: bool, whisper := false) -> void:
 
 
 func _draw_talk() -> void:
-	# A round chip with sound waves above the nick (teal: talking, honey:
-	# whispering), like the HUD's gauges.
-	var col := Kit.TEAL if not _talk_whisper else Kit.GOLD
-	_talk.draw_circle(Vector2.ZERO, 11.0, Color(Kit.DARK, 0.7), true, -1.0, true)
-	_talk.draw_circle(Vector2.ZERO, 4.0, col, true, -1.0, true)
+	# A little mouth-and-waves glyph above the nick, inked like the rest.
+	var ink := Ink.INK
+	var fill := Color("#9fd0c0") if not _talk_whisper else Color("#d9c7a0")
+	_talk.draw_circle(Vector2.ZERO, 9.0, ink)
+	_talk.draw_circle(Vector2.ZERO, 7.0, fill)
+	_talk.draw_rect(Rect2(-3, -1.5, 6, 3), ink)
 	for k in (1 if _talk_whisper else 2):
-		var r := 6.5 + k * 2.8
-		_talk.draw_arc(Vector2.ZERO, r, -0.7, 0.7, 8, col, 1.8, true)
-		_talk.draw_arc(Vector2.ZERO, r, PI - 0.7, PI + 0.7, 8, col, 1.8, true)
+		var r := 13.0 + k * 5.0
+		_talk.draw_arc(Vector2.ZERO, r, -0.6, 0.6, 8, ink, 2.5, true)
+		_talk.draw_arc(Vector2.ZERO, r, PI - 0.6, PI + 0.6, 8, ink, 2.5, true)
 
 
 const HAIR_STYLE_NAMES := ["krótkie", "długie", "kok", "jeżyk", "kucyk", "łysa głowa"]
@@ -193,35 +186,20 @@ func set_seed(seed_id: int) -> void:
 
 
 func _build_bubble() -> void:
-	bubble.add_theme_stylebox_override("panel", Kit.box("bubble"))
+	bubble.add_theme_stylebox_override("panel", Ink.box("bubble"))
 	bubble_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	bubble_label.custom_minimum_size = Vector2(BUBBLE_WIDTH, 0)
-	Kit.style_label(bubble_label, 16, Kit.TEXT_INK)
+	Ink.style_label(bubble_label, 16, Ink.TEXT_INK)
 	bubble.add_child(bubble_label)
 	bubble.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
 	bubble.scale = Vector2.ONE / _zoom
 	bubble.visible = false
 	bubble.z_index = 10
 	_tag.add_child(bubble)
-	# The tail pointing down at the speaker.
-	bubble.draw.connect(func():
-		var bx := bubble.size.x / 2
-		var by := bubble.size.y - 1
-		bubble.draw_colored_polygon(PackedVector2Array([Vector2(bx - 9, by), Vector2(bx + 9, by), Vector2(bx, by + 11)]), Color(Kit.CARD, 0.96)))
 
 
 func set_nick(nick: String) -> void:
-	if nick_label.text != nick:
-		nick_label.text = nick
-		_fit_nick()
-
-
-## The nick pill: as wide as the nick, centred over the head.
-func _fit_nick() -> void:
-	nick_label.size = Vector2.ZERO
-	var sz := nick_label.get_combined_minimum_size()
-	nick_label.size = sz
-	nick_label.position = Vector2(-sz.x / 2 / _zoom, HEAD_TOP - (sz.y + 2) / _zoom)
+	nick_label.text = nick
 
 
 ## Show a speech bubble above the head for a few seconds.
@@ -235,7 +213,7 @@ func say(text: String) -> void:
 
 func _place_bubble() -> void:
 	var sz := bubble.get_combined_minimum_size() / _zoom
-	bubble.position = Vector2(-sz.x / 2, HEAD_TOP - 36 / _zoom - sz.y)
+	bubble.position = Vector2(-sz.x / 2, HEAD_TOP - 28 / _zoom - sz.y)
 
 
 func set_held(k: int) -> void:
@@ -285,7 +263,7 @@ func set_facing(f: int) -> void:
 func set_zoom(zoom: float) -> void:
 	_zoom = zoom
 	nick_label.scale = Vector2.ONE / zoom
-	_fit_nick()
+	nick_label.position = Vector2(-100 / zoom, HEAD_TOP - 24 / zoom)
 	bubble.scale = Vector2.ONE / zoom
 	if bubble.visible:
 		_place_bubble()
@@ -299,7 +277,7 @@ func _process(delta: float) -> void:
 		tree_exiting.connect(func():
 				if is_instance_valid(_tag):
 					_tag.queue_free())
-	if _tag.get_parent() != self and not tags_placed_externally:
+	if _tag.get_parent() != self:
 		_tag.global_position = global_position
 		_tag.visible = is_visible_in_tree()
 	if bubble.visible:

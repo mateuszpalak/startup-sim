@@ -18,5 +18,10 @@ __pycache__/
 /client/addons/godot_wry/
 /.cache
 # The Android Gradle build template (tools/build-android.sh --release installs it).
-/client/android/
+/client3d/android/
 /dist
+# The same for the 3D client (client3d/).
+/client3d/.godot
+/client3d/net/servers.cfg
+/client3d/net/pins/*.pem
+/client3d/addons/godot_wry/

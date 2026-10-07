@@ -3,11 +3,9 @@
 ## (user://character.cfg) so it doesn't have to be typed in every time.
 extends Control
 
-const Kit = preload("res://ui/ui_kit.gd")
-const TouchFit = preload("res://ui/touch_fit.gd")
+const Ink = preload("res://ui/ink_ui.gd")
 
 const PlayerView = preload("res://game/player_view.gd")
-const AvatarPreview = preload("res://ui/avatar_preview.gd")
 
 ## Emitted with a validated character; `address` = server "host:port".
 signal connect_pressed(nick: String, profile: Dictionary, address: String)
@@ -38,7 +36,7 @@ func _ready() -> void:
 	visibility_changed.connect(_fit)
 	_fit()
 	var bg := ColorRect.new()
-	bg.color = Color(0.1, 0.08, 0.14, 0.35)  # over the 3D backdrop
+	bg.color = Color("#1e2230")
 	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(bg)
 	var center := CenterContainer.new()
@@ -47,43 +45,32 @@ func _ready() -> void:
 	var outer := VBoxContainer.new()
 	outer.add_theme_constant_override("separation", 14)
 	center.add_child(outer)
-	TouchFit.scroll_center(self, center)
 
 	var title := _label("Startup Sim", 44, Color.WHITE)
-	title.add_theme_font_override("font", Kit.font_bold())
-	title.add_theme_constant_override("shadow_offset_y", 3)
-	title.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.35))
+	title.add_theme_constant_override("outline_size", 8)
+	title.add_theme_color_override("font_outline_color", Ink.ACCENT_LO)
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	outer.add_child(title)
-	var sub := _label("Stwórz swoją postać — za chwilę zaczniesz szukać pracy.", 16, Color(1, 1, 1, 0.85))
-	sub.add_theme_constant_override("shadow_offset_y", 1)
-	sub.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.5))
+	var sub := _label("Stwórz swoją postać — za chwilę zaczniesz szukać pracy.", 16, Color(1, 1, 1, 0.6))
 	sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	sub.visible = not TouchFit.Touch.phone
 	outer.add_child(sub)
-	title.visible = not TouchFit.Touch.phone
 
-	var row := BoxContainer.new()
+	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 18)
 	outer.add_child(row)
-	var orient := func():  # a phone held upright: the panels one under the other
-		var vs := get_viewport_rect().size
-		row.vertical = TouchFit.Touch.active and vs.y > vs.x
-	get_viewport().size_changed.connect(orient)
-	orient.call()
 	row.add_child(_panel(_build_form()))
 	row.add_child(_panel(_build_looks()))
 
 	button.text = "Rozpocznij"
-	button.custom_minimum_size = Vector2(0, 56 if TouchFit.Touch.active else 48)
+	button.custom_minimum_size = Vector2(0, 48)
 	button.add_theme_font_size_override("font_size", 24)
 	for st in ["normal", "hover", "pressed", "disabled", "focus"]:
-		button.add_theme_stylebox_override(st, Kit.button_box(st, true))
+		button.add_theme_stylebox_override(st, Ink.button_box(st, true))
 	for k in ["font_color", "font_hover_color", "font_pressed_color", "font_focus_color"]:
 		button.add_theme_color_override(k, Color.WHITE)
 	outer.add_child(button)
-	var back := Kit.button("Wróć do menu")
-	back.custom_minimum_size = Vector2(0, 52 if TouchFit.Touch.active else 40)
+	var back := Ink.button("Wróć do menu")
+	back.custom_minimum_size = Vector2(0, 40)
 	back.pressed.connect(func(): back_pressed.emit())
 	outer.add_child(back)
 	status.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -110,13 +97,13 @@ func _fit() -> void:
 func _label(text: String, size: int, color := Color(1, 1, 1, 0.8)) -> Label:
 	var l := Label.new()
 	l.text = text
-	Kit.style_label(l, size, color)
+	Ink.style_label(l, size, color)
 	return l
 
 
 func _panel(content: Control) -> PanelContainer:
 	var p := PanelContainer.new()
-	p.add_theme_stylebox_override("panel", Kit.box("glass"))
+	p.add_theme_stylebox_override("panel", Ink.box("hud"))
 	p.add_child(content)
 	return p
 
@@ -163,14 +150,15 @@ func _build_looks() -> HBoxContainer:
 	h.add_theme_constant_override("separation", 16)
 	# Preview.
 	var pv := VBoxContainer.new()
-	# The look lives in a hidden PlayerView; the 3D avatar mirrors it.
+	var stage := Control.new()
+	stage.custom_minimum_size = Vector2(180, 230)
+	stage.clip_contents = true
 	var holder := Node2D.new()
-	holder.visible = false
-	pv.add_child(holder)
+	holder.position = Vector2(90, 200)
+	holder.scale = Vector2(PREVIEW_SCALE, PREVIEW_SCALE)
+	stage.add_child(holder)
 	holder.add_child(_preview)
 	_preview.setup(0, "", PREVIEW_SCALE)
-	var stage := AvatarPreview.new()
-	stage.setup(_preview, Vector2i(200, 260))
 	pv.add_child(stage)
 	var rot := Button.new()
 	rot.text = "Obróć"
@@ -216,7 +204,7 @@ func _swatch_row(box: VBoxContainer, caption: String, key: String, colors: Array
 	var buttons: Array[Button] = []
 	for i in colors.size():
 		var b := Button.new()
-		b.custom_minimum_size = Vector2(44, 40) if TouchFit.Touch.active else Vector2(30, 24)
+		b.custom_minimum_size = Vector2(30, 24)
 		b.tooltip_text = "%s %d" % [caption, i + 1]
 		var idx := i
 		b.pressed.connect(func(): appearance[key] = idx; _refresh_looks())
@@ -234,8 +222,8 @@ func _refresh_looks() -> void:
 			var sb := StyleBoxFlat.new()
 			sb.bg_color = colors[i]
 			var selected: bool = appearance[key] == i
-			sb.set_border_width_all(Kit.LINE * (2 if selected else 1))
-			sb.border_color = Kit.GOLD if selected else Kit.INK
+			sb.set_border_width_all(Ink.LINE * (2 if selected else 1))
+			sb.border_color = Ink.GOLD if selected else Ink.INK
 			for state in ["normal", "hover", "pressed", "focus"]:
 				buttons[i].add_theme_stylebox_override(state, sb)
 	_hair_label.text = PlayerView.HAIR_STYLE_NAMES[appearance.hair_style]

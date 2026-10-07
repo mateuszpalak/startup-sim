@@ -2,15 +2,15 @@
 ## requests. The server sends HrInfo; requests go back as HrAction.
 extends VBoxContainer
 
-const Kit = preload("res://ui/ui_kit.gd")
+const Ink = preload("res://ui/ink_ui.gd")
 const Protocol = preload("res://net/protocol.gd")
 const Departments = preload("res://net/departments.gd")
 
 signal action(action: int, arg: int)
 
 const STATUS := {1: "zaakceptowany", 2: "odrzucony", 3: "anulowany", 4: "wykorzystany"}
-const TEXT := Kit.TEXT_INK
-const DIM := Kit.TEXT_MUTED
+const TEXT := Color("#1c2430")
+const DIM := Color("#4a5566")
 
 var info := {}
 var tab := "contract"
@@ -24,7 +24,7 @@ func _init() -> void:
 	_tabs.add_theme_constant_override("separation", 6)
 	add_child(_tabs)
 	for t in [["contract", "Umowa"], ["annexes", "Aneksy"], ["leave", "Urlop"]]:
-		var b := Kit.button(t[1])
+		var b := Ink.button(t[1])
 		b.add_theme_font_size_override("font_size", 15)
 		var id: String = t[0]
 		b.pressed.connect(func(): show_tab(id))
@@ -101,7 +101,7 @@ func _render_leave() -> void:
 		if r.status == 1:
 			taken[r.day] = true
 	for d in range(info.today + 1, info.today + 8):
-		var b := Kit.button("Dzień %d" % d, false)
+		var b := Ink.button("Dzień %d" % d, false)
 		b.add_theme_font_size_override("font_size", 14)
 		b.disabled = taken.has(d) or info.leave_days == 0
 		var day: int = d
@@ -120,7 +120,7 @@ func _render_leave() -> void:
 		l.custom_minimum_size = Vector2(260, 0)
 		row.add_child(l)
 		if r.status == 1 and r.day > info.today:
-			var c := Kit.button("Anuluj", false, true)
+			var c := Ink.button("Anuluj", false, true)
 			c.add_theme_font_size_override("font_size", 14)
 			var id: int = r.id
 			c.pressed.connect(func(): action.emit(Protocol.HR_CANCEL, id))
@@ -142,7 +142,7 @@ func _row(k: String, v: String) -> HBoxContainer:
 
 func _label(text: String, size: int, color: Color) -> Label:
 	var l := Label.new()
-	Kit.style_label(l, size, color)
+	Ink.style_label(l, size, color)
 	l.text = text
 	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	return l

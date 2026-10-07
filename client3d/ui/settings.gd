@@ -1,0 +1,116 @@
+## Player settings, kept in user://settings.cfg: full screen, the world's
+## ink effect, the default camera zoom, the 3D render scale, battery saving (30 frames a second),
+## sound volumes (0..1), sending crash reports without asking.
+extends RefCounted
+
+const UserPaths = preload("res://net/user_paths.gd")
+const Platform = preload("res://platform/platform.gd")
+
+static var fullscreen := false
+static var zoom := 1.0
+static var battery := false
+static var crash_reports_always := false
+static var vol_sfx := 0.8
+static var vol_ambient := 0.6
+static var vol_music := 0.5
+static var vol_voice := 0.9
+## 3D resolution (0.5..1, upscaled with FSR); 0 = automatic (0.7 on
+## HiDPI / Retina screens, else 1).
+static var render_scale := 0.0
+static var mic_device := "Default"
+## Touch controls: the joystick on the left (else right), button size and
+## opacity multipliers.
+static var touch_left := true
+static var touch_size := 1.0
+static var touch_opacity := 0.85
+static var _loaded := false
+
+
+static func load_once() -> void:
+	if _loaded:
+		return
+	_loaded = true
+	var cfg := ConfigFile.new()
+	if cfg.load(UserPaths.at("settings.cfg")) != OK:
+		return
+	fullscreen = cfg.get_value("video", "fullscreen", false)
+	zoom = clampf(float(cfg.get_value("video", "zoom", 1.0)), 0.6, 2.0)
+	battery = bool(cfg.get_value("video", "battery", false))
+	crash_reports_always = bool(cfg.get_value("privacy", "crash_reports_always", false))
+	vol_sfx = clampf(float(cfg.get_value("audio", "sfx", 0.8)), 0.0, 1.0)
+	vol_ambient = clampf(float(cfg.get_value("audio", "ambient", 0.6)), 0.0, 1.0)
+	vol_music = clampf(float(cfg.get_value("audio", "music", 0.5)), 0.0, 1.0)
+	vol_voice = clampf(float(cfg.get_value("audio", "voice", 0.9)), 0.0, 1.0)
+	mic_device = str(cfg.get_value("audio", "mic", "Default"))
+	render_scale = float(cfg.get_value("video", "render_scale", 0.0))
+	touch_left = bool(cfg.get_value("touch", "left", true))
+	touch_size = clampf(float(cfg.get_value("touch", "size", 1.0)), 0.8, 1.4)
+	touch_opacity = clampf(float(cfg.get_value("touch", "opacity", 0.85)), 0.3, 1.0)
+	if render_scale != 0.0:
+		render_scale = clampf(render_scale, 0.5, 1.0)
+
+
+static func save() -> void:
+	var cfg := ConfigFile.new()
+	cfg.set_value("video", "fullscreen", fullscreen)
+	cfg.set_value("video", "zoom", zoom)
+	cfg.set_value("video", "battery", battery)
+	cfg.set_value("video", "render_scale", render_scale)
+	cfg.set_value("privacy", "crash_reports_always", crash_reports_always)
+	cfg.set_value("audio", "sfx", vol_sfx)
+	cfg.set_value("audio", "ambient", vol_ambient)
+	cfg.set_value("audio", "music", vol_music)
+	cfg.set_value("audio", "voice", vol_voice)
+	cfg.set_value("audio", "mic", mic_device)
+	cfg.set_value("touch", "left", touch_left)
+	cfg.set_value("touch", "size", touch_size)
+	cfg.set_value("touch", "opacity", touch_opacity)
+	cfg.save(UserPaths.at("settings.cfg"))
+
+
+static func apply_audio() -> void:
+	var a = preload("res://audio/audio.gd").inst
+	if a:
+		a.set_volumes(vol_sfx, vol_ambient, vol_music)
+	var vb := AudioServer.get_bus_index("Voice")
+	if vb >= 0:
+		AudioServer.set_bus_volume_db(vb, linear_to_db(maxf(vol_voice, 0.0001)))
+		AudioServer.set_bus_mute(vb, vol_voice <= 0.001)
+	var list := AudioServer.get_input_device_list()
+	AudioServer.input_device = mic_device if list.has(mic_device) else "Default"
+
+
+## Phones are always full screen (on Android that is the immersive mode: a
+## windowed mode would bring the system bars back).
+static func apply_window() -> void:
+	var full := fullscreen or Platform.is_mobile()
+	var want := DisplayServer.WINDOW_MODE_FULLSCREEN if full else DisplayServer.WINDOW_MODE_WINDOWED
+	if DisplayServer.window_get_mode() != want:
+		DisplayServer.window_set_mode(want)
+
+
+## Frames a second: 60 (30 when saving battery); 20 while the window is in
+## the background (the game keeps running, it just draws less). The frame
+## is what costs CPU here, so this is the big knob.
+static func apply_fps(focused := true) -> void:
+	Engine.max_fps = (30 if battery else 60) if focused else 20
+
+
+## The 3D scale actually used (resolves "automatic").
+static func effective_render_scale() -> float:
+	if render_scale > 0.0:
+		return render_scale
+	var profile_scale: float = Platform.quality().render_scale
+	if profile_scale > 0.0:
+		return profile_scale
+	return 0.7 if DisplayServer.screen_get_scale() > 1.0 else 1.0
+
+
+## Draw the 3D world at a lower resolution, upscaled with AMD FSR 1 (the
+## UI stays sharp). At 1.0: plain bilinear (no upscaling pass).
+static func apply_render(vp: Viewport) -> void:
+	var s := effective_render_scale()
+	vp.scaling_3d_scale = s
+	var fsr := Platform.supports_fsr()
+	vp.scaling_3d_mode = Viewport.SCALING_3D_MODE_FSR if s < 0.99 and fsr else Viewport.SCALING_3D_MODE_BILINEAR
+	vp.fsr_sharpness = 0.25

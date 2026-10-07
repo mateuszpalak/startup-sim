@@ -7,7 +7,7 @@ signal entered_world
 
 const Protocol = preload("res://net/protocol.gd")
 const Movement = preload("res://sim/movement.gd")
-const WorldView = preload("res://world3d/world_view.gd")
+const MapView = preload("res://map/map_view.gd")
 const PlayerView = preload("res://game/player_view.gd")
 const RemotePlayer = preload("res://game/remote_player.gd")
 const DebugOverlay = preload("res://ui/debug_overlay.gd")
@@ -43,13 +43,9 @@ const PuddleView = preload("res://game/puddle_view.gd")
 const SmokeView = preload("res://game/smoke_view.gd")
 const LightView = preload("res://game/light_view.gd")
 const Settings = preload("res://ui/settings.gd")
-const Kit = preload("res://ui/ui_kit.gd")
-const Touch = preload("res://touch/touch.gd")
-const TouchControls = preload("res://touch/touch_controls.gd")
-const Coords = preload("res://world3d/coords.gd")
+const Ink = preload("res://ui/ink_ui.gd")
 
-## Nick / bubble tags are drawn at screen scale (the 3D world places them).
-const ZOOM := 1.0
+const ZOOM := 3.0
 ## Remote players are rendered this far in the past (2 snapshots at 20 Hz).
 const INTERP_DELAY_SEC := 0.1
 ## Each Input packet repeats this many latest inputs (covers packet loss).
@@ -67,11 +63,7 @@ const Departments = preload("res://net/departments.gd")
 
 var net
 var building
-## The 3D presentation (world3d/): mirrors the 2D views below, which stay
-## as invisible state holders (positions, facing, looks, tags).
-var world_view := WorldView.new()
-## Parent of the 2D world drawing (hidden: the 3D world shows it).
-var hidden_2d := Node2D.new()
+var views := {}          # floor -> MapView (only the current floor is visible)
 var tick_hz := 20
 var nick := ""
 var world := Node2D.new()
@@ -109,10 +101,6 @@ var elevator_doors := {} # floor -> Array of ElevatorDoorView
 var lifts := []
 var ride_mask := RideMask.new()
 var clock_label := Label.new()
-var clock_panel: Control = null
-## The hint as the game words it (with "[E] ..."; the label may show it
-## without keys on a touch screen).
-var hint_text := ""
 var daylight := CanvasModulate.new()   # time-of-day tint of the world
 var game_minute := 8 * 60
 var weather := Protocol.WEATHER_SUNNY
@@ -152,9 +140,6 @@ var _shelf_at := Vector2.ZERO     # where the shelf window was opened (walk away
 var container := ContainerWindow.new()
 var _container_at := Vector2.ZERO
 var _container_closed_ms := -10000
-## On-screen controls (touch screens only, touch/touch_controls.gd).
-var touch: Control = null
-var touch_layer := CanvasLayer.new()
 var coffee := CoffeeWindow.new()  # the coffee machine's panel
 var _coffee_at := Vector2.ZERO
 var _coffee_closed_ms := -10000
@@ -205,16 +190,11 @@ var _goto_floor := -1   # floor the current path was planned on
 
 
 func setup(p_net, p_building, welcome: Dictionary, p_nick: String, args: Dictionary) -> void:
-	if DisplayServer.get_name() != "headless":
-		preload("res://ui/item_icons.gd").prewarm()
 	RenderingServer.set_default_clear_color(Color("#15171f"))  # the night around the building
 	label_layer.layer = 7
-	label_layer.follow_viewport_enabled = false  # tags are put on screen by world_view
+	label_layer.follow_viewport_enabled = true
 	add_child(label_layer)
 	PlayerView.label_root = label_layer
-	PlayerView.tags_placed_externally = true
-	hidden_2d.visible = false
-	add_child(hidden_2d)
 	net = p_net
 	building = p_building
 	nick = p_nick
@@ -237,25 +217,39 @@ func setup(p_net, p_building, welcome: Dictionary, p_nick: String, args: Diction
 		audio.world = world
 
 	var map0 = building.get_floor(0)
-	world_view.setup(self, building)
+	for f in building.floors.size():
+		var m = building.get_floor(f)
+		if m == null:
+			continue
+		var view := MapView.new()
+		var names := {}  # where stairs lead (not "to the stairwell": the EXIT sign says it)
+		for g in building.floors.size():
+			if not building.floors[g].stairwell:
+				names[g] = building.floor_name(g)
+		view.build(m, ZOOM, names)
+		view.visible = false
+		add_child(view)
+		view.remove_child(view.labels)
+		label_layer.add_child(view.labels)
+		view.labels.visible = false
+		views[f] = view
 	world.y_sort_enabled = true
-	hidden_2d.add_child(puddle_layer)
-	hidden_2d.add_child(ride_mask)
-	hidden_2d.add_child(world)
+	add_child(puddle_layer)
+	add_child(ride_mask)  # between the map and the people
+	add_child(world)
 	boombox.bus = "Music"
 	boombox.max_distance = 320.0
 	boombox.attenuation = 1.6
 	world.add_child(boombox)
 	light_view.setup(building)
-	hidden_2d.add_child(light_view)  # its state lights the 3D rooms (world_view)
+	add_child(light_view)  # over the world (and inked with it)
 	# Smoke over the ink effect (drawn in its own style), under the weather.
 	smoke_layer.layer = 5
 	smoke_layer.follow_viewport_enabled = true
-	smoke_layer.visible = false  # TODO 3D smoke (world3d)
 	add_child(smoke_layer)
 	smoke_view.setup(building)
 	smoke_layer.add_child(smoke_view)
-	for f in world_view.floors:
+	for f in views:
 		var m = building.get_floor(f)
 		stall_doors[f] = []
 		elevator_doors[f] = []
@@ -299,49 +293,41 @@ func setup(p_net, p_building, welcome: Dictionary, p_nick: String, args: Diction
 
 	status_layer.layer = 11
 	add_child(status_layer)
-	# HUD text as glass chips (ui_kit): the status at the top, the hint above
-	# the inventory bar, the log bottom left, the clock top left.
-	for l in [status_label, hint_label]:
-		l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		l.add_theme_stylebox_override("normal", Kit.box("hud"))
-		l.visible = false
-		l.resized.connect(_fit_hud_text)
-		status_layer.add_child(l)
-	Kit.style_label(status_label, 22, Kit.TEXT)
-	Kit.style_label(hint_label, 18, Kit.TEXT)
-	get_viewport().size_changed.connect(_fit_hud_text)
+	status_label.set_anchors_preset(Control.PRESET_CENTER_TOP)
+	status_label.position = Vector2(-200, 24)
+	status_label.size = Vector2(400, 40)
+	status_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	status_label.add_theme_font_size_override("font_size", 24)
+	status_label.add_theme_constant_override("outline_size", 6)
+	status_label.add_theme_color_override("font_outline_color", Color.BLACK)
+	status_label.visible = false
+	status_layer.add_child(status_label)
+	hint_label.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
+	hint_label.position = Vector2(-250, -214)  # above the inventory bar
+	hint_label.size = Vector2(500, 36)
+	hint_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	hint_label.add_theme_font_size_override("font_size", 20)
+	hint_label.add_theme_constant_override("outline_size", 6)
+	hint_label.add_theme_color_override("font_outline_color", Color.BLACK)
+	hint_label.visible = false
+	status_layer.add_child(hint_label)
 	log_label.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
 	log_label.position = Vector2(16, -236)
 	log_label.size = Vector2(470, 220)
 	log_label.vertical_alignment = VERTICAL_ALIGNMENT_BOTTOM
 	log_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	Kit.style_label(log_label, 15, Kit.TEXT)
-	log_label.add_theme_constant_override("line_spacing", 3)
-	log_label.add_theme_constant_override("outline_size", 6)
-	log_label.add_theme_color_override("font_outline_color", Color(Kit.DARK, 0.55))
-	log_label.add_theme_constant_override("shadow_offset_y", 1)
-	log_label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.35))
+	log_label.add_theme_font_size_override("font_size", 16)
+	log_label.add_theme_constant_override("line_spacing", 2)
+	log_label.add_theme_constant_override("outline_size", 5)
+	log_label.add_theme_color_override("font_outline_color", Color.BLACK)
 	status_layer.add_child(log_label)
 	status_layer.add_child(hud)
 	hud.slot_clicked.connect(_pocket_key)
 	status_layer.add_child(stats_hud)
-	var cp := Kit.panel("hud")
-	clock_panel = cp
-	cp.position = Vector2(16, 14)
-	var crow := HBoxContainer.new()
-	crow.add_theme_constant_override("separation", 10)
-	cp.add_child(crow)
-	var wicon := Control.new()
-	wicon.custom_minimum_size = Vector2(28, 28)
-	wicon.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	wicon.draw.connect(func():
-		var night := game_minute < 6 * 60 or game_minute >= 20 * 60
-		var ic: String = {2: "cloud", 3: "rain", 4: "rain", 5: "fog"}.get(weather, "moon" if night else "sun")
-		Kit.draw_icon(wicon, ic, Vector2(14, 14), 12.0, Kit.GOLD if ic in ["sun", "moon"] else Kit.TEXT, 2.2))
-	clock_label.draw.connect(wicon.queue_redraw)
-	crow.add_child(wicon)
-	Kit.style_label(clock_label, 18, Kit.TEXT)
-	crow.add_child(clock_label)
+	var cp := Ink.panel("hud")
+	cp.position = Vector2(16, 16)
+	Ink.style_label(clock_label, 20, Ink.TEXT)
+	cp.add_child(clock_label)
 	status_layer.add_child(cp)
 	add_child(daylight)
 	mood_layer.layer = 4  # over the world, under the weather and the HUD
@@ -352,7 +338,7 @@ func setup(p_net, p_building, welcome: Dictionary, p_nick: String, args: Diction
 	mat.shader = load("res://game/mood.gdshader")
 	mood.material = mat
 	Settings.load_once()
-	mood.visible = false  # the 2D ink-and-paper post effect: not for the 3D world
+	mood.visible = not args.has("no-mood")  # the ink and paper: always (off only for dev / perf runs)
 	mood_layer.add_child(mood)
 	alarm_tint.set_anchors_preset(Control.PRESET_FULL_RECT)
 	alarm_tint.color = Color(0.9, 0.05, 0.05, 0.0)
@@ -360,12 +346,14 @@ func setup(p_net, p_building, welcome: Dictionary, p_nick: String, args: Diction
 	status_layer.add_child(alarm_tint)
 	status_layer.move_child(alarm_tint, 0)  # under the HUD
 	alarm_label.set_anchors_preset(Control.PRESET_CENTER_TOP)
-	alarm_label.position = Vector2(-330, 110)
+	alarm_label.position = Vector2(-330, 70)
 	alarm_label.size = Vector2(660, 40)
 	alarm_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	alarm_label.text = "ALARM POŻAROWY — wyjdź z budynku!"
-	Kit.style_label(alarm_label, 26, Color.WHITE)
-	alarm_label.add_theme_stylebox_override("normal", Kit.box("alarm"))
+	alarm_label.add_theme_font_size_override("font_size", 32)
+	alarm_label.add_theme_color_override("font_color", Color("#ffdddd"))
+	alarm_label.add_theme_constant_override("outline_size", 8)
+	alarm_label.add_theme_color_override("font_outline_color", Color("#7a0000"))
 	alarm_label.visible = false
 	status_layer.add_child(alarm_label)
 	weather_layer.layer = 6  # over the world and the smoke, under the HUD
@@ -422,7 +410,6 @@ func setup(p_net, p_building, welcome: Dictionary, p_nick: String, args: Diction
 	status_layer.add_child(door_plaque)
 	status_layer.add_child(action_menu)
 	status_layer.add_child(notices)
-	status_layer.move_child(notices, shelf_window.get_index())  # under the windows
 	status_layer.add_child(log_history)
 	status_layer.add_child(chat_box)
 	chat_box.sent.connect(func(text: String):
@@ -442,13 +429,6 @@ func setup(p_net, p_building, welcome: Dictionary, p_nick: String, args: Diction
 			if not gadget.lift:
 				gadget.close())  # (the lift's panel: the server closes it, or shows it again)
 	screen_layer.add_child(screen)
-	if Touch.active:
-		touch_layer.layer = 13  # over the HUD and the computer (its close button)
-		add_child(touch_layer)
-		touch = TouchControls.new()
-		touch.game = self
-		touch_layer.add_child(touch)
-	add_child(world_view)  # last: it reads the state the rest updated this frame
 	_show_floor(0)
 	set_zoom_level.call_deferred(float(args["zoom"]) if args.has("zoom") else Settings.zoom)
 
@@ -457,7 +437,9 @@ func _show_floor(f: int) -> void:
 	smoke_view.set_floor(f)
 	light_view.set_floor(f)
 	_below_floor = -1
-	world_view.show_floor(f)
+	for k in views:
+		views[k].visible = (k == f)
+		views[k].labels.visible = (k == f)
 	for k in stall_doors:
 		for dv in stall_doors[k]:
 			dv.visible = (k == f)
@@ -492,7 +474,7 @@ func reset_session(welcome: Dictionary) -> void:
 	computers.clear()
 	screen.set_seated(false)
 	screen.chats.clear()
-	for f in world_view.floors:
+	for f in views:
 		building.get_floor(f).set_closed_tiles([])
 	screen.my_id = net.player_id
 	inventory = []
@@ -556,31 +538,17 @@ func _sample_input(delta: float) -> int:
 			_autowalk_bits = [0, 1, 2, 4, 8, 5, 9, 6, 10][randi() % 9]
 			_autowalk_timer = randf_range(0.3, 1.5)
 		return _autowalk_bits
-	if not get_window().has_focus() and touch == null:
+	if not get_window().has_focus():
 		return 0
-	return player_bits()
-
-
-## Keys held (or the touch joystick / buttons, which press the same keys)
-## -> input bits.
-func player_bits() -> int:
 	var b := 0
-	# Keys are screen directions; the camera may be turned (world_view),
-	# the input sent stays in map axes.
-	var sd: Vector2i = touch.move_dir() if touch else Vector2i.ZERO
 	if Input.is_physical_key_pressed(KEY_W) or Input.is_physical_key_pressed(KEY_UP):
-		sd.y -= 1
+		b |= Movement.IN_UP
 	if Input.is_physical_key_pressed(KEY_S) or Input.is_physical_key_pressed(KEY_DOWN):
-		sd.y += 1
+		b |= Movement.IN_DOWN
 	if Input.is_physical_key_pressed(KEY_A) or Input.is_physical_key_pressed(KEY_LEFT):
-		sd.x -= 1
+		b |= Movement.IN_LEFT
 	if Input.is_physical_key_pressed(KEY_D) or Input.is_physical_key_pressed(KEY_RIGHT):
-		sd.x += 1
-	var md := world_view.screen_to_map(sd.clamp(-Vector2i.ONE, Vector2i.ONE))
-	if md.y < 0: b |= Movement.IN_UP
-	if md.y > 0: b |= Movement.IN_DOWN
-	if md.x < 0: b |= Movement.IN_LEFT
-	if md.x > 0: b |= Movement.IN_RIGHT
+		b |= Movement.IN_RIGHT
 	if Input.is_physical_key_pressed(KEY_E) or _queued_interact:
 		if stain_here:
 			if not brush_game.visible:
@@ -663,81 +631,6 @@ func _goto_input(delta: float) -> int:
 	return 0
 
 
-## Touch: the joystick (or the action button) takes over from a tap-walk.
-func touch_walk_cancel() -> void:
-	goto_legs.clear()
-	_goto_path.clear()
-
-
-## Touch: a tap on the world. On a person or a piece of furniture: walk up
-## to it and press E; on the floor: walk there.
-func touch_tap_world(sp: Vector2) -> void:
-	if not have_state or input_blocked or me.status in Protocol.ACT_STUCK:
-		return
-	var map = building.get_floor(pred.floor)
-	var y := Coords.floor_y(pred.floor)
-	var rig = world_view.rig
-	var me_px := Movement.to_px(pred.pos)
-	var me_tile := Movement.tile_of_pos(pred.pos)
-	var target := Vector2i(-1, -1)
-	var interact := false
-	# Somebody under the finger (their middle is ~0.9 m up).
-	var body = rig.floor_point(sp, y + 0.9)
-	if body != null:
-		var bp := Coords.world_to_px(body)
-		var best := 14.0
-		for id in remotes:
-			var r = remotes[id]
-			if r.visible and r.position.distance_to(bp) < best:
-				best = r.position.distance_to(bp)
-				target = Vector2i(floori(r.position.x / 16.0), floori(r.position.y / 16.0))
-				interact = true
-	if not interact:
-		# Furniture: its top is ~0.7 m up; else the floor itself.
-		for h in [0.7, 0.0]:
-			var hit = rig.floor_point(sp, y + h)
-			if hit == null:
-				continue
-			var t := Vector2i((Coords.world_to_px(hit) / 16.0).floor())
-			if t.x < 0 or t.y < 0 or t.x >= map.width or t.y >= map.height:
-				continue
-			if map.is_blocked(t.x, t.y):
-				target = t
-				interact = true
-				break
-			if h == 0.0:
-				target = t
-	if target.x < 0:
-		return
-	touch_walk_cancel()
-	goto_delay = 0.0
-	if touch:
-		touch.flash_at(sp)
-	if not interact:
-		goto_legs = ["%d,%d" % [target.x, target.y]]
-		return
-	if Vector2(target * 16 + Vector2i(8, 8)).distance_to(me_px) <= 26.0:
-		goto_legs = ["E"]  # already next to it
-		return
-	# The free tile next to it closest to us.
-	var best_t := Vector2i(-1, -1)
-	var best_d := INF
-	for dy in [-1, 0, 1]:
-		for dx in [-1, 0, 1]:
-			var n: Vector2i = target + Vector2i(dx, dy)
-			if (dx == 0 and dy == 0 and map.is_blocked(n.x, n.y)) or n.x < 0 or n.y < 0 or n.x >= map.width or n.y >= map.height:
-				continue
-			if map.is_blocked(n.x, n.y):
-				continue
-			var dd := Vector2(n - me_tile).length() + (0.5 if dx != 0 and dy != 0 else 0.0)
-			if dd < best_d:
-				best_d = dd
-				best_t = n
-	if best_t.x < 0:
-		return
-	goto_legs = ["%d,%d" % [best_t.x, best_t.y], "E"]
-
-
 ## Dev helper; plans on the current floor only.
 func _plan_path(leg: String) -> Array[Vector2i]:
 	var map = building.get_floor(pred.floor)
@@ -803,10 +696,9 @@ func _on_media(p: Dictionary) -> void:
 	boombox_music = p.music[0] if not p.music.is_empty() else {}
 	gadget.track = boombox_music.get("track", 0)
 	gadget.tv_channel = 0
+	var me_px := Movement.to_px(pred.pos)
 	var best := INF
-	# the TV nearest to us on our floor (media can come before our first state)
-	for s in (p.screens if pred.has("pos") else []):
-		var me_px := Movement.to_px(pred.pos)
+	for s in p.screens:  # the TV nearest to us on our floor
 		var d := me_px.distance_to(Vector2(s.x * 16, s.y * 16))
 		if s.floor == pred.floor and d < best:
 			best = d
@@ -844,27 +736,8 @@ func _update_media() -> void:
 	boombox.volume_db = -4.0 if boombox_music.floor == floor_index else -80.0
 
 
-## The status and hint chips: sized to their text, centred.
-func _fit_hud_text() -> void:
-	var vs := get_viewport().get_visible_rect().size
-	for l in [status_label, hint_label]:
-		var want: Vector2 = l.get_combined_minimum_size()
-		if l.size != want:
-			l.size = want
-	var sr := Touch.safe_rect(get_viewport())
-	status_label.position = Vector2((vs.x - status_label.size.x) / 2, sr.position.y + 24)
-	if clock_panel:
-		clock_panel.position = sr.position + Vector2(16, 14)
-	if Touch.active:  # above the joystick
-		log_label.size = Vector2(minf(420, vs.x * 0.4), 200)
-		log_label.position = Vector2(sr.position.x + 16, sr.end.y - 200 - 190)
-	hint_label.position = Vector2((vs.x - hint_label.size.x) / 2, hud.top() - hint_label.size.y - 10)
-
-
 func _process(delta: float) -> void:
 	_update_media()
-	if hint_label.visible or status_label.visible:
-		_fit_hud_text()
 	# Fire alarm: the screen pulses red.
 	var pulse := 0.5 + 0.5 * sin(Time.get_ticks_msec() / 1000.0 * TAU * 1.5)
 	alarm_tint.color.a = 0.16 * pulse if fire_alarm else 0.0
@@ -989,7 +862,7 @@ func _on_packet(p: Dictionary) -> void:
 			screen.on_computer(p)
 		Protocol.T_NOTICE:
 			notices.push(p.icon, p.text)
-			log_history.add("[%02d:%02d] %s %s" % [game_minute / 60, game_minute % 60, Notices.SYMBOLS.get(p.icon, "•"), p.text])
+			log_history.add("[%02d:%02d] %s %s" % [game_minute / 60, game_minute % 60, Notices.ICONS.get(p.icon, "•"), p.text])
 			if Audio.inst:
 				Audio.inst.play("notify", -8.0)
 		Protocol.T_MEDIA:
@@ -1168,7 +1041,7 @@ func _on_snapshot(p: Dictionary) -> void:
 			r = RemotePlayer.new()
 			var npc: bool = e.kind == Protocol.KIND_NPC
 			r.look = (e.flags >> 3) & 7 if npc else 0
-			r.setup(e.id, _label_for(nicks.get(e.id, "..."), depts.get(e.id, 0)), ZOOM)
+			r.setup(e.id, _label_for(nicks.get(e.id, "..."), depts.get(e.id, 0)), ZOOM * zoom_level)
 			if not npc and appearances.has(e.id):
 				r.set_appearance(appearances[e.id])
 			world.add_child(r)
@@ -1234,14 +1107,12 @@ func _reconcile(server_body: Dictionary, ack: int) -> void:
 func window_open() -> bool:
 	return screen.visible or coffee.visible or gadget.visible or shelf_window.visible or container.visible or dialog.visible \
 		or roll_game.visible or brush_game.visible \
-		or chat_box.visible or log_history.visible or action_menu.visible or door_plaque.visible
+		or chat_box.visible or log_history.visible
 
 
 ## Settings changed in the Esc menu.
 func apply_settings() -> void:
 	set_zoom_level(Settings.zoom)
-	if touch:
-		touch.layout()
 
 
 ## Camera zoom (mouse wheel, + / -): a multiplier of ZOOM.
@@ -1252,7 +1123,14 @@ var zoom_level := 1.0
 
 func set_zoom_level(z: float) -> void:
 	zoom_level = clampf(z, ZOOM_MIN, ZOOM_MAX)
-	world_view.set_zoom(zoom_level)
+	var zz := ZOOM * zoom_level
+	camera.zoom = Vector2(zz, zz)
+	me.set_zoom(zz)
+	for r in remotes.values():
+		if r.has_method("set_zoom"):
+			r.set_zoom(zz)
+	for v in views.values():
+		v.set_zoom(zz)
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -1307,7 +1185,7 @@ func _actions_here() -> Array:
 	var out := []
 	var add := func(key: String, text: String, run: Callable, icon: Variant = "") -> void:
 		out.append({"key": key, "text": text, "run": run, "icon": icon})
-	var hint: String = hint_text if hint_label.visible else ""
+	var hint: String = hint_label.text if hint_label.visible else ""
 	if hint.begins_with("[E] "):
 		var what := hint.substr(4).get_slice("  ·  ", 0)
 		add.call("E", what, _menu_interact, "hand")
@@ -1397,7 +1275,6 @@ func _item_action(action: int, slot: int) -> void:
 ## Context hint at the bottom of the screen: elevator, NPC to talk to, or a
 ## gate that needs a pass.
 func _update_hint() -> void:
-	hint_text = ""
 	var text := ""
 	plaque_here = 0
 	if me.status == Protocol.ACT_HELD:
@@ -1432,16 +1309,15 @@ func _update_hint() -> void:
 	elif map:
 		text = _elevator_call_hint(map)
 	if text == "":
-		# Same choice as the server: the cashier first (E at the till pays even
-		# with the guard closer), then NPCs standing at their post, then nearest.
+		# Same choice as the server: NPCs standing at their post first, then nearest.
 		var me_px := Movement.to_px(pred.pos)
 		var best_id := -1
-		var best_key := Vector3(INF, INF, INF)
+		var best_key := Vector2(INF, INF)
 		for id in remotes:
 			var d: float = remotes[id].position.distance_to(me_px)
 			if kinds.get(id) == Protocol.KIND_NPC and d <= TALK_RADIUS_PX:
 				var moving: bool = remotes[id].samples.size() > 0 and (remotes[id].samples[-1][2] & 4) != 0
-				var key := Vector3(0.0 if nicks.get(id) == "Kasjer" else 1.0, 1.0 if moving else 0.0, d)
+				var key := Vector2(1.0 if moving else 0.0, d)
 				if key < best_key:
 					best_key = key
 					best_id = id
@@ -1567,16 +1443,8 @@ func _update_hint() -> void:
 		door_plaque.close()  # walked off
 	if text == "" and voice.whisper_to >= 0:
 		text = "[V] mów · [B] szept: %s" % nicks.get(voice.whisper_to, "?")
-	hint_text = text
-	hint_label.text = _touch_words(text) if touch else text
+	hint_label.text = text
 	hint_label.visible = text != ""
-
-
-## Touch screens: no keys in the hint ("[E] Usiądź" -> "Usiądź", the hand
-## button does it).
-static func _touch_words(text: String) -> String:
-	var re := RegEx.create_from_string("\\[[^\\]]{1,5}\\] ")
-	return re.sub(text.replace("[V] mów · [B] szept", "Mów / Szept"), "", true)
 
 
 ## Outdoors: rain / fog on screen, an umbrella if you carry one, a darker
@@ -1656,14 +1524,24 @@ var _below_floor := -1
 
 
 func _update_below_view() -> void:
-	# (3D: the street level is always shown under the upper floors.)
-	_below_floor = building.floor_below(floor_index, room_id)
+	var want: int = building.floor_below(floor_index, room_id)
+	if want == _below_floor:
+		return
+	if _below_floor >= 0 and views.has(_below_floor):
+		views[_below_floor].visible = false
+		views[_below_floor].modulate = Color.WHITE
+	_below_floor = want
+	if want >= 0 and views.has(want):
+		views[want].visible = true
+		views[want].modulate = Color(0.78, 0.78, 0.82)
 
 
 ## Smoke, detectors and room names are drawn over the ride mask: hide them
 ## while riding.
 func _set_floor_extras_visible(on: bool) -> void:
 	smoke_view.visible = on
+	if views.has(pred.floor):
+		views[pred.floor].labels.visible = on
 
 
 func _set_door_views_visible(on: bool) -> void:

@@ -1,90 +1,91 @@
-## Character needs (top right): a dark glass bar with the wallet and one
-## ring gauge per need - the ring fills with the need's colour as it is
-## fine and drains as it gets worse, a line icon in the middle; the number
-## shows on hover (and when critical the gauge pulses and shows it anyway).
-## Warnings (dirty hands, upset stomach) on a chip below. From the server's
-## Stats.
+## Character needs (top right) as round badges, Don't Starve style: each is
+## a jar of coloured liquid that drains as the need gets worse, with an ink
+## ring and an icon; the number shows on hover (and when it's critical the
+## badge pulses and shows it anyway). Wallet as a coin; warnings (dirty
+## hands, upset stomach) on a paper note below. From the server's Stats.
 extends Control
 
-const Kit = preload("res://ui/ui_kit.gd")
-const Touch = preload("res://touch/touch.gd")
+const Ink = preload("res://ui/ink_ui.gd")
 
-## [name, true if high = bad, colour, icon (Kit.draw_icon)]
+## [name, true if high = bad, liquid colour, icon]
 const ROWS := [
-	["Głód", true, Color("#f08a4b"), "food"],
-	["Energia", false, Color("#f4c542"), "energy"],
-	["Stres", true, Color("#a985e6"), "brain"],
-	["Toaleta", true, Color("#58a8ee"), "water"],
-	["Higiena", false, Color("#4fc3b0"), "hygiene"],
-	["Upojenie", true, Color("#f0b445"), "beer"],
-	["Jelita", true, Color("#c08a62"), "toilet"],
-	["Zdrowie", false, Color("#ef5d5d"), "health"],
+	["Głód", true, Color("#c9803a"), "food"],
+	["Energia", false, Color("#d8b83e"), "bolt"],
+	["Stres", true, Color("#8a5aa8"), "brain"],
+	["Toaleta", true, Color("#4f8fc0"), "drop"],
+	["Higiena", false, Color("#5aa89a"), "soap"],
+	["Upojenie", true, Color("#d9a032"), "mug"],
+	["Jelita", true, Color("#8a5a3a"), "roll"],
+	["Zdrowie", false, Color("#c8463c"), "heart"],
 ]
 const CRITICAL := 80
-const SIZE := 48.0
-const GAP := 8.0
+const SIZE := 64.0
+const GAP := 10.0
 
 var values := [0, 100, 0, 0, 100, 0, 0, 100]
 var dirty_hands := false
 var money := 0
 var have := false
 var _badges: Array[Control] = []
-var _shown: Array[float] = []   # animated level of each ring
+# Each badge: the glass and the number (b), inside it a body scaled for the
+# pulse: the liquid (redrawn ~30 times a second, one polygon) and the top —
+# shine, ring, icon (only when the value changes).
+var _liquids: Array[Control] = []
+var _tops: Array[Control] = []
+var _bodies: Array[Control] = []
+var _slosh := 0.0
 var _hover := -1
 var _coin := Control.new()
 var _note := Label.new()
-var _tip := Label.new()
-var _tip_until := 0
-var _bar := PanelContainer.new()
 var _row := HBoxContainer.new()
 
 
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_bar.add_theme_stylebox_override("panel", Kit.box("hud"))
-	_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(_bar)
 	_row.add_theme_constant_override("separation", int(GAP))
 	_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_bar.add_child(_row)
-	_coin.custom_minimum_size = Vector2(118, SIZE)
+	add_child(_row)
+	_coin.custom_minimum_size = Vector2(120, SIZE)
 	_coin.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_coin.draw.connect(_draw_coin)
 	_row.add_child(_coin)
-	var sep := Control.new()
-	sep.custom_minimum_size = Vector2(6, SIZE)
-	sep.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	sep.draw.connect(func(): sep.draw_line(Vector2(3, 8), Vector2(3, SIZE - 8), Color(1, 1, 1, 0.14), 1.0))
-	_row.add_child(sep)
 	for i in ROWS.size():
 		var b := Control.new()
-		b.custom_minimum_size = Vector2(SIZE, SIZE)
-		b.pivot_offset = Vector2(SIZE / 2, SIZE / 2)
+		b.custom_minimum_size = Vector2(SIZE, SIZE + 22)
 		b.mouse_filter = Control.MOUSE_FILTER_PASS
 		b.tooltip_text = ROWS[i][0]
 		var idx := i
 		b.draw.connect(func(): _draw_badge(b, idx))
 		b.mouse_entered.connect(func(): _set_hover(idx))
-		b.gui_input.connect(func(ev: InputEvent):
-				if ev is InputEventMouseButton and ev.pressed and ev.button_index == MOUSE_BUTTON_LEFT:
-					_show_tip(idx))  # a tap: the gauge's name and value (no hover on touch)
 		b.mouse_exited.connect(func():
 				if _hover == idx:
 					_set_hover(-1))
 		_row.add_child(b)
 		_badges.append(b)
-		_shown.append(-1.0)
-	_note.add_theme_stylebox_override("normal", Kit.box("hud"))
-	Kit.style_label(_note, 15, Kit.TEXT)
+		var body := Control.new()
+		body.size = Vector2(SIZE, SIZE)
+		body.pivot_offset = Vector2(SIZE / 2, SIZE / 2)
+		body.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		body.draw.connect(func(): _draw_glass(body))
+		b.add_child(body)
+		_bodies.append(body)
+		var liquid := Control.new()
+		var top := Control.new()
+		for layer in [liquid, top]:
+			layer.size = Vector2(SIZE, SIZE)
+			layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			body.add_child(layer)
+		liquid.draw.connect(func(): _draw_liquid(liquid, idx))
+		top.draw.connect(func(): _draw_top(top, idx))
+		_liquids.append(liquid)
+		_tops.append(top)
+	_note.add_theme_stylebox_override("normal", Ink.box("bubble"))
+	Ink.style_label(_note, 16, Ink.TEXT_INK)
 	_note.visible = false
 	add_child(_note)
-	_tip.add_theme_stylebox_override("normal", Kit.box("hud"))
-	Kit.style_label(_tip, 16, Kit.TEXT)
-	_tip.visible = false
-	add_child(_tip)
 	visible = false
 	get_viewport().size_changed.connect(_place)
-	_bar.resized.connect(_place)
+	_row.resized.connect(_place)
 	_place.call_deferred()
 
 
@@ -92,16 +93,10 @@ func _place() -> void:
 	var vs := get_viewport_rect().size
 	position = Vector2.ZERO
 	size = vs
-	_bar.reset_size()
-	var sr := Touch.safe_rect(get_viewport())
-	_bar.position = Vector2(sr.end.x - _bar.size.x - 16, sr.position.y + 14)
-	_bar.scale = Vector2.ONE
-	if Touch.narrow(get_viewport()):  # portrait: a row of its own under the clock
-		var k := minf(1.0, (sr.size.x - 24) / _bar.size.x)
-		_bar.scale = Vector2(k, k)
-		_bar.position = Vector2(sr.end.x - _bar.size.x * k - 12, sr.position.y + 66)
+	_row.reset_size()
+	_row.position = Vector2(vs.x - _row.size.x - 18, 14)
 	_note.reset_size()
-	_note.position = Vector2(sr.end.x - _note.size.x - 16, _bar.position.y + _bar.size.y * _bar.scale.y + 8)
+	_note.position = Vector2(vs.x - _note.size.x - 18, _row.position.y + _row.size.y + 4)
 
 
 func update_stats(p: Dictionary) -> void:
@@ -114,36 +109,21 @@ func update_stats(p: Dictionary) -> void:
 		warn = "Rozstrój żołądka — szybko do toalety!"
 	elif dirty_hands:
 		warn = "Brudne ręce — umyj je (umywalka / płyn)"
-	if warn != "" and (_note.text != warn or not _note.visible):
-		_note.text = warn
-		_note.visible = true
-		Kit.fade_in(_note)
 	_note.text = warn
-	_note.add_theme_color_override("font_color", Color("#ff9b8f") if upset else Kit.TEXT)
+	_note.add_theme_color_override("font_color", Ink.RED if upset else Ink.TEXT_INK)
 	_note.visible = warn != ""
 	have = true
 	visible = true
 	_coin.queue_redraw()
-	for b in _badges:
-		b.queue_redraw()
+	for i in _badges.size():
+		_badges[i].queue_redraw()
+		_tops[i].queue_redraw()
 	_place()
 
 
 ## 0 = fine .. 100 = terrible.
 func badness(i: int) -> int:
 	return values[i] if ROWS[i][1] else 100 - values[i]
-
-
-func _show_tip(i: int) -> void:
-	_tip.text = "%s: %d%%%s" % [ROWS[i][0], values[i], " — źle!" if badness(i) >= CRITICAL else ""]
-	_tip.reset_size()
-	var b := _badges[i]
-	var r := b.get_global_rect()
-	_tip.position = Vector2(clampf(r.get_center().x - _tip.size.x / 2, 8, get_viewport_rect().size.x - _tip.size.x - 8),
-		_bar.position.y + _bar.size.y * _bar.scale.y + (8 if not _note.visible else 16 + _note.size.y))
-	_tip.visible = true
-	_tip_until = Time.get_ticks_msec() + 2200
-	Kit.fade_in(_tip)
 
 
 func _set_hover(i: int) -> void:
@@ -155,49 +135,168 @@ func _set_hover(i: int) -> void:
 func _process(delta: float) -> void:
 	if not visible:
 		return
-	if _tip.visible and Time.get_ticks_msec() > _tip_until:
-		_tip.visible = false
 	var t := Time.get_ticks_msec() / 1000.0
-	for i in _badges.size():
-		var crit := badness(i) >= CRITICAL
-		var pulse := 1.0 + (0.07 * sin(t * 7.0) if crit else 0.0)
-		_badges[i].scale = Vector2(pulse, pulse)
-		var want := clampf(1.0 - badness(i) / 100.0, 0.0, 1.0)
-		if _shown[i] < 0:
-			_shown[i] = want
-		if absf(_shown[i] - want) > 0.002 or crit:
-			_shown[i] = move_toward(_shown[i], want, delta * 0.8)
-			_badges[i].queue_redraw()
+	for i in _bodies.size():
+		var pulse := 1.0 + (0.06 * sin(t * 8.0) if badness(i) >= CRITICAL else 0.0)
+		_bodies[i].scale = Vector2(pulse, pulse)
+	_slosh += delta
+	if _slosh >= 1.0 / 30.0:  # the sloshing liquid
+		_slosh = 0.0
+		for l in _liquids:
+			l.queue_redraw()
 
 
 func _draw_coin() -> void:
 	var c := _coin
-	var r := 15.0
-	var center := Vector2(r + 2, SIZE / 2)
-	c.draw_circle(center, r, Kit.GOLD, true, -1.0, true)
-	c.draw_circle(center + Vector2(0, -1.5), r - 3, Kit.GOLD.lightened(0.2), true, -1.0, true)
-	var f := Kit.font_bold()
-	c.draw_string(f, center + Vector2(-8, 5), "zł", HORIZONTAL_ALIGNMENT_CENTER, 16, 13, Color("#8a5a10"))
+	var r := 20.0
+	var center := Vector2(c.size.x - r - 4, SIZE / 2)
+	c.draw_circle(center + Vector2(2, 3), r, Color(0, 0, 0, 0.3))
+	c.draw_circle(center, r, Ink.GOLD)
+	c.draw_circle(center, r - 5, Ink.GOLD.lightened(0.18))
+	c.draw_arc(center, r, 0, TAU, 40, Ink.INK, 3.0, true)
+	c.draw_arc(center, r - 5, 0, TAU, 40, Color(Ink.INK, 0.5), 1.5, true)
+	var f := Ink.font()
+	c.draw_string(f, center + Vector2(-6, 8), "zł", HORIZONTAL_ALIGNMENT_LEFT, -1, 20, Ink.INK)
 	var txt := "%d,%02d" % [money / 100, money % 100]
-	c.draw_string(f, Vector2(center.x + r + 8, center.y + 8), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 21, Kit.TEXT)
+	var w := f.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 24).x
+	var pos := Vector2(center.x - r - 8 - w, center.y + 8)
+	c.draw_string_outline(f, pos, txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 24, 6, Ink.INK)
+	c.draw_string(f, pos, txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 24, Ink.TEXT)
 
 
-## The ring gauge, the icon, and the number on hover / when critical.
+## Shadow and dark glass, under the liquid.
+func _draw_glass(body: Control) -> void:
+	var r := SIZE / 2 - 3
+	var c := Vector2(SIZE / 2, SIZE / 2)
+	body.draw_circle(c + Vector2(2, 3), r, Color(0, 0, 0, 0.35))
+	body.draw_circle(c, r, Color("#1e1712"))
+
+
+## The number below the badge.
 func _draw_badge(b: Control, i: int) -> void:
 	var c := Vector2(SIZE / 2, SIZE / 2)
-	var col: Color = ROWS[i][2]
-	var bad := badness(i)
-	var crit := bad >= CRITICAL
-	if crit:
-		col = col.lerp(Kit.RED, 0.5 + 0.4 * sin(Time.get_ticks_msec() / 1000.0 * 7.0))
-	var level: float = _shown[i] if _shown[i] >= 0 else 1.0 - bad / 100.0
-	b.draw_circle(c, SIZE / 2 - 1, Color(0, 0, 0, 0.25), true, -1.0, true)
-	if _hover == i:
-		b.draw_circle(c, SIZE / 2 - 1, Color(col, 0.18), true, -1.0, true)
-	Kit.draw_ring(b, c, SIZE / 2 - 4, 4.5, level, col, Color(1, 1, 1, 0.12))
-	if _hover == i or crit:
-		var f := Kit.font_bold()
+	# The number: on hover, or when critical.
+	if _hover == i or badness(i) >= CRITICAL:
+		var f := Ink.font()
 		var txt := str(values[i])
-		b.draw_string(f, Vector2(0, c.y + 6), txt, HORIZONTAL_ALIGNMENT_CENTER, SIZE, 17, Kit.TEXT)
-	else:
-		Kit.draw_icon(b, ROWS[i][3], c, 10.5, Color(Kit.TEXT, 0.95), 2.2)
+		var w := f.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 20).x
+		var p := Vector2(c.x - w / 2, SIZE + 18)
+		b.draw_string_outline(f, p, txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 20, 5, Ink.INK)
+		b.draw_string(f, p, txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 20, Ink.TEXT)
+
+
+## Liquid up to the level, its surface wobbling: one polygon and a lighter
+## line along the top.
+func _draw_liquid(l: Control, i: int) -> void:
+	var t := Time.get_ticks_msec() / 1000.0
+	var bad := badness(i)
+	var level := clampf(1.0 - bad / 100.0, 0.0, 1.0)
+	var col: Color = ROWS[i][2]
+	if bad >= CRITICAL:
+		col = col.lerp(Ink.RED, 0.5 + 0.3 * sin(t * 8.0))
+	var c := Vector2(SIZE / 2, SIZE / 2)
+	var inner := SIZE / 2 - 6
+	var surface := c.y + inner - level * inner * 2
+	var tops := PackedVector2Array()
+	var bottoms := PackedVector2Array()
+	var steps := 24
+	for k in steps + 1:
+		var x := c.x - inner + inner * 2 * k / steps
+		var half := sqrt(maxf(inner * inner - (x - c.x) * (x - c.x), 0.0))
+		var y_top := maxf(surface + sin(t * 2.2 + x * 0.15) * 1.5, c.y - half)
+		var y_bottom := c.y + half
+		if y_top < y_bottom:
+			tops.append(Vector2(x, y_top))
+			bottoms.append(Vector2(x, y_bottom))
+	if tops.size() < 2:
+		return
+	var poly := tops.duplicate()
+	bottoms.reverse()
+	poly.append_array(bottoms)
+	l.draw_colored_polygon(poly, col)
+	l.draw_polyline(tops, col.lightened(0.25), 3.0)
+
+
+## Glass shine, the ink ring and the icon.
+func _draw_top(top: Control, i: int) -> void:
+	var r := SIZE / 2 - 3
+	var c := Vector2(SIZE / 2, SIZE / 2)
+	top.draw_arc(c, r - 7, PI * 1.1, PI * 1.45, 12, Color(1, 1, 1, 0.25), 3.0, true)
+	top.draw_arc(c, r, 0, TAU, 48, Ink.INK, 4.0, true)
+	top.draw_arc(c, r - 3, 0, TAU, 48, Color(Ink.DARK_HI, 0.8), 1.5, true)
+	_draw_icon(top, ROWS[i][3], c)
+
+
+## Simple inked icons in the middle of a badge.
+func _draw_icon(b: Control, kind: String, c: Vector2) -> void:
+	var ink := Ink.INK
+	var fill := Ink.PAPER_HI
+	match kind:
+		"food":  # a drumstick
+			b.draw_line(c + Vector2(4, 4), c + Vector2(12, 12), ink, 6.0, true)
+			b.draw_line(c + Vector2(4, 4), c + Vector2(12, 12), fill, 3.0, true)
+			b.draw_circle(c + Vector2(13, 11), 3.5, ink)
+			b.draw_circle(c + Vector2(11, 14), 3.5, ink)
+			b.draw_circle(c + Vector2(13, 11), 2.0, fill)
+			b.draw_circle(c + Vector2(11, 14), 2.0, fill)
+			b.draw_circle(c + Vector2(-3, -3), 11, ink)
+			b.draw_circle(c + Vector2(-3, -3), 8.5, Color("#b8733a"))
+			b.draw_circle(c + Vector2(-6, -6), 3, Color("#d99a5a"))
+		"bolt":
+			var pts := PackedVector2Array([c + Vector2(3, -16), c + Vector2(-9, 2), c + Vector2(-1, 2), c + Vector2(-4, 16), c + Vector2(9, -3), c + Vector2(1, -3), c + Vector2(3, -16)])
+			b.draw_colored_polygon(pts, fill)
+			b.draw_polyline(pts, ink, 2.5, true)
+		"brain":
+			for p in [Vector2(-6, -3), Vector2(6, -3), Vector2(-4, 6), Vector2(4, 6)]:
+				b.draw_circle(c + p, 8.5, ink)
+			for p in [Vector2(-6, -3), Vector2(6, -3), Vector2(-4, 6), Vector2(4, 6)]:
+				b.draw_circle(c + p, 6.5, Color("#e7b8c8"))
+			b.draw_line(c + Vector2(0, -10), c + Vector2(0, 12), ink, 2.0, true)
+			b.draw_arc(c + Vector2(-6, 0), 4, 0.3, 2.6, 8, ink, 1.5, true)
+			b.draw_arc(c + Vector2(6, 0), 4, 0.5, 2.8, 8, ink, 1.5, true)
+		"drop":
+			var pts := PackedVector2Array()
+			pts.append(c + Vector2(0, -16))
+			for k in 13:
+				var a := PI * (-0.15 + k / 12.0 * 1.3)
+				pts.append(c + Vector2(cos(a) * 10, 5 + sin(a) * 10))
+			pts.append(c + Vector2(0, -16))
+			b.draw_colored_polygon(pts, Color("#cfe6f5"))
+			b.draw_polyline(pts, ink, 2.5, true)
+			b.draw_arc(c + Vector2(-3, 6), 4, PI * 0.6, PI * 1.1, 6, Color.WHITE, 2.0, true)
+		"mug":  # a beer mug with a foam head
+			var body := Rect2(c + Vector2(-10, -8), Vector2(16, 22))
+			b.draw_arc(c + Vector2(6, 3), 6, -PI / 2, PI / 2, 10, ink, 5.0, true)
+			b.draw_arc(c + Vector2(6, 3), 6, -PI / 2, PI / 2, 10, Color("#f0d27a"), 2.0, true)
+			b.draw_rect(body, Color("#f0b43a"))
+			b.draw_rect(body, ink, false, 2.5)
+			for p in [Vector2(-7, -10), Vector2(-1, -12), Vector2(4, -10)]:
+				b.draw_circle(c + p, 4.5, ink)
+			for p in [Vector2(-7, -10), Vector2(-1, -12), Vector2(4, -10)]:
+				b.draw_circle(c + p, 3.2, Color("#fffaf0"))
+			b.draw_line(c + Vector2(-5, -3), c + Vector2(-5, 10), Color(1, 1, 1, 0.6), 2.0, true)
+		"roll":  # a toilet roll
+			b.draw_circle(c + Vector2(0, 2), 12, ink)
+			b.draw_circle(c + Vector2(0, 2), 9.5, Color("#fbf8ef"))
+			b.draw_circle(c + Vector2(0, 2), 4, ink)
+			b.draw_circle(c + Vector2(0, 2), 2.4, Color("#c9b48a"))
+			var tail := PackedVector2Array([c + Vector2(6, 9), c + Vector2(12, 9), c + Vector2(13, 16), c + Vector2(7, 15)])
+			b.draw_colored_polygon(tail, Color("#fbf8ef"))
+			b.draw_polyline(tail, ink, 2.0, true)
+		"heart":
+			var pts := PackedVector2Array()
+			for k in 25:
+				var a := TAU * k / 24.0
+				var hx := 16.0 * pow(sin(a), 3)
+				var hy := -(13.0 * cos(a) - 5.0 * cos(2 * a) - 2.0 * cos(3 * a) - cos(4 * a))
+				pts.append(c + Vector2(hx, hy) * 0.75 + Vector2(0, 1))
+			b.draw_colored_polygon(pts, Color("#e25a4e"))
+			b.draw_polyline(pts, ink, 2.5, true)
+			b.draw_arc(c + Vector2(-5, -4), 3, PI * 1.1, PI * 1.6, 6, Color.WHITE, 2.0, true)
+		"soap":
+			var r := Rect2(c + Vector2(-12, -2), Vector2(22, 12))
+			b.draw_rect(r, Color("#f1c9d8"))
+			b.draw_rect(r, ink, false, 2.5)
+			for p in [Vector2(-6, -10), Vector2(3, -13), Vector2(9, -7)]:
+				b.draw_circle(c + p, 4, Color(1, 1, 1, 0.85))
+				b.draw_arc(c + p, 4, 0, TAU, 12, ink, 1.5, true)

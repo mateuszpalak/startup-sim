@@ -3,8 +3,7 @@
 ## scrub them away. Clean = the server is told (`Action` SCRUB); Esc gives up.
 extends Control
 
-const Kit = preload("res://ui/ui_kit.gd")
-const Touch = preload("res://touch/touch.gd")
+const Ink = preload("res://ui/ink_ui.gd")
 
 signal scrubbed
 
@@ -25,13 +24,13 @@ var _t := 0.0
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	visible = false
-	_panel.add_theme_stylebox_override("panel", Kit.box("paper"))
+	_panel.add_theme_stylebox_override("panel", Ink.box("paper"))
 	add_child(_panel)
 	var col := VBoxContainer.new()
 	col.add_theme_constant_override("separation", 8)
 	_panel.add_child(col)
-	col.add_child(Kit.label("Szorowanie sedesu", 24, Kit.TEXT_INK))
-	col.add_child(Kit.label(Touch.say("Trzymaj lewy przycisk myszy i szoruj smugi szczotką · Esc — odpuść", "Szoruj smugi palcem · ✕ — odpuść"), 15, Kit.TEXT_MUTED))
+	col.add_child(Ink.label("Szorowanie sedesu", 24, Ink.TEXT_INK))
+	col.add_child(Ink.label("Trzymaj lewy przycisk myszy i szoruj smugi szczotką · Esc — odpuść", 15, Ink.TEXT_MUTED))
 	_area.custom_minimum_size = AREA
 	_area.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	_area.mouse_filter = Control.MOUSE_FILTER_STOP
@@ -42,7 +41,7 @@ func _ready() -> void:
 		_mouse = Vector2(-100, -100)
 		_area.queue_redraw())
 	col.add_child(_area)
-	Kit.style_label(_info, 17, Kit.TEXT_INK)
+	Ink.style_label(_info, 17, Ink.TEXT_INK)
 	col.add_child(_info)
 	get_viewport().size_changed.connect(_place)
 
@@ -53,7 +52,6 @@ func _place() -> void:
 	size = vs
 	_panel.reset_size()
 	_panel.position = ((vs - _panel.size) / 2).floor()
-	Touch.place_center(_panel, get_viewport())
 
 
 func start() -> void:
@@ -120,11 +118,12 @@ func _process(delta: float) -> void:
 ## the brush where the mouse is.
 func _draw_bowl() -> void:
 	var c := AREA / 2
-	_oval(c + Vector2(0, 10), Vector2(160, 128), Color(0, 0, 0, 0.1))
-	_oval(c, Vector2(158, 126), Color("#d8dde2"))
-	_oval(c + Vector2(0, -2), Vector2(155, 122), Color("#ffffff"))
-	_oval(c, Vector2(128, 100), Color("#c9d1d8"))
-	_oval(c + Vector2(0, 3), Vector2(125, 96), Color("#eef2f4"))
+	var ink := Ink.INK
+	_oval(c + Vector2(0, 4), Vector2(160, 128), Color(0, 0, 0, 0.12))
+	_oval(c, Vector2(158, 126), ink)
+	_oval(c, Vector2(154, 122), Color("#f4f4f2"))
+	_oval(c, Vector2(128, 100), ink)
+	_oval(c, Vector2(125, 97), Color("#e3e8ea"))
 	_oval(c + Vector2(0, 12), Vector2(62, 44), Color("#a9cbd8"))
 	for s in _smears:
 		if s.dirt <= 0.0:
@@ -135,13 +134,13 @@ func _draw_bowl() -> void:
 	if _mouse.x >= 0:
 		# The brush: a handle and the bristles.
 		var head := _mouse
-		_area.draw_line(head + Vector2(10, -10), head + Vector2(46, -58), Kit.ACCENT_LO, 7.0, true)
-		_area.draw_line(head + Vector2(10, -10), head + Vector2(46, -58), Kit.ACCENT, 4.0, true)
-		_area.draw_circle(head + Vector2(0, 3), 15.0, Color(0, 0, 0, 0.15), true, -1.0, true)
-		_area.draw_circle(head, 14.0, Kit.TEAL, true, -1.0, true)
+		_area.draw_line(head + Vector2(10, -10), head + Vector2(46, -58), ink, 7.0, true)
+		_area.draw_line(head + Vector2(10, -10), head + Vector2(46, -58), Color("#d9d9d9"), 4.0, true)
+		_area.draw_circle(head, 15.0, ink)
+		_area.draw_circle(head, 13.0, Color("#5a7a9a"))
 		for k in 8:
 			var a := TAU * k / 8.0
-			_area.draw_line(head + Vector2.from_angle(a) * 6, head + Vector2.from_angle(a) * 16, Color("#2b7d71"), 2.0, true)
+			_area.draw_line(head + Vector2.from_angle(a) * 6, head + Vector2.from_angle(a) * 16, Color("#2f4a63"), 2.0, true)
 
 
 func _oval(at: Vector2, radii: Vector2, color: Color) -> void:

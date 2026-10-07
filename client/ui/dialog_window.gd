@@ -4,9 +4,7 @@
 ## drives it; id 0 closes it.
 extends Control
 
-const Kit = preload("res://ui/ui_kit.gd")
-const Touch = preload("res://touch/touch.gd")
-const ItemIcons = preload("res://ui/item_icons.gd")
+const Ink = preload("res://ui/ink_ui.gd")
 const ItemArt = preload("res://game/item_art.gd")
 
 signal answer(id: int, choice: int)
@@ -25,15 +23,15 @@ var _answered_at := 0
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	visible = false
-	_panel.add_theme_stylebox_override("panel", Kit.box("paper"))
+	_panel.add_theme_stylebox_override("panel", Ink.box("paper"))
 	_panel.custom_minimum_size = Vector2(560, 0)
 	add_child(_panel)
 	var col := VBoxContainer.new()
 	col.add_theme_constant_override("separation", 10)
 	_panel.add_child(col)
-	Kit.style_label(_who, 16, Kit.ACCENT)
+	Ink.style_label(_who, 16, Ink.ACCENT)
 	col.add_child(_who)
-	Kit.style_label(_text, 20, Kit.TEXT_INK)
+	Ink.style_label(_text, 20, Ink.TEXT_INK)
 	_text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_text.custom_minimum_size = Vector2(528, 0)  # wrap width (else it measures as a tall column)
 	col.add_child(_text)
@@ -53,7 +51,6 @@ func _place() -> void:
 	if _panel.size != want:
 		_panel.size = want
 	_panel.position = Vector2((vs.x - want.x) / 2, maxf(8.0, vs.y - want.y - 120))
-	Touch.place_center(_panel, get_viewport())
 
 
 func _process(_delta: float) -> void:
@@ -91,19 +88,14 @@ func on_dialog(p: Dictionary) -> void:
 		if kind != 0:
 			shelf.add_child(_item_slot(kind, i, p.options[i]))
 			continue
-		var b := Kit.button("%d. %s" % [i + 1, p.options[i]])
+		var b := Ink.button("%d. %s" % [i + 1, p.options[i]])
 		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
 		b.focus_mode = Control.FOCUS_NONE
-		if Touch.active:
-			b.custom_minimum_size.y = 50
 		b.pressed.connect(func(): _choose(choice))
 		_opts.add_child(b)
-	var was := visible
 	visible = true
 	_panel.reset_size()
 	_place.call_deferred()
-	if not was:
-		(func(): _place(); Kit.pop_in(_panel, 0.95, 0.2)).call_deferred()
 
 
 ## One thing in the cupboard: its picture in a slot, the key, what it says.
@@ -117,16 +109,16 @@ func _item_slot(kind: int, i: int, text: String) -> Control:
 	box.tooltip_text = text
 	box.pressed.connect(func(): _choose(i))
 	box.draw.connect(func():
-		Kit.draw_rrect(box, Rect2(Vector2.ZERO, box.size), Color("#fff1e9") if box.is_hovered() else Kit.CARD, Kit.R_MD,
-			Kit.ACCENT if box.is_hovered() else Color(Kit.TEXT_INK, 0.12), 2)
-		ItemIcons.draw(box, kind, Rect2(Vector2(8, 6), Vector2.ONE * (box.size.x - 16)))
-		Kit.draw_rrect(box, Rect2(5, 5, 22, 22), Kit.ACCENT, 11)
-		box.draw_string(Kit.font_bold(), Vector2(5, 21), str(i + 1), HORIZONTAL_ALIGNMENT_CENTER, 22, 14, Color.WHITE))
+		Ink.box("slot_active" if box.is_hovered() else "slot").draw(box.get_canvas_item(), Rect2(Vector2.ZERO, box.size))
+		ItemArt.draw(box, kind, Vector2(12, 10), (box.size.x - 24) / 16.0)
+		var f := Ink.font()
+		box.draw_string_outline(f, Vector2(8, box.size.y - 8), str(i + 1), HORIZONTAL_ALIGNMENT_LEFT, -1, 16, 4, Ink.INK)
+		box.draw_string(f, Vector2(8, box.size.y - 8), str(i + 1), HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Ink.GOLD))
 	box.mouse_entered.connect(box.queue_redraw)
 	box.mouse_exited.connect(box.queue_redraw)
 	col.add_child(box)
 	var l := Label.new()
-	Kit.style_label(l, 13, Kit.TEXT_INK)
+	Ink.style_label(l, 13, Ink.TEXT_INK)
 	l.text = text
 	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART

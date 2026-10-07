@@ -4,12 +4,8 @@
 ## mnie". With a remembered login: "Graj jako X" / "Wyloguj".
 extends Control
 
-const Kit = preload("res://ui/ui_kit.gd")
-const TouchFit = preload("res://ui/touch_fit.gd")
+const Ink = preload("res://ui/ink_ui.gd")
 const AuthClient = preload("res://net/auth_client.gd")
-const NetClient = preload("res://net/net_client.gd")
-## The last item of the server list: type an address (a home server).
-const CUSTOM_ITEM := "Inny serwer…"
 
 ## Logged in: `grant` = {nick, ticket, refresh, character}.
 signal logged_in(address: String, grant: Dictionary, remember: bool)
@@ -18,9 +14,6 @@ signal back
 var auth                         # AuthClient node (from main)
 var server_opt := OptionButton.new()
 var _servers: Array = []     # [{name, address}] in the list
-## "Inny serwer…": host:port typed by the player (not one of the game's servers).
-var custom_edit := LineEdit.new()
-var _custom_row: Control
 var nick_edit := LineEdit.new()
 var pass_edit := LineEdit.new()
 var new_pass_edit := LineEdit.new()
@@ -43,7 +36,7 @@ func _ready() -> void:
 	visibility_changed.connect(_on_shown)
 	_fit()
 	var bg := ColorRect.new()
-	bg.color = Color(0.1, 0.08, 0.14, 0.35)  # over the 3D backdrop
+	bg.color = Color("#1e2230")
 	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(bg)
 	var center := CenterContainer.new()
@@ -53,20 +46,17 @@ func _ready() -> void:
 	outer.add_theme_constant_override("separation", 14)
 	outer.custom_minimum_size = Vector2(420, 0)
 	center.add_child(outer)
-	TouchFit.scroll_center(self, center)
 	var title := _label("Startup Sim", 44, Color.WHITE)
-	title.add_theme_font_override("font", Kit.font_bold())
-	title.add_theme_constant_override("shadow_offset_y", 3)
-	title.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.35))
+	title.add_theme_constant_override("outline_size", 8)
+	title.add_theme_color_override("font_outline_color", Ink.ACCENT_LO)
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	outer.add_child(title)
-	var sub := _label("Zaloguj się albo załóż konto — Twój postęp zapisuje się na serwerze.", 16, Color(1, 1, 1, 0.85))
-	sub.visible = not TouchFit.Touch.phone
+	var sub := _label("Zaloguj się albo załóż konto — Twój postęp zapisuje się na serwerze.", 16, Color(1, 1, 1, 0.6))
 	sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	sub.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	outer.add_child(sub)
 	var panel := PanelContainer.new()
-	panel.add_theme_stylebox_override("panel", Kit.box("glass"))
+	panel.add_theme_stylebox_override("panel", Ink.box("hud"))
 	outer.add_child(panel)
 	var inner := VBoxContainer.new()
 	inner.add_theme_constant_override("separation", 8)
@@ -75,15 +65,15 @@ func _ready() -> void:
 	# Remembered login.
 	_quick.add_theme_constant_override("separation", 8)
 	_quick_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	Kit.style_label(_quick_label, 18, Color.WHITE)
+	Ink.style_label(_quick_label, 18, Color.WHITE)
 	_quick.add_child(_quick_label)
 	var play := _big_button("Graj", true)
 	play.pressed.connect(_quick_play)
 	_quick.add_child(play)
-	var other := Kit.button("Zaloguj na inne konto")
+	var other := Ink.button("Zaloguj na inne konto")
 	other.pressed.connect(func(): _show_form())
 	_quick.add_child(other)
-	var out := Kit.button("Wyloguj")
+	var out := Ink.button("Wyloguj")
 	out.pressed.connect(_logout)
 	_quick.add_child(out)
 	inner.add_child(_quick)
@@ -93,14 +83,6 @@ func _ready() -> void:
 	inner.add_child(_form)
 	_fill_servers()
 	_field("Serwer", server_opt)
-	custom_edit.placeholder_text = "adres:port, np. 192.168.1.20:7777"
-	custom_edit.max_length = 255
-	_custom_row = _field("Adres serwera (spoza listy gry)", custom_edit)
-	var warn := _label("Serwer spoza listy — loguj się tylko na serwerze, któremu ufasz. Jego certyfikat zostanie zapamiętany przy pierwszym połączeniu.", 13, Color(1, 0.85, 0.5, 0.9))
-	warn.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	warn.custom_minimum_size.x = 380
-	_custom_row.add_child(warn)
-	server_opt.item_selected.connect(func(_i): _update_custom())
 	nick_edit.max_length = 16
 	nick_edit.placeholder_text = "np. Ola"
 	_field("Nick (imię postaci)", nick_edit)
@@ -111,7 +93,7 @@ func _ready() -> void:
 	new_pass_edit.max_length = 128
 	new_pass_edit.placeholder_text = "co najmniej 8 znaków"
 	_new_pass_row = _field("Nowe hasło", new_pass_edit)
-	remember_box.text = "Zapamiętaj mnie na tym urządzeniu" if TouchFit.Touch.active else "Zapamiętaj mnie na tym komputerze"
+	remember_box.text = "Zapamiętaj mnie na tym komputerze"
 	remember_box.button_pressed = true
 	for k in ["font_color", "font_hover_color", "font_pressed_color", "font_focus_color", "font_hover_pressed_color"]:
 		remember_box.add_theme_color_override(k, Color(1, 1, 1, 0.85))
@@ -127,20 +109,20 @@ func _ready() -> void:
 	_register_btn.pressed.connect(func(): _go("register"))
 	row.add_child(_register_btn)
 	_form.add_child(row)
-	_change_btn = Kit.button("Zmień hasło")
+	_change_btn = Ink.button("Zmień hasło")
 	_change_btn.pressed.connect(_toggle_change)
 	_form.add_child(_change_btn)
-	for e in [custom_edit, nick_edit, pass_edit, new_pass_edit]:
+	for e in [nick_edit, pass_edit, new_pass_edit]:
 		e.text_submitted.connect(func(_t): _go("password" if _changing else "login"))
 
-	_trust_btn = Kit.button("Zaufaj nowemu certyfikatowi serwera", false, true)
+	_trust_btn = Ink.button("Zaufaj nowemu certyfikatowi serwera", false, true)
 	_trust_btn.visible = false
 	_trust_btn.pressed.connect(func():
 		AuthClient.forget_pin(address())
 		_trust_btn.visible = false
 		set_status("Zapomniany. Spróbuj jeszcze raz."))
 	outer.add_child(_trust_btn)
-	var b := Kit.button("Wróć do menu")
+	var b := Ink.button("Wróć do menu")
 	b.pressed.connect(func(): back.emit())
 	outer.add_child(b)
 	status.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -156,41 +138,27 @@ func _fill_servers() -> void:
 	_servers = AuthClient.servers()
 	for s in _servers:
 		server_opt.add_item(s.name)
-	server_opt.add_item(CUSTOM_ITEM)
-
-
-func _custom_selected() -> bool:
-	return server_opt.selected == _servers.size()
-
-
-func _update_custom() -> void:
-	if _custom_row:
-		_custom_row.visible = _custom_selected()
 
 
 
 ## The chosen server's address.
 func address() -> String:
-	if _custom_selected():
-		var a := custom_edit.text.strip_edges()
-		return a if not NetClient.parse_address(a).is_empty() else ""
 	var i := server_opt.selected
 	return _servers[i].address if i >= 0 and i < _servers.size() else AuthClient.default_server()
 
 
-## Choose a server by address (one not on the list, e.g. a remembered home
-## server or a dev --server, goes to "Inny serwer…").
+## Choose a server by address (one not on the list — a dev --server — is added).
 func set_address(a: String) -> void:
-	server_opt.select(0)
 	for i in _servers.size():
 		if _servers[i].address == a:
 			server_opt.select(i)
-			_update_custom()
 			return
-	if a != "":
-		custom_edit.text = a
-		server_opt.select(_servers.size())
-	_update_custom()
+	if a == "" or not OS.has_feature("editor"):
+		server_opt.select(0)
+		return
+	_servers.append({"name": AuthClient.server_name(a), "address": a})
+	server_opt.add_item(AuthClient.server_name(a))
+	server_opt.select(_servers.size() - 1)
 
 
 func _fit() -> void:
@@ -201,7 +169,7 @@ func _fit() -> void:
 func _label(text: String, size: int, color := Color(1, 1, 1, 0.8)) -> Label:
 	var l := Label.new()
 	l.text = text
-	Kit.style_label(l, size, color)
+	Ink.style_label(l, size, color)
 	return l
 
 
@@ -216,7 +184,7 @@ func _field(caption: String, control: Control) -> Control:
 
 
 func _big_button(text: String, primary: bool) -> Button:
-	var b := Kit.button(text, primary)
+	var b := Ink.button(text, primary)
 	b.custom_minimum_size = Vector2(0, 44)
 	b.add_theme_font_size_override("font_size", 22)
 	return b
@@ -277,9 +245,6 @@ func _go(what: String) -> void:
 	var addr := address()
 	var nick := nick_edit.text.strip_edges()
 	var pw := pass_edit.text
-	if addr == "" and _custom_selected():
-		set_status("Wpisz adres serwera, np. 192.168.1.20:7777.", true)
-		return
 	if addr == "" or nick == "" or pw == "":
 		set_status("Wybierz serwer, wpisz nick i hasło.", true)
 		return

@@ -17,6 +17,9 @@
 # SmartScreen warns on first start ("More info" -> "Run anyway").
 set -euo pipefail
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
+# Mobile and Windows builds exist for the 3D client only (client3d/);
+# CLIENT=client picks another Godot project.
+CLIENT=${CLIENT:-client3d}
 GODOT=${GODOT:-godot}
 case "${1:-}" in
   "") ARCHS="x86_64" ;;
@@ -24,12 +27,12 @@ case "${1:-}" in
   --all) ARCHS="x86_64 arm64" ;;
   *) echo "użycie: $0 [--arm64|--all]"; exit 1 ;;
 esac
-VERSION=$(sed -n 's/^config\/version="\(.*\)"/\1/p' "$ROOT/client/project.godot")
-[ -n "$VERSION" ] || { echo "brak config/version w client/project.godot"; exit 1; }
-[ -f "$ROOT/client/net/servers.cfg" ] || echo "uwaga: brak client/net/servers.cfg — klient będzie znał tylko serwer lokalny"
+VERSION=$(sed -n 's/^config\/version="\(.*\)"/\1/p' "$ROOT/$CLIENT/project.godot")
+[ -n "$VERSION" ] || { echo "brak config/version w $CLIENT/project.godot"; exit 1; }
+[ -f "$ROOT/$CLIENT/net/servers.cfg" ] || echo "uwaga: brak $CLIENT/net/servers.cfg — klient będzie znał tylko serwer lokalny"
 
 mkdir -p "$ROOT/dist"
-"$GODOT" --headless --path "$ROOT/client" --import >/dev/null 2>&1 || true
+"$GODOT" --headless --path "$ROOT/$CLIENT" --import >/dev/null 2>&1 || true
 for ARCH in $ARCHS; do
   PRESET="Windows"; [ "$ARCH" = arm64 ] && PRESET="Windows arm64"
   NAME="StartupSim3D-$VERSION-windows-$ARCH"
@@ -37,7 +40,7 @@ for ARCH in $ARCHS; do
   rm -rf "$STAGE" && mkdir -p "$STAGE"
   echo "== eksport z Godota ($PRESET)"
   LOG="$ROOT/build/$NAME.log"
-  "$GODOT" --headless --path "$ROOT/client" --export-release "$PRESET" "$STAGE/StartupSim.exe" 2>&1 | tee "$LOG"
+  "$GODOT" --headless --path "$ROOT/$CLIENT" --export-release "$PRESET" "$STAGE/StartupSim.exe" 2>&1 | tee "$LOG"
   [ -s "$STAGE/StartupSim.exe" ] || { echo "brak $STAGE/StartupSim.exe"; exit 1; }
   if grep -qE "^(ERROR|SCRIPT ERROR)" "$LOG"; then echo "błędy eksportu — zob. $LOG"; exit 1; fi
   printf 'Startup Sim %s (Windows %s)\r\n\r\nUruchom StartupSim.exe. Windows SmartScreen moze ostrzec przy pierwszym\r\nuruchomieniu: "Wiecej informacji" -> "Uruchom mimo to".\r\nUstawienia i logi: %%APPDATA%%\\Godot\\app_userdata\\Startup Sim\r\n' "$VERSION" "$ARCH" > "$STAGE/README.txt"

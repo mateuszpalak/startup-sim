@@ -24,8 +24,3 @@ func run() -> void:
 	if not await until(func(): return not screen.company_offers.is_empty(), 10.0, "the company panel"):
 		return
 	log_step("the company panel")
-	if main.args.has("shots"):  # dev: a screenshot of the panel (--shots=/dir)
-		screen.dev_command("win:company")
-		await wait(1.5)
-		await RenderingServer.frame_post_draw
-		main.get_viewport().get_texture().get_image().save_png("%s/computer_company.png" % main.args["shots"])
