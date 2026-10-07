@@ -1,5 +1,6 @@
 ## The settings (title screen and the Esc menu): full screen, battery
-## saving, crash reports, the camera zoom, sound volumes, the microphone.
+## saving, crash reports, the camera zoom, sound volumes, the microphone,
+## the touch controls and the gamepad.
 ## Changes apply and save at once. The options scroll when the window is
 ## short; "Wróć" stays visible under them.
 extends VBoxContainer
@@ -72,6 +73,7 @@ func _ready() -> void:
 		"W grze: rozsuń / zsuń dwa palce — przybliżenie na chwilę.")))
 	if Touch.active:
 		_touch_rows()
+	_pad_rows()
 	_volume("Efekty", Settings.vol_sfx, func(v: float): Settings.vol_sfx = v)
 	_volume("Otoczenie", Settings.vol_ambient, func(v: float): Settings.vol_ambient = v)
 	_volume("Muzyka", Settings.vol_music, func(v: float): Settings.vol_music = v)
@@ -142,6 +144,24 @@ func _touch_rows() -> void:
 	_content.add_child(side)
 	_slider_row("Wielkość przycisków", Settings.touch_size, 0.8, 1.4, func(v: float): Settings.touch_size = v)
 	_slider_row("Widoczność przycisków", Settings.touch_opacity, 0.3, 1.0, func(v: float): Settings.touch_opacity = v)
+
+
+## Gamepad: invert the zoom stick, stick speed, rumble.
+func _pad_rows() -> void:
+	_content.add_child(Ink.label("Pad", 20, Ink.TEXT_INK))
+	for row in [["Odwróć oś Y prawej gałki (przybliżenie)", Settings.pad_invert_y, func(on: bool): Settings.pad_invert_y = on],
+			["Wibracje", Settings.pad_vibration, func(on: bool): Settings.pad_vibration = on]]:
+		var cb := CheckButton.new()
+		cb.text = row[0]
+		_style_check(cb)
+		cb.button_pressed = row[1]
+		var set_it: Callable = row[2]
+		cb.toggled.connect(func(on: bool):
+			set_it.call(on)
+			_save())
+		_content.add_child(cb)
+	_slider_row("Czułość gałki", Settings.pad_sensitivity, 0.4, 2.0, func(v: float): Settings.pad_sensitivity = v)
+	_content.add_child(_note("W grze: prawa gałka przybliża, jej wciśnięcie wraca do ustawienia."))
 
 
 func _style_check(cb: CheckButton) -> void:

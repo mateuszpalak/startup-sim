@@ -6,6 +6,7 @@ extends Control
 const Ink = preload("res://ui/ink_ui.gd")
 const Touch = preload("res://touch/touch.gd")
 const ItemArt = preload("res://game/item_art.gd")
+const Pad = preload("res://pad/pad.gd")
 
 const TILE := Vector2(132, 124)
 const COLUMNS := 4
@@ -14,6 +15,7 @@ var _panel := PanelContainer.new()
 var _grid := GridContainer.new()
 var _empty := Label.new()
 var _runs: Array[Callable] = []
+var _hint := Label.new()
 
 
 func _ready() -> void:
@@ -35,10 +37,8 @@ func _ready() -> void:
 	Ink.style_label(_empty, 16, Ink.TEXT_MUTED)
 	_empty.text = "Nic tu nie ma do zrobienia — podejdź do czegoś albo do kogoś."
 	col.add_child(_empty)
-	var hint := Label.new()
-	Ink.style_label(hint, 14, Ink.TEXT_MUTED)
-	hint.text = Touch.say("Klawisz numeru albo klik · Tab / Esc zamknij", "Stuknij, co chcesz zrobić · ✕ zamyka")
-	col.add_child(hint)
+	Ink.style_label(_hint, 14, Ink.TEXT_MUTED)
+	col.add_child(_hint)
 	get_viewport().size_changed.connect(_place)
 
 
@@ -54,6 +54,10 @@ func open(actions: Array) -> void:
 		_grid.add_child(_tile(i, a))
 	_grid.columns = clampi(actions.size(), 1, COLUMNS)
 	_empty.visible = actions.is_empty()
+	if Pad.active:
+		_hint.text = "Krzyżak wybiera · %s zrób · %s / %s zamknij" % [Pad.label(JOY_BUTTON_A), Pad.label(JOY_BUTTON_B), Pad.label(JOY_BUTTON_Y)]
+	else:
+		_hint.text = Touch.say("Klawisz numeru albo klik · Tab / Esc zamknij", "Stuknij, co chcesz zrobić · ✕ zamyka")
 	visible = true
 	_place.call_deferred()
 
@@ -88,11 +92,7 @@ func _draw_tile(b: Button, i: int, a: Dictionary) -> void:
 	b.draw_string_outline(f, Vector2(8, 22), num, HORIZONTAL_ALIGNMENT_LEFT, -1, 18, 4, Ink.INK)
 	b.draw_string(f, Vector2(8, 22), num, HORIZONTAL_ALIGNMENT_LEFT, -1, 18, Ink.GOLD)
 	var key: String = a.key
-	var kw := f.get_string_size(key, HORIZONTAL_ALIGNMENT_LEFT, -1, 14).x
-	var kr := Rect2(b.size.x - kw - 18, 6, kw + 12, 20)
-	b.draw_rect(kr, Ink.INK)
-	b.draw_rect(kr.grow(-1.5), Color("#3b3026"))
-	b.draw_string(f, Vector2(kr.position.x + 6, 21), key, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Ink.PAPER_HI)
+	Ink.draw_keycap(b, Vector2(b.size.x - Ink.keycap_width(key) - 6, 6), key)
 	# What it does, up to two lines.
 	var text: String = a.text
 	var lines := _wrap(text, b.size.x - 12, f, 15)

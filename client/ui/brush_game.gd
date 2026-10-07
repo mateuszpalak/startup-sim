@@ -81,15 +81,29 @@ func finish() -> void:
 
 func _on_input(ev: InputEvent) -> void:
 	if ev is InputEventMouseMotion:
-		var from := _mouse
-		_mouse = ev.position
-		if ev.button_mask & MOUSE_BUTTON_MASK_LEFT and _done_at < 0.0 and from.x >= 0:
-			var rubbed := from.distance_to(_mouse)
-			for s in _smears:
-				if s.dirt > 0.0 and s.pos.distance_to(_mouse) <= BRUSH + s.r:
-					s.dirt = maxf(0.0, s.dirt - rubbed * RUB_PER_PX * (BRUSH / (BRUSH + s.r)) * 3.0)
-			_check_done()
-		_area.queue_redraw()
+		_brush_to(ev.position, ev.button_mask & MOUSE_BUTTON_MASK_LEFT != 0)
+
+
+func _brush_to(at: Vector2, rubbing: bool) -> void:
+	var from := _mouse
+	_mouse = at
+	if rubbing and _done_at < 0.0 and from.x >= 0:
+		var rubbed := from.distance_to(_mouse)
+		for s in _smears:
+			if s.dirt > 0.0 and s.pos.distance_to(_mouse) <= BRUSH + s.r:
+				s.dirt = maxf(0.0, s.dirt - rubbed * RUB_PER_PX * (BRUSH / (BRUSH + s.r)) * 3.0)
+		_check_done()
+	_area.queue_redraw()
+
+
+## The pad: the stick moves the brush (always scrubbing), from the middle.
+func pad_move(d: Vector2) -> void:
+	if not visible:
+		return
+	if _mouse.x < 0:
+		_mouse = AREA / 2
+	if d != Vector2.ZERO:
+		_brush_to((_mouse + d).clamp(Vector2.ZERO, AREA), true)
 
 
 func _check_done() -> void:

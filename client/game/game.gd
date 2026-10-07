@@ -46,6 +46,9 @@ const Settings = preload("res://ui/settings.gd")
 const Ink = preload("res://ui/ink_ui.gd")
 const Touch = preload("res://touch/touch.gd")
 const TouchControls = preload("res://touch/touch_controls.gd")
+const Pad = preload("res://pad/pad.gd")
+const PadMap = preload("res://pad/pad_map.gd")
+const PadGlyphs = preload("res://pad/pad_glyphs.gd")
 
 const ZOOM := 3.0
 ## Remote players are rendered this far in the past (2 snapshots at 20 Hz).
@@ -80,6 +83,11 @@ var hint_label := Label.new()
 ## The hint as the game words it (with "[E] ..."; the label shows it without
 ## keys on a touch screen).
 var hint_text := ""
+var hint_glyph := Control.new()  # the pad's button left of the hint
+var _hint_button := -1   # the pad button the glyph shows (-1: none)
+var _hint_next := -1     # what _update_hint wants there
+var _pad_seen := ""
+var _rumble_status := 0  # rumble when this changes to knocked out
 var log_label := Label.new()
 var _log: Array = []  # [msec, text]
 var kinds := {}          # id -> entity kind (player / NPC)
@@ -320,6 +328,11 @@ func setup(p_net, p_building, welcome: Dictionary, p_nick: String, args: Diction
 	hint_label.add_theme_color_override("font_outline_color", Color.BLACK)
 	hint_label.visible = false
 	status_layer.add_child(hint_label)
+	hint_glyph.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	hint_glyph.draw.connect(func():
+		if _hint_button >= 0:
+			PadGlyphs.draw(hint_glyph, Vector2.ZERO, _hint_button, Pad.style, HINT_GLYPH))
+	hint_label.add_child(hint_glyph)
 	log_label.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
 	log_label.position = Vector2(16, -236)
 	log_label.size = Vector2(470, 220)
@@ -773,6 +786,7 @@ func _process(delta: float) -> void:
 	_update_media()
 	if Touch.active:
 		_touch_layout()
+	_pad_hud()
 	# Fire alarm: the screen pulses red.
 	var pulse := 0.5 + 0.5 * sin(Time.get_ticks_msec() / 1000.0 * TAU * 1.5)
 	alarm_tint.color.a = 0.16 * pulse if fire_alarm else 0.0
@@ -1390,6 +1404,7 @@ func _item_action(action: int, slot: int) -> void:
 func _update_hint() -> void:
 	var text := ""
 	hint_text = ""
+	_hint_next = -1
 	plaque_here = 0
 	if me.status == Protocol.ACT_HELD:
 		hint_label.text = "Zatrzymano cię — chwilę stoisz w miejscu…"
@@ -1559,8 +1574,57 @@ func _update_hint() -> void:
 	if text == "" and voice.whisper_to >= 0:
 		text = "[V] mów · [B] szept: %s" % nicks.get(voice.whisper_to, "?")
 	hint_text = text
-	hint_label.text = _touch_words(text) if touch else text
+	if Pad.active and text != "":
+		var ph := PadMap.pad_hint(text, Pad.style)
+		_hint_next = ph[0]
+		hint_label.text = ph[1]
+	else:
+		hint_label.text = _touch_words(text) if touch else text
 	hint_label.visible = text != ""
+
+
+const HINT_GLYPH := 26.0
+
+
+## The pad in hand: the touch buttons hide, the hint shows the pad's button,
+## the inventory's key help names pad buttons; a knock-out rumbles.
+func _pad_hud() -> void:
+	if touch:
+		touch.visible = not Pad.active
+	if me.status != _rumble_status:
+		_rumble_status = me.status
+		if me.status == Protocol.ACT_KNOCKED_OUT:
+			Pad.rumble(0.9, 1.0, 0.5)
+	var pk := "%s/%s" % [Pad.active, Pad.style]
+	if pk != _pad_seen:
+		_pad_seen = pk  # pad on / off or another pad: the key help changes
+		hud.set_pad_keys(Pad.active)
+		if have_state:
+			_update_hint()
+	var b := _hint_next if Pad.active and hint_label.visible else -1
+	if b != _hint_button:
+		_hint_button = b
+		hint_glyph.queue_redraw()
+	if b >= 0:
+		# Left of the (centred) first line of the text.
+		var f := hint_label.get_theme_font("font")
+		var fsz := hint_label.get_theme_font_size("font_size")
+		var line := hint_label.text.get_slice("\n", 0)
+		var tw := minf(f.get_string_size(line, HORIZONTAL_ALIGNMENT_LEFT, -1, fsz).x, hint_label.size.x)
+		var gw := PadGlyphs.width(b, Pad.style, HINT_GLYPH)
+		hint_glyph.size = Vector2(gw, HINT_GLYPH)
+		hint_glyph.position = Vector2(floorf((hint_label.size.x - tw) / 2 - gw - 8), floorf((f.get_height(fsz) - HINT_GLYPH) / 2) + 2)
+
+
+## The window the pad's focus ring works in (pad/pad.gd): the top open
+## one, or null while walking around.
+func pad_modal() -> Control:
+	if screen.visible:
+		return screen
+	for w in [gadget, chat_box, log_history, action_menu, door_plaque, brush_game, roll_game, dialog, coffee, container, shelf_window]:
+		if w.visible:
+			return w
+	return null
 
 
 ## Touch screens: no keys in the hint ("[E] Usiądź" -> "Usiądź", the hand
@@ -1636,6 +1700,7 @@ func _update_ride() -> void:
 	elif ride_mask.visible:
 		ride_mask.visible = false
 		camera.offset = Vector2.ZERO
+		Pad.rumble(0.35, 0.1, 0.2)  # the car stops: arrived
 		_set_door_views_visible(true)
 		_set_floor_extras_visible(true)
 

@@ -290,3 +290,41 @@ static func draw_bar(c: CanvasItem, r: Rect2, value: float, color: Color) -> voi
 static func draw_disc(c: CanvasItem, center: Vector2, radius: float, color: Color) -> void:
 	c.draw_circle(center, radius, color)
 	c.draw_arc(center, radius, 0, TAU, 48, Color(INK, 0.6), 2.0, true)
+
+
+# ---------------------------------------------------------------- key caps
+
+## The pad's glyphs for key caps (set by pad/pad.gd): (ci, at, key, fsize,
+## draw) -> width, -1 = draw the key, -2 = the pad has no button for it.
+static var key_glyph := Callable()
+
+
+## The width of a key cap ("E", "1–3", "Esc"); 0 when the pad in use has
+## no button for it.
+static func keycap_width(key: String, fsize := 14) -> float:
+	if key_glyph.is_valid():
+		var gw: float = key_glyph.call(null, Vector2.ZERO, key, fsize, false)
+		if gw < -1.5:
+			return 0.0
+		if gw >= 0.0:
+			return gw
+	return font().get_string_size(key, HORIZONTAL_ALIGNMENT_LEFT, -1, fsize).x + 12
+
+
+## A key cap with its top-left at `at` (an inked cap, `fsize` + 6 high);
+## with a pad in use, its button instead (nothing when it has none).
+## Returns the width.
+static func draw_keycap(ci: CanvasItem, at: Vector2, key: String, fsize := 14) -> float:
+	if key_glyph.is_valid():
+		var gw: float = key_glyph.call(ci, at, key, fsize, true)
+		if gw < -1.5:
+			return 0.0
+		if gw >= 0.0:
+			return gw
+	var f := font()
+	var kw := f.get_string_size(key, HORIZONTAL_ALIGNMENT_LEFT, -1, fsize).x
+	var kr := Rect2(at, Vector2(kw + 12, fsize + 6))
+	ci.draw_rect(kr, INK)
+	ci.draw_rect(kr.grow(-1.5), Color("#3b3026"))
+	ci.draw_string(f, Vector2(at.x + 6, at.y + fsize + 1), key, HORIZONTAL_ALIGNMENT_LEFT, -1, fsize, PAPER_HI)
+	return kr.size.x

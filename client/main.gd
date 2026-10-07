@@ -32,6 +32,7 @@ const AuthClient = preload("res://net/auth_client.gd")
 const LoginScreen = preload("res://ui/login_screen.gd")
 const Platform = preload("res://platform/platform.gd")
 const Touch = preload("res://touch/touch.gd")
+const Pad = preload("res://pad/pad.gd")
 
 const BUILDING_PATH := "res://maps/building.json"
 
@@ -51,6 +52,7 @@ var pause_layer := CanvasLayer.new()
 var pause := PauseMenu.new()
 var _leaving := false  # "Wyjdź do menu": the disconnect goes to the title
 var audio := Audio.new()
+var pad := Pad.new()
 var auth := AuthClient.new()
 var updates := Updates.new()
 var update_layer := CanvasLayer.new()   # "a new version" over every screen
@@ -162,6 +164,9 @@ func _ready() -> void:
 			if game:
 				game.apply_settings())
 	portal.menu_requested.connect(func(): pause.open())
+	# Gamepads: over every screen (pad/pad.gd).
+	pad.main = self
+	add_child(pad)
 	if args.has("nick") or args.has("autoconnect"):
 		title_layer.visible = false
 	else:
@@ -428,6 +433,13 @@ func _input(event: InputEvent) -> void:
 			get_viewport().set_input_as_handled()
 
 
+## The game menu, if a game is on and nothing covers it (the pad was
+## unplugged mid-walk).
+func open_pause() -> void:
+	if game and not pause.visible and not title_layer.visible:
+		pause.open()
+
+
 ## "Wyjdź do menu": leave the server, back to the title.
 func _leave_to_menu() -> void:
 	_leaving = true
@@ -626,15 +638,16 @@ func _notification(what: int) -> void:
 				CrashReports.mark_running()
 
 
-## Touch screens (or --touch): bigger UI on phones, the text field above the
-## on-screen keyboard (--fake-keyboard=0.4 pretends one on a desktop).
+## Touch screens (or --touch): bigger UI on phones; everywhere the text
+## field slides above an on-screen keyboard, the phone's or the pad's
+## (--fake-keyboard=0.4 pretends one on a desktop).
 func _setup_touch() -> void:
 	Touch.setup(args)
+	var lift := preload("res://touch/keyboard_lift.gd").new()
+	lift.fake = float(args.get("fake-keyboard", "0"))
+	add_child(lift)
 	if not Touch.active:
 		return
 	var root := get_tree().root
 	root.size_changed.connect(func(): Touch.fit_ui(root))
 	Touch.fit_ui(root)
-	var lift := preload("res://touch/keyboard_lift.gd").new()
-	lift.fake = float(args.get("fake-keyboard", "0"))
-	add_child(lift)
