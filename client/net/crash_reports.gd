@@ -30,6 +30,14 @@ static func begin_session() -> Dictionary:
 	return crashed
 
 
+## Back from the background (phones): running again, same start time.
+static func mark_running() -> void:
+	var cfg := ConfigFile.new()
+	cfg.load(UserPaths.at("session.cfg"))
+	cfg.set_value("session", "running", true)
+	cfg.save(UserPaths.at("session.cfg"))
+
+
 ## A normal exit.
 static func end_session() -> void:
 	var cfg := ConfigFile.new()

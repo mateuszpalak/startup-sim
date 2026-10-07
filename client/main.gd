@@ -28,6 +28,7 @@ const Settings = preload("res://ui/settings.gd")
 const Audio = preload("res://audio/audio.gd")
 const AuthClient = preload("res://net/auth_client.gd")
 const LoginScreen = preload("res://ui/login_screen.gd")
+const Platform = preload("res://platform/platform.gd")
 
 const BUILDING_PATH := "res://maps/building.json"
 
@@ -79,6 +80,8 @@ func _ready() -> void:
 	if args.has("scenario"):
 		UserPaths.use_folder("e2e/" + str(args.get("scenario-id", args["scenario"])))
 	Settings.load_once()
+	if Platform.is_mobile():
+		Settings.fullscreen = true  # phones: always (Android: immersive, no system bars)
 	Settings.apply_window()
 	Settings.apply_fps()
 	add_child(audio)
@@ -513,9 +516,12 @@ func _show_update(version: String, url: String, required: bool) -> void:
 	var label := Ink.label(text, 18, Ink.TEXT_INK)
 	label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	row.add_child(label)
-	var get_it := Ink.button("Pobierz", true)
-	get_it.pressed.connect(func(): OS.shell_open(url))
-	row.add_child(get_it)
+	if Platform.can_self_update():
+		var get_it := Ink.button("Pobierz", true)
+		get_it.pressed.connect(func(): OS.shell_open(url))
+		row.add_child(get_it)
+	else:  # iOS: apps come only from TestFlight / the App Store
+		label.text += "\nZaktualizuj grę w TestFlight."
 	var later := Ink.button("Zamknij" if required else "Później")
 	later.pressed.connect(func(): panel.queue_free())
 	row.add_child(later)
@@ -593,6 +599,8 @@ func _send_crash_report(report: Dictionary, status: Label, panel: Control = null
 
 
 func _notification(what: int) -> void:
+	if AndroidPlatform.handle_back(what):
+		return
 	match what:
 		NOTIFICATION_WM_CLOSE_REQUEST:
 			net.close()
@@ -601,3 +609,14 @@ func _notification(what: int) -> void:
 			Settings.apply_fps(false)  # in the background: draw less
 		NOTIFICATION_APPLICATION_FOCUS_IN:
 			Settings.apply_fps(true)
+		# Phones: the system may end a backgrounded app without telling it;
+		# that is not a crash, so the session counts as clean while paused.
+		NOTIFICATION_APPLICATION_PAUSED:
+			Settings.apply_fps(false)
+			if CrashReports.enabled(args):
+				CrashReports.end_session()
+			Settings.save()
+		NOTIFICATION_APPLICATION_RESUMED:
+			Settings.apply_fps(true)
+			if CrashReports.enabled(args):
+				CrashReports.mark_running()
