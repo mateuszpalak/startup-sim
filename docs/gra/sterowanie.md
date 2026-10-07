@@ -95,6 +95,8 @@ szczotka — szoruj palcem, pojemniki — stuknij albo przeciągnij przedmiot,
 winda — stuknij czytnik i piętro. Pola tekstowe otwierają klawiaturę
 ekranową, a okno z polem przesuwa się nad nią.
 
+![HUD na telefonie](../media/ios/touch/hud_joystick.jpg)
+
 W ustawieniach („Sterowanie dotykiem”): joystick po prawej, wielkość i
 widoczność przycisków.
 
