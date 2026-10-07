@@ -55,7 +55,9 @@ impl Server {
             .iter()
             .enumerate()
             .filter(|(_, n)| n.in_talk_range(body) && (!shelf_here || close(n)))
-            .min_by_key(|(_, n)| (n.role != npc::Role::Cashier, !n.is_idle(), (n.body.pos.x - body.pos.x).abs() + (n.body.pos.y - body.pos.y).abs()))
+            .min_by_key(|(_, n)| {
+                (n.role != npc::Role::Cashier, !n.is_idle(), (n.body.pos.x - body.pos.x).abs() + (n.body.pos.y - body.pos.y).abs())
+            })
             .map(|(i, _)| i);
         if let Some(i) = nearest {
             let n = &mut self.npcs[i];
