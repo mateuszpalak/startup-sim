@@ -11,8 +11,17 @@
 /client/net/servers.cfg
 /client/net/pins/*.pem
 /tools/macos/signing.env
+/tools/ios/signing.env
 __pycache__/
 /crash-reports
 # The in-game WebView (tools/build_webview.sh builds it from source).
 /client/addons/godot_wry/
 /.cache
+# The Android Gradle build template (tools/build-android.sh --release installs it).
+/client3d/android/
+/dist
+# The same for the 3D client (client3d/).
+/client3d/.godot
+/client3d/net/servers.cfg
+/client3d/net/pins/*.pem
+/client3d/addons/godot_wry/

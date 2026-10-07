@@ -1,0 +1,359 @@
+## Character creation (GDD 9a, step 1): name, gender, age, city, e-mail and
+## appearance with a live preview. The last character is remembered locally
+## (user://character.cfg) so it doesn't have to be typed in every time.
+extends Control
+
+const Kit = preload("res://ui/ui_kit.gd")
+const TouchFit = preload("res://ui/touch_fit.gd")
+
+const PlayerView = preload("res://game/player_view.gd")
+const AvatarPreview = preload("res://ui/avatar_preview.gd")
+
+## Emitted with a validated character; `address` = server "host:port".
+signal connect_pressed(nick: String, profile: Dictionary, address: String)
+signal back_pressed
+
+const UserPaths = preload("res://net/user_paths.gd")
+const GENDERS := ["Kobieta", "Mężczyzna", "Inna"]
+const PREVIEW_SCALE := 7.0
+
+var nick_edit := LineEdit.new()
+var gender_opt := OptionButton.new()
+var age_spin := SpinBox.new()
+var city_edit := LineEdit.new()
+var email_edit := LineEdit.new()
+var addr_edit := LineEdit.new()
+var _addr_row: Array = []   # separator, caption, field
+var button := Button.new()
+var status := Label.new()
+
+var appearance := {"skin": 0, "hair_style": 0, "hair_color": 0, "shirt": 1, "pants": 0}
+var _preview := PlayerView.new()
+var _swatches := {}      # key -> Array[Button]
+var _hair_label := Label.new()
+
+
+func _ready() -> void:
+	get_viewport().size_changed.connect(_fit)
+	visibility_changed.connect(_fit)
+	_fit()
+	var bg := ColorRect.new()
+	bg.color = Color(0.1, 0.08, 0.14, 0.35)  # over the 3D backdrop
+	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	add_child(bg)
+	var center := CenterContainer.new()
+	center.set_anchors_preset(Control.PRESET_FULL_RECT)
+	add_child(center)
+	var outer := VBoxContainer.new()
+	outer.add_theme_constant_override("separation", 14)
+	center.add_child(outer)
+	TouchFit.scroll_center(self, center)
+
+	var title := _label("Startup Sim", 44, Color.WHITE)
+	title.add_theme_font_override("font", Kit.font_bold())
+	title.add_theme_constant_override("shadow_offset_y", 3)
+	title.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.35))
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	outer.add_child(title)
+	var sub := _label("Stwórz swoją postać — za chwilę zaczniesz szukać pracy.", 16, Color(1, 1, 1, 0.85))
+	sub.add_theme_constant_override("shadow_offset_y", 1)
+	sub.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.5))
+	sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	sub.visible = not TouchFit.Touch.phone
+	outer.add_child(sub)
+	title.visible = not TouchFit.Touch.phone
+
+	var row := BoxContainer.new()
+	row.add_theme_constant_override("separation", 18)
+	outer.add_child(row)
+	var orient := func():  # a phone held upright: the panels one under the other
+		var vs := get_viewport_rect().size
+		row.vertical = TouchFit.Touch.active and vs.y > vs.x
+	get_viewport().size_changed.connect(orient)
+	orient.call()
+	row.add_child(_panel(_build_form()))
+	row.add_child(_panel(_build_looks()))
+
+	button.text = "Rozpocznij"
+	button.custom_minimum_size = Vector2(0, 56 if TouchFit.Touch.active else 48)
+	button.add_theme_font_size_override("font_size", 24)
+	for st in ["normal", "hover", "pressed", "disabled", "focus"]:
+		button.add_theme_stylebox_override(st, Kit.button_box(st, true))
+	for k in ["font_color", "font_hover_color", "font_pressed_color", "font_focus_color"]:
+		button.add_theme_color_override(k, Color.WHITE)
+	outer.add_child(button)
+	var back := Kit.button("Wróć do menu")
+	back.custom_minimum_size = Vector2(0, 52 if TouchFit.Touch.active else 40)
+	back.pressed.connect(func(): back_pressed.emit())
+	outer.add_child(back)
+	status.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	status.custom_minimum_size = Vector2(0, 24)
+	outer.add_child(status)
+
+	button.pressed.connect(_submit)
+	for e in [nick_edit, city_edit, email_edit, addr_edit]:
+		e.text_submitted.connect(func(_t): _submit())
+	_load()
+	_refresh_looks()
+	nick_edit.grab_focus()
+
+
+# ------------------------------------------------------------------ layout
+
+## Lives in a CanvasLayer: size explicitly to the viewport.
+func _fit() -> void:
+	position = Vector2.ZERO
+	size = get_viewport_rect().size
+
+
+func _label(text: String, size: int, color := Color(1, 1, 1, 0.8)) -> Label:
+	var l := Label.new()
+	l.text = text
+	Kit.style_label(l, size, color)
+	return l
+
+
+func _panel(content: Control) -> PanelContainer:
+	var p := PanelContainer.new()
+	p.add_theme_stylebox_override("panel", Kit.box("glass"))
+	p.add_child(content)
+	return p
+
+
+func _field(box: VBoxContainer, caption: String, control: Control) -> void:
+	box.add_child(_label(caption, 14, Color(1, 1, 1, 0.6)))
+	control.custom_minimum_size.x = 300
+	box.add_child(control)
+
+
+func _build_form() -> VBoxContainer:
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 6)
+	box.add_child(_label("Dane postaci", 20, Color.WHITE))
+	nick_edit.max_length = 16
+	nick_edit.placeholder_text = "np. Ola"
+	_field(box, "Imię", nick_edit)
+	for g in GENDERS:
+		gender_opt.add_item(g)
+	_field(box, "Płeć", gender_opt)
+	age_spin.min_value = 18
+	age_spin.max_value = 70
+	age_spin.value = 25
+	_field(box, "Wiek", age_spin)
+	city_edit.max_length = 40
+	city_edit.placeholder_text = "np. Kraków"
+	_field(box, "Miejscowość", city_edit)
+	email_edit.max_length = 64
+	email_edit.placeholder_text = "np. ola.nowak@poczta.pl"
+	_field(box, "E-mail (postaci — do CV)", email_edit)
+	box.add_child(HSeparator.new())
+	addr_edit.placeholder_text = "127.0.0.1:7777"
+	_field(box, "Adres serwera", addr_edit)
+	# The address is only for development (guests); players pick a server when
+	# logging in and never see an address.
+	_addr_row = [box.get_child(box.get_child_count() - 3), box.get_child(box.get_child_count() - 2), addr_edit]
+	for c in _addr_row:
+		c.visible = OS.has_feature("editor")
+	return box
+
+
+func _build_looks() -> HBoxContainer:
+	var h := HBoxContainer.new()
+	h.add_theme_constant_override("separation", 16)
+	# Preview.
+	var pv := VBoxContainer.new()
+	# The look lives in a hidden PlayerView; the 3D avatar mirrors it.
+	var holder := Node2D.new()
+	holder.visible = false
+	pv.add_child(holder)
+	holder.add_child(_preview)
+	_preview.setup(0, "", PREVIEW_SCALE)
+	var stage := AvatarPreview.new()
+	stage.setup(_preview, Vector2i(200, 260))
+	pv.add_child(stage)
+	var rot := Button.new()
+	rot.text = "Obróć"
+	rot.pressed.connect(func(): _preview.set_facing([2, 0, 3, 1][_preview.facing]))
+	pv.add_child(rot)
+	var rnd := Button.new()
+	rnd.text = "Losuj wygląd"
+	rnd.pressed.connect(_randomize)
+	pv.add_child(rnd)
+	h.add_child(pv)
+	# Pickers.
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 6)
+	box.add_child(_label("Wygląd", 20, Color.WHITE))
+	_swatch_row(box, "Kolor skóry", "skin", PlayerView.SKINS)
+	box.add_child(_label("Fryzura", 14, Color(1, 1, 1, 0.6)))
+	var hr := HBoxContainer.new()
+	var prev := Button.new()
+	prev.text = "<"
+	prev.pressed.connect(func(): _cycle_hair(-1))
+	var next := Button.new()
+	next.text = ">"
+	next.pressed.connect(func(): _cycle_hair(1))
+	_hair_label.custom_minimum_size = Vector2(120, 0)
+	_hair_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	hr.add_child(prev)
+	hr.add_child(_hair_label)
+	hr.add_child(next)
+	box.add_child(hr)
+	_swatch_row(box, "Kolor włosów", "hair_color", PlayerView.HAIRS)
+	_swatch_row(box, "Koszula", "shirt", PlayerView.SHIRTS)
+	_swatch_row(box, "Spodnie", "pants", PlayerView.PANTS)
+	h.add_child(box)
+	return h
+
+
+func _swatch_row(box: VBoxContainer, caption: String, key: String, colors: Array) -> void:
+	box.add_child(_label(caption, 14, Color(1, 1, 1, 0.6)))
+	var grid := GridContainer.new()
+	grid.columns = 5
+	grid.add_theme_constant_override("h_separation", 4)
+	grid.add_theme_constant_override("v_separation", 4)
+	var buttons: Array[Button] = []
+	for i in colors.size():
+		var b := Button.new()
+		b.custom_minimum_size = Vector2(44, 40) if TouchFit.Touch.active else Vector2(30, 24)
+		b.tooltip_text = "%s %d" % [caption, i + 1]
+		var idx := i
+		b.pressed.connect(func(): appearance[key] = idx; _refresh_looks())
+		grid.add_child(b)
+		buttons.append(b)
+	_swatches[key] = [buttons, colors]
+	box.add_child(grid)
+
+
+func _refresh_looks() -> void:
+	for key in _swatches:
+		var buttons: Array = _swatches[key][0]
+		var colors: Array = _swatches[key][1]
+		for i in buttons.size():
+			var sb := StyleBoxFlat.new()
+			sb.bg_color = colors[i]
+			var selected: bool = appearance[key] == i
+			sb.set_border_width_all(Kit.LINE * (2 if selected else 1))
+			sb.border_color = Kit.GOLD if selected else Kit.INK
+			for state in ["normal", "hover", "pressed", "focus"]:
+				buttons[i].add_theme_stylebox_override(state, sb)
+	_hair_label.text = PlayerView.HAIR_STYLE_NAMES[appearance.hair_style]
+	_preview.set_appearance(appearance)
+
+
+func _cycle_hair(d: int) -> void:
+	var n: int = PlayerView.HAIR_STYLE_NAMES.size()
+	appearance.hair_style = (appearance.hair_style + d + n) % n
+	_refresh_looks()
+
+
+func _randomize() -> void:
+	appearance = {
+		"skin": randi() % PlayerView.SKINS.size(),
+		"hair_style": randi() % PlayerView.HAIR_STYLE_NAMES.size(),
+		"hair_color": randi() % PlayerView.HAIRS.size(),
+		"shirt": randi() % PlayerView.SHIRTS.size(),
+		"pants": randi() % PlayerView.PANTS.size(),
+	}
+	_refresh_looks()
+
+
+# -------------------------------------------------------------- behaviour
+
+func profile() -> Dictionary:
+	return {
+		"gender": gender_opt.selected,
+		"age": int(age_spin.value),
+		"city": city_edit.text.strip_edges(),
+		"email": email_edit.text.strip_edges().to_lower(),
+		"appearance": appearance.duplicate(),
+	}
+
+
+## Same rules as the server (validate_profile); returns an error or "".
+func validation_error() -> String:
+	if nick_edit.text.strip_edges().is_empty():
+		return "Podaj imię."
+	if city_edit.text.strip_edges().is_empty():
+		return "Podaj miejscowość."
+	var e := email_edit.text.strip_edges()
+	var parts := e.split("@")
+	if parts.size() != 2 or parts[0].is_empty() or not parts[1].contains(".") or parts[1].begins_with(".") \
+			or parts[1].ends_with(".") or e.contains(" "):
+		return "Podaj poprawny adres e-mail (np. ola.nowak@poczta.pl)."
+	return ""
+
+
+## Dev / autoconnect: fill in a valid character around a given name.
+func set_defaults(nick: String, address: String) -> void:
+	if nick != "":
+		nick_edit.text = nick
+	if city_edit.text == "":
+		city_edit.text = "Warszawa"
+	if email_edit.text == "" or nick != "":
+		email_edit.text = "%s@poczta.pl" % nick_edit.text.to_lower().replace(" ", ".").validate_filename()
+	addr_edit.text = address if address != "" else (addr_edit.text if addr_edit.text != "" else "127.0.0.1:7777")
+
+
+## Creating the character of a new account: the nick is the account's,
+## the server was chosen when logging in.
+func for_account(nick: String, address: String) -> void:
+	nick_edit.text = nick
+	nick_edit.editable = false
+	addr_edit.text = address
+	addr_edit.editable = false
+	for c in _addr_row:
+		c.visible = false
+	set_status("Konto %s gotowe — stwórz postać." % nick)
+
+
+func set_status(text: String, is_error := false) -> void:
+	status.text = text
+	status.modulate = Color(1, 0.45, 0.4) if is_error else Color(1, 1, 1, 0.8)
+
+
+func set_busy(busy: bool) -> void:
+	button.disabled = busy
+	for c in [nick_edit, city_edit, email_edit, addr_edit]:
+		c.editable = not busy
+
+
+func _submit() -> void:
+	if button.disabled:
+		return
+	var err := validation_error()
+	if err != "":
+		set_status(err, true)
+		return
+	_save()
+	var addr := addr_edit.text.strip_edges()
+	connect_pressed.emit(nick_edit.text.strip_edges(), profile(), addr if addr != "" else "127.0.0.1:7777")
+
+
+func _save() -> void:
+	var cfg := ConfigFile.new()
+	cfg.set_value("character", "nick", nick_edit.text.strip_edges())
+	cfg.set_value("character", "gender", gender_opt.selected)
+	cfg.set_value("character", "age", int(age_spin.value))
+	cfg.set_value("character", "city", city_edit.text.strip_edges())
+	cfg.set_value("character", "email", email_edit.text.strip_edges())
+	cfg.set_value("character", "appearance", appearance)
+	cfg.set_value("connection", "address", addr_edit.text.strip_edges())
+	cfg.save(UserPaths.at("character.cfg"))
+
+
+func _load() -> void:
+	var cfg := ConfigFile.new()
+	if cfg.load(UserPaths.at("character.cfg")) != OK:
+		_randomize()
+		return
+	nick_edit.text = cfg.get_value("character", "nick", "")
+	gender_opt.select(clampi(cfg.get_value("character", "gender", 0), 0, GENDERS.size() - 1))
+	age_spin.value = cfg.get_value("character", "age", 25)
+	city_edit.text = cfg.get_value("character", "city", "")
+	email_edit.text = cfg.get_value("character", "email", "")
+	var a = cfg.get_value("character", "appearance", {})
+	if typeof(a) == TYPE_DICTIONARY and a.size() == 5:
+		appearance = a
+	addr_edit.text = cfg.get_value("connection", "address", "")

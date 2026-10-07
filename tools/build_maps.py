@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
-"""Generates the building maps (client/maps/*.json) from a readable description.
+"""Generates the building maps (client/maps/*.json and the
+same files in client3d/maps/) from a readable description.
 
 The generated JSON files are the single source of truth read by both the server
 and the client; this script only exists to make editing the layout easier.
 Everything a floor file holds comes from here (edit this, not the JSON).
 
-    python3 tools/build_maps.py            # write client/maps/*.json
+    python3 tools/build_maps.py            # write client/maps/ and client3d/maps/
     python3 tools/build_maps.py --preview  # print ASCII only
 
 The layout follows the hand-drawn plan (numbers in the comments are the
@@ -19,7 +20,8 @@ import sys
 
 W, H = 70, 72
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
-OUT = os.path.join(ROOT, "client", "maps")
+# Both clients (2D and 3D) read the same maps; the server reads client/maps.
+OUTS = [os.path.join(ROOT, c, "maps") for c in ("client", "client3d")]
 
 # One character per tile type across all floors.
 LEGEND = {
@@ -954,8 +956,13 @@ def main():
             print("\n".join(f.rows()[0]))
             print()
         return
+    for out in OUTS:
+        write(out, floors, lk)
+
+
+def write(out, floors, lk):
     for f in floors:
-        path = os.path.join(OUT, "floor%d.json" % f.floor)
+        path = os.path.join(out, "floor%d.json" % f.floor)
         with open(path, "w", encoding="utf-8") as fh:
             json.dump(to_json(f, lk[f.floor]), fh, ensure_ascii=False, indent=1)
             fh.write("\n")
@@ -971,10 +978,10 @@ def main():
             {"floor": 6, "file": "floor6.json", "name": "Klatka schodowa (półpiętro 3–4)", "stairwell": True},
         ],
     }
-    with open(os.path.join(OUT, "building.json"), "w", encoding="utf-8") as fh:
+    with open(os.path.join(out, "building.json"), "w", encoding="utf-8") as fh:
         json.dump(building, fh, ensure_ascii=False, indent=1)
         fh.write("\n")
-    print("written to", OUT)
+    print("written to", out)
 
 
 if __name__ == "__main__":

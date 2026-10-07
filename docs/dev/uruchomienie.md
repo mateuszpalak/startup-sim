@@ -7,7 +7,8 @@ testy e2e).
 
 ```bash
 cd server && cargo run --release            # gra na [::]:7777 (UDP) + logowanie HTTPS na :7778; zapis w server/saves/world.db
-godot --path client                         # klient (można odpalić kilka razy): Graj → zaloguj się / załóż konto
+godot --path client                         # klient 2D (można odpalić kilka razy): Graj → zaloguj się / załóż konto
+godot --path client3d                       # klient 3D (te same argumenty; tylko w nim --touch, --safe-area, --fake-keyboard)
 cd server && cargo run --release -- --start-with-card --allow-guests   # wariant dla botów: goście z kartą
 cd server && cargo run --release -- --reset-password Ola                # administrator: nowe jednorazowe hasło
 cd server && cargo run --release -- --list-accounts                     # administrator: lista kont
@@ -77,6 +78,9 @@ Po `--`, np. `godot --path client -- --nick=Ala --autoconnect`.
 | `--goto="…"` | scenariusz kroków (niżej) |
 | `--record=/katalog --record-start=2 --record-length=6` | klatki JPG do zwiastuna ([tools/trailer](../../tools/trailer/README.md)) |
 | `--screenshot=/tmp/x.png --screenshot-delay=5` | zapis klatki i wyjście; `--screenshot-delay=5,12,20` zapisuje `x_1.png`, `x_2.png`, … |
+| `--touch` / `--touch=phone` / `--touch=tablet` | sterowanie dotykiem na komputerze (mysz = palec), skala UI telefonu / tabletu |
+| `--safe-area=l,t,r,b` | z `--touch`: udawane wcięcia ekranu (notch, pasek), w pikselach okna |
+| `--fake-keyboard=0.4` | z `--touch`: udawana klawiatura ekranowa na tej części okna (gdy pole tekstowe ma fokus) |
 | `--perf` | co 2 s: FPS, wywołania rysowania, co się najczęściej przerysowuje |
 | `--zoom=1.5` | przybliżenie kamery |
 | `--no-mood` | bez efektu „tuszu i papieru” (tylko do testów — w grze jest zawsze) |
@@ -115,7 +119,7 @@ budowany ze źródeł z przypiętego commita (v1.0.2) i naszą łatką
 jest skalowany z 1280×720):
 
 ```bash
-tools/build_webview.sh   # → client/addons/godot_wry/ (poza repozytorium), na razie macOS
+tools/build_webview.sh   # → client/addons/godot_wry/ (poza repozytorium), na razie macOS; CLIENT=client3d → client3d/
 ```
 
 Bez tego gra działa normalnie, a przeglądarka proponuje tylko otwarcie strony

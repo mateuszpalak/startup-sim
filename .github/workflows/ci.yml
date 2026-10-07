@@ -1,12 +1,13 @@
 # Checks on every push and pull request: the Rust server (format, clippy,
-# unit / golden / end-to-end tests, dependencies), the Godot client (lint,
-# protocol / movement parity with the server's golden files), gameplay
-# scenarios with the real client against the real server, the Python tools
+# unit / golden / end-to-end tests, dependencies), both Godot clients - 2D
+# (client/) and 3D (client3d/) - (lint, protocol / movement parity with the
+# server's golden files), gameplay scenarios with each real client against
+# the real server, the Python tools
 # and the maps they generate, and no secrets in the repository.
 #
 # The gameplay scenarios are the slow part: they run on pull requests only
-# (not again after the merge), split into 3 parallel parts, and only when
-# the client, the server or the scenarios changed. Run them by hand any
+# (not again after the merge), split into 3 parallel parts per client, and
+# only when a client, the server or the scenarios changed. Run them by hand any
 # time: Actions -> CI -> Run workflow.
 name: CI
 
@@ -59,9 +60,15 @@ jobs:
           manifest-path: server/Cargo.toml
 
   client:
-    name: Klient (Godot)
+    name: Klient ${{ matrix.label }} (Godot)
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {dir: client, label: 2D}
+          - {dir: client3d, label: 3D}
     env:
       GODOT_VERSION: 4.7.2
     steps:
@@ -69,7 +76,7 @@ jobs:
       - name: Lint GDScript (gdlint)
         run: |
           pipx install "gdtoolkit==4.*"
-          cd client && gdlint .
+          cd ${{ matrix.dir }} && gdlint .
       - name: Cache Godota
         id: godot-cache
         uses: actions/cache@v6
@@ -82,16 +89,16 @@ jobs:
           mkdir -p ~/godot
           curl -sSL -o /tmp/godot.zip "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip"
           unzip -q /tmp/godot.zip -d ~/godot
-          mv ~/godot/Godot_v${GODOT_VERSION}-stable_linux.x86_64 ~/godot/godot
+          mv ~/godot/"Godot_v${GODOT_VERSION}-stable_linux.x86_64" ~/godot/godot
       - name: Import projektu
-        run: ~/godot/godot --headless --path client --import
+        run: ~/godot/godot --headless --path ${{ matrix.dir }} --import
       - name: Testy klienta
         run: |
-          ~/godot/godot --headless --path client -s tests/run_tests.gd 2>&1 | tee /tmp/godot.log
+          ~/godot/godot --headless --path ${{ matrix.dir }} -s tests/run_tests.gd 2>&1 | tee /tmp/godot.log
           grep -q ", 0 failures" /tmp/godot.log
 
   gameplay:
-    name: Rozgrywka (scenariusze e2e, część ${{ matrix.shard }}/3)
+    name: Rozgrywka ${{ matrix.label }} (scenariusze e2e, część ${{ matrix.shard }}/3)
     needs: changes
     if: github.event_name == 'workflow_dispatch' || (github.event_name == 'pull_request' && needs.changes.outputs.game == 'true')
     runs-on: ubuntu-latest
@@ -100,6 +107,10 @@ jobs:
       fail-fast: false
       matrix:
         shard: [1, 2, 3]
+        dir: [client, client3d]
+        include:
+          - {dir: client, label: 2D}
+          - {dir: client3d, label: 3D}
     env:
       GODOT_VERSION: 4.7.2
     steps:
@@ -120,17 +131,17 @@ jobs:
           mkdir -p ~/godot
           curl -sSL -o /tmp/godot.zip "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip"
           unzip -q /tmp/godot.zip -d ~/godot
-          mv ~/godot/Godot_v${GODOT_VERSION}-stable_linux.x86_64 ~/godot/godot
+          mv ~/godot/"Godot_v${GODOT_VERSION}-stable_linux.x86_64" ~/godot/godot
       - name: Scenariusze (prawdziwy klient + serwer)
-        run: GODOT=$HOME/godot/godot python3 tests/e2e/run.py --shard ${{ matrix.shard }}/3 --logs /tmp/e2e-logs
+        run: GODOT=$HOME/godot/godot python3 tests/e2e/run.py --client ${{ matrix.dir }} --shard ${{ matrix.shard }}/3 --logs /tmp/e2e-logs
       - name: Logi scenariuszy
         if: failure()
         uses: actions/upload-artifact@v6
         with:
-          name: e2e-logs-${{ matrix.shard }}
+          name: e2e-logs-${{ matrix.dir }}-${{ matrix.shard }}
           path: /tmp/e2e-logs
 
-  # Did the pull request touch the game (client, server, scenarios)? Docs
+  # Did the pull request touch the game (either client, server, scenarios)? Docs
   # and the like don't need the gameplay scenarios.
   changes:
     name: Zmiany w grze?
@@ -146,7 +157,7 @@ jobs:
         run: |
           if [ "${{ github.event_name }}" != "pull_request" ]; then
             echo "game=true" >> "$GITHUB_OUTPUT"
-          elif git diff --name-only "${{ github.event.pull_request.base.sha }}" HEAD | grep -qE '^(client|server|tests/e2e)/'; then
+          elif git diff --name-only "${{ github.event.pull_request.base.sha }}" HEAD | grep -qE '^(client|client3d|server|tests/e2e)/'; then
             echo "game=true" >> "$GITHUB_OUTPUT"
           else
             echo "game=false" >> "$GITHUB_OUTPUT"
@@ -165,7 +176,7 @@ jobs:
       - name: Mapy zgodne z generatorem
         run: |
           python3 tools/build_maps.py
-          git diff --exit-code -- client/maps
+          git diff --exit-code -- client/maps client3d/maps
 
   secrets:
     name: Sekrety (gitleaks)

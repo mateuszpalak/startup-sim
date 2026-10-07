@@ -1,0 +1,480 @@
+## Headless tests: protocol + movement parity with the Rust server.
+## Run: godot --headless --path client3d -s tests/run_tests.gd
+extends SceneTree
+
+const Protocol = preload("res://net/protocol.gd")
+const Movement = preload("res://sim/movement.gd")
+const MapData = preload("res://map/map_data.gd")
+const Building = preload("res://map/building.gd")
+const NetClient = preload("res://net/net_client.gd")
+const Updates = preload("res://net/updates.gd")
+
+var failures := 0
+var checks := 0
+
+
+func _init() -> void:
+	var golden := ProjectSettings.globalize_path("res://").path_join("../server/tests/golden")
+	test_protocol(golden.path_join("packets.json"))
+	test_movement(golden.path_join("movement_vectors.json"))
+	test_sealed(golden.path_join("sealed.json"))
+	test_rejects_garbage()
+	test_parse_address()
+	test_shell()
+	test_scripts_compile()
+	test_roll_scores()
+	test_doorway_floors()
+	test_door_plaques()
+	test_camera_keys()
+	test_windows_asset()
+	test_custom_server()
+	print("%d checks, %d failures" % [checks, failures])
+	quit(1 if failures > 0 else 0)
+
+
+func expect(cond: bool, msg: String) -> void:
+	checks += 1
+	if not cond:
+		failures += 1
+		printerr("FAIL: ", msg)
+
+
+func load_json(path: String):
+	var text := FileAccess.get_file_as_string(path)
+	expect(text != "", "read " + path)
+	return JSON.parse_string(text)
+
+
+func test_protocol(path: String) -> void:
+	var golden := {}
+	for item in load_json(path)["packets"]:
+		golden[item["name"]] = item["hex"]
+	# Mirrors protocol::golden_samples() in server/src/protocol.rs.
+	var enc := {
+		"connect": Protocol.encode_connect(0xDEADBEEF, "Zażółć", {"gender": 0, "age": 27, "city": "Łódź", "email": "ola@poczta.pl",
+			"appearance": {"skin": 1, "hair_style": 4, "hair_color": 2, "shirt": 9, "pants": 3}}, "0a1b2c"),
+		"input": Protocol.encode_input(0x01020304, 1200, 99, PackedByteArray([0, 1, 9, 6])),
+		"info_request": Protocol.encode_info_request(0x01020304, [3, 4, 500]),
+		"ping": Protocol.encode_ping(0x01020304, 777000),
+		"apply": Protocol.encode_apply(0x01020304, 2, "Lubię kawę i wyzwania.", 9500, Protocol.EMPLOYMENT_MANDATE, true),
+		"portal_action": Protocol.encode_portal_action(0x01020304, Protocol.PORTAL_GO_TO_OFFICE, 0),
+		"item_action": Protocol.encode_item_action(0x01020304, Protocol.ITEM_TAKE_OUT, 2),
+		"door_action": Protocol.encode_door_action(0x01020304),
+		"shop_take": Protocol.encode_shop_take(0x01020304, 1, 11),
+		"commute_choice": Protocol.encode_commute_choice(0x01020304, 5),
+		"calendar_book": Protocol.encode_calendar_book(0x01020304, 840, 2),
+		"dialog_answer": Protocol.encode_dialog_answer(0x01020304, 3, 1),
+		"lunch_order": Protocol.encode_lunch_order(0x01020304, 29),
+		"company_action": Protocol.encode_company_action(0x01020304, Protocol.CO_SET_PLACES, 1, 2, ""),
+		"container_action": Protocol.encode_container_action(0x01020304, Protocol.CONTAINER_FRIDGE, Protocol.CONTAINER_TAKE, 1, 18),
+		"coffee_action": Protocol.encode_coffee_action(0x01020304, 1, Protocol.COFFEE_WATER),
+		"skip_wait": Protocol.encode_skip_wait(0x01020304),
+		"action": Protocol.encode_action(0x01020304, Protocol.ACTION_ATTACK),
+		"hr_action": Protocol.encode_hr_action(0x01020304, Protocol.HR_REQUEST, 9),
+		"roll": Protocol.encode_roll(0x01020304, 87),
+		"chat_say": Protocol.encode_chat_say(0x01020304, "/s Idziemy na kawę?"),
+		"task_action": Protocol.encode_task_action(0x01020304, 7, Protocol.TA_CREATE, 0, 2, "Naprawić logowanie\nPo zmianie hasła."),
+		"voice": Protocol.encode_voice(0x01020304, 9, true, PackedByteArray([0x10, 0x00, 0x05, 0x7f, 0x80])),
+		"mail_action": Protocol.encode_mail_action(0x01020304, 4, Protocol.MA_SEND, 0, "Kuba", "Kawa?", "O 12 w kuchni."),
+		"computer_action": Protocol.encode_computer_action(0x01020304, Protocol.PC_SEND, 17, 42, "Kto zjadł mój jogurt?"),
+		"answer": Protocol.encode_answer(0x01020304, 3, 1, 2),
+	}
+	for name in enc:
+		expect(enc[name].hex_encode() == golden[name], "encode %s: %s != %s" % [name, enc[name].hex_encode(), golden[name]])
+
+	var w := Protocol.decode(golden["welcome"].hex_decode())
+	expect(w.get("type") == Protocol.T_WELCOME and w.nonce == 0xDEADBEEF and w.player_id == 7 and w.token == 0x01020304
+		and w.tick_hz == 20 and w.input_hz == 60 and w.map_crc == 0xCAFEBABE and w.server_tick == 1234, "decode welcome %s" % w)
+	var rj := Protocol.decode(golden["reject"].hex_decode())
+	expect(rj.get("reason") == 1, "decode reject")
+	var s := Protocol.decode(golden["snapshot"].hex_decode())
+	expect(s.get("tick") == 1234 and s.last_input_seq == 99 and s.frag_cnt == 1 and s.self_x == 10000 and s.self_y == -5
+		and s.floor == 1 and s.room == 6 and s.self_lock == 2 and s.self_prev_input == 17 and s.self_access == 5
+		and s.self_slow == 1 and s.self_drunk == 2 and s.self_activity == Protocol.ACT_SOFA
+		and s.entities.size() == 2,
+		"decode snapshot %s" % s)
+	if s.has("entities") and s.entities.size() == 2:
+		var e0: Dictionary = s.entities[0]
+		var e1: Dictionary = s.entities[1]
+		expect(e0.id == 3 and e0.kind == 0 and e0.x == 4096 and e0.y == 8192 and e0.flags == 0b10_0101
+			and (e0.flags & Protocol.FLAG_DRUNK_MASK) >> Protocol.FLAG_DRUNK_SHIFT == 2 and e0.held == 3 and e0.activity == Protocol.ACT_COMPUTER, "entity 0 %s" % e0)
+		expect(e1.id == 65535 and e1.kind == 1 and e1.x == -1 and e1.y == 2000000 and e1.flags == Protocol.FLAG_SLOW, "entity 1 %s" % e1)
+	var dr := Protocol.decode(golden["doors"].hex_decode())
+	expect(dr.get("type") == Protocol.T_DOORS and dr.floor == 1 and dr.tiles == [Vector2i(5, 45), Vector2i(41, 43)]
+		and dr.lifts.size() == 2 and dr.lifts[0].floor == 0 and dr.lifts[0].target == 1 and dr.lifts[0].moving
+		and dr.lifts[1].floor == 1 and dr.lifts[1].target == Protocol.NO_FLOOR and not dr.lifts[1].moving, "decode doors %s" % dr)
+	expect(Updates.is_newer("0.2.0", "0.1.0") and Updates.is_newer("v0.1.10", "0.1.9") and Updates.is_newer("1.0", "0.9.9")
+		and not Updates.is_newer("0.1.0", "0.1.0") and not Updates.is_newer("v0.1.0", "0.2.0") and not Updates.is_newer("0.1", "0.1.0"),
+		"version comparison")
+	var dp := Protocol.decode(golden["departments"].hex_decode())
+	expect(dp.get("type") == Protocol.T_DEPARTMENTS and dp.list.size() == 2 and dp.list[0].id == 1 and dp.list[0].short == "IT"
+		and dp.list[0].name == "Produkt / IT" and dp.list[1].id == 10 and dp.list[1].name == "Obsługa klienta", "decode departments %s" % dp)
+	var Departments = load("res://net/departments.gd")
+	Departments.set_list(dp.list + [{"id": 3, "short": "Zarząd", "name": "Zarząd"}])
+	expect(Departments.short_of(10) == "Obsługa" and Departments.name_of(7) == "?" and Departments.for_positions() == [1, 10],
+		"departments store (no board for positions)")
+	var st := Protocol.decode(golden["stats"].hex_decode())
+	expect(st.get("type") == Protocol.T_STATS and st.hunger == 35 and st.energy == 80 and st.stress == 12 and st.bladder == 64
+		and st.hygiene == 22 and st.alcohol == 77 and st.bowels == 41 and st.health == 63 and st.stats_flags == Protocol.STATS_DIRTY_HANDS and st.money == 18750, "decode stats %s" % st)
+	var ck := Protocol.decode(golden["clock"].hex_decode())
+	expect(ck.get("type") == Protocol.T_CLOCK and ck.day == 2 and ck.minute == 492 and not ck.night
+		and ck.place == Protocol.PLACE_COMMUTING and ck.arrive == 545 and ck.pay == 23000 and ck.pay_minutes == 460
+		and ck.today_minutes == 0 and ck.mode == 2 and ck.depart == 520 and ck.money == 18600
+		and ck.weather == Protocol.WEATHER_RAIN and ck.company == "Pixel Pierogi sp. z o.o." and ck.founded and ck.alarm == 1 and ck.skip == 1
+		and ck.leave, "decode clock %s" % ck)
+	var nt := Protocol.decode(golden["notice"].hex_decode())
+	expect(nt.get("type") == Protocol.T_NOTICE and nt.icon == 2 and nt.text == "Nowa poczta: Witamy!", "decode notice %s" % nt)
+	var md := Protocol.decode(golden["media"].hex_decode())
+	expect(md.get("type") == Protocol.T_MEDIA and md.screens == [{"floor": 1, "x": 35, "y": 14, "channel": 4, "started": 12345}]
+		and md.music == [{"track": 2, "started": 12000, "floor": 1, "x": 10496, "y": 3200, "holder": 7}], "decode media %s" % md)
+	var hr := Protocol.decode(golden["hr_info"].hex_decode())
+	expect(hr.get("type") == Protocol.T_HR_INFO and hr.title == "Programista/ka" and hr.form == Protocol.EMPLOYMENT_B2B
+		and hr.salary == 10200 and hr.pay_rate == 6071 and hr.start_day == 2 and hr.today == 7 and hr.reprimands == 1
+		and hr.leave_days == 2 and hr.worked == 3 and hr.annexes.size() == 2 and hr.annexes[1].text == "Aneks nr 1"
+		and hr.requests == [{"id": 1, "day": 9, "status": 1}, {"id": 2, "day": 8, "status": 3}], "decode hr_info %s" % hr)
+	var cm := Protocol.decode(golden["coffee_machine"].hex_decode())
+	expect(cm.get("type") == Protocol.T_COFFEE_MACHINE and cm.machine == 1 and cm.water == 5 and cm.grounds == 3
+		and cm.max == 8 and cm.busy == 2, "decode coffee machine %s" % cm)
+	var fr := Protocol.decode(golden["container"].hex_decode())
+	expect(fr.get("type") == Protocol.T_CONTAINER and fr.which == Protocol.CONTAINER_FRIDGE and fr.capacity == 12
+		and fr.slots.size() == 2 and fr.slots[0].kind == 11 and fr.slots[0].label == "Kanapka z szynką (Ola)"
+		and fr.slots[1].count == 4 and fr.milk == 7 and fr.minutes == 0, "decode container %s" % fr)
+	var li := Protocol.decode(golden["lights"].hex_decode())
+	expect(li.get("type") == Protocol.T_LIGHTS and li.floor == 1 and li.rooms == [5, 12], "decode lights %s" % li)
+	var sm := Protocol.decode(golden["smoke"].hex_decode())
+	expect(sm.get("type") == Protocol.T_SMOKE and sm.floor == 1 and sm.rooms == [[9, 40], [33, 200]], "decode smoke %s" % sm)
+	var co := Protocol.decode(golden["company_offers"].hex_decode())
+	expect(co.get("type") == Protocol.T_COMPANY_OFFERS and co.name.begins_with("Pixel") and co.offers.size() == 2
+		and co.offers[0].places == 2 and co.offers[0].description == "Piszemy w Ruście." and co.offers[1].set == "general"
+		and co.offers[1].department == 2 and co.sets.size() == 2 and co.sets[0].name == "Programowanie" and co.parts == 1, "decode company offers %s" % co)
+	var cp := Protocol.decode(golden["company_people"].hex_decode())
+	expect(cp.get("type") == Protocol.T_COMPANY_PEOPLE and cp.candidates.size() == 1 and cp.candidates[0].nick == "Bob"
+		and cp.staff.size() == 2 and cp.staff[1].day == 5 and cp.staff[1].reprimands == 2 and cp.staff[1].nick == "Kuba", "decode company people %s" % cp)
+	var cal := Protocol.decode(golden["calendar"].hex_decode())
+	expect(cal.get("type") == Protocol.T_CALENDAR and cal.mine_start == 840 and cal.mine_topic == 1 and cal.slots.size() == 4
+		and cal.slots[3].state == Protocol.SLOT_MINE and cal.slots[1].start == 630, "decode calendar %s" % cal)
+	var lm := Protocol.decode(golden["lunch_menu"].hex_decode())
+	expect(lm.get("type") == Protocol.T_LUNCH_MENU and lm.state == Protocol.LUNCH_ORDERED and lm.dish == 28 and lm.arrives == 760
+		and lm.dishes.size() == 1 and lm.dishes[0].price == 2400 and lm.dishes[0].restaurant == "Pierogarnia u Zosi", "decode lunch menu %s" % lm)
+	var dl := Protocol.decode(golden["dialog"].hex_decode())
+	expect(dl.get("type") == Protocol.T_DIALOG and dl.id == 3 and dl.npc == 61444 and dl.options.size() == 2
+		and dl.text.begins_with("Podwyżka"), "decode dialog %s" % dl)
+	var sh := Protocol.decode(golden["shelf"].hex_decode())
+	expect(sh.get("type") == Protocol.T_SHELF and sh.shelf == 1 and sh.title == "Kanapki" and sh.goods.size() == 2
+		and sh.goods[1].name == "Kanapka z szynką" and sh.goods[1].price == 1400 and sh.goods[0].kind == 10, "decode shelf %s" % sh)
+	var pi := Protocol.decode(golden["player_info"].hex_decode())
+	expect(pi.get("players", []).size() == 2 and pi.players[0].nick == "Ala" and pi.players[0].department == 1
+		and pi.players[0].gender == 0 and pi.players[0].appearance.hair_style == 1 and pi.players[0].appearance.hair_color == 3
+		and pi.players[1].nick == "bot_07" and pi.players[1].id == 4 and pi.players[1].department == 0, "decode player_info %s" % pi)
+	var jo := Protocol.decode(golden["job_offers"].hex_decode())
+	expect(jo.get("offers", []).size() == 2 and jo.offers[1].title == "Dostawca/Dostawczyni" and jo.offers[1].department == 0
+		and jo.offers[1].company == "Pizzeria u Stefana" and jo.offers[0].applied == true and jo.offers[1].applied == false
+		and jo.offers[0].description == "Owocowe czwartki." and jo.offers[0].vacancies == 2
+		and jo.offers[0].salary_min == 8000 and jo.offers[0].salary_max == 12000 and jo.offers[1].salary_max == 4800, "decode job_offers %s" % jo)
+	var inv := Protocol.decode(golden["inventory"].hex_decode())
+	expect(inv.get("slots", []).size() == 4 and inv.slots[0].kind == 3 and inv.slots[0].label == "Laptop: Ola"
+		and inv.slots[1].id == 76 and inv.slots[2].kind == 0, "decode inventory %s" % inv)
+	var pc := Protocol.decode(golden["computer"].hex_decode())
+	expect(pc.get("type") == Protocol.T_COMPUTER and pc.handle == 0xE001 and pc.owner == 3 and not pc.locked
+		and pc.convs.size() == 3 and pc.convs[0].title == "#ogólny" and pc.convs[1].unread == 2
+		and pc.convs[2].conv == Protocol.CONV_DM | 4 and pc.owner_nick == "Ola", "decode computer %s" % pc)
+	var ch := Protocol.decode(golden["chat"].hex_decode())
+	expect(ch.get("type") == Protocol.T_CHAT and ch.conv == 17 and ch.messages.size() == 2
+		and ch.messages[1].nick == "Kuba" and ch.messages[0].text == "Deploy w piątek?" and ch.messages[1].id == 6, "decode chat %s" % ch)
+	var ml := Protocol.decode(golden["mail"].hex_decode())
+	expect(ml.get("id") == 2 and ml.from == "Startup Sim — Rekrutacja" and ml.subject == "Zaproszenie na rozmowę"
+		and ml.action == Protocol.PORTAL_JOIN_INTERVIEW and ml.arg == 1 and ml.body.begins_with("Cześć Ola"), "decode mail %s" % ml)
+	var q := Protocol.decode(golden["question"].hex_decode())
+	expect(q.get("attempt") == 3 and q.index == 1 and q.total == 3 and q.text == "Co oznacza kod HTTP 404?"
+		and q.options.size() == 3 and q.options[1] == "Skończyła się kawa", "decode question %s" % q)
+	var rr := Protocol.decode(golden["recruit_result"].hex_decode())
+	expect(rr.get("attempt") == 3 and rr.passed == true and rr.score == 2 and rr.total == 3 and rr.department == 1, "decode recruit_result %s" % rr)
+	var po := Protocol.decode(golden["pong"].hex_decode())
+	expect(po.get("client_time") == 777000 and po.server_tick == 1234, "decode pong")
+	var d := Protocol.decode(golden["disconnect"].hex_decode())
+	expect(d.get("reason") == 1 and d.token == 0x01020304, "decode disconnect")
+	var say := Protocol.decode(golden["say"].hex_decode())
+	expect(say.get("type") == Protocol.T_SAY and say.id == 61440 and say.text == "Dzień dobry! Proszę za mną.", "decode say %s" % say)
+	var tb := Protocol.decode(golden["task_board"].hex_decode())
+	expect(tb.get("type") == Protocol.T_TASK_BOARD and tb.done == 7 and tb.members == ["Ola", "Kuba"] and tb.tasks.size() == 1
+		and tb.tasks[0].title == "Naprawić logowanie" and tb.tasks[0].assignee == "Kuba" and tb.tasks[0].priority == 2, "decode task board %s" % tb)
+	var td := Protocol.decode(golden["task_detail"].hex_decode())
+	expect(td.get("id") == 3 and td.desc == "Po zmianie hasła." and td.comments == [["Kuba", "Zrobione"]], "decode task detail %s" % td)
+	var wm := Protocol.decode(golden["work_mail"].hex_decode())
+	expect(wm.get("from") == "HR" and wm.subject == "Witamy!" and wm.minute == 540 and wm.day == 2, "decode work mail %s" % wm)
+	var ms := Protocol.decode(golden["mail_state"].hex_decode())
+	expect(ms.get("done") == 4 and ms.ids == [1, 2, 5] and ms.trashed == [2], "decode mail state %s" % ms)
+	var vf := Protocol.decode(golden["voice_from"].hex_decode())
+	expect(vf.get("speaker") == 3 and vf.seq == 9 and not vf.whisper and vf.data == PackedByteArray([0x10, 0x00, 0x05, 0x7f, 0x80]), "decode voice_from %s" % vf)
+	# ADPCM: a 440 Hz tone survives encoding (a rough SNR check).
+	var Adpcm = load("res://audio/adpcm.gd")
+	var adpcm_tone := PackedFloat32Array()
+	for i in 640:
+		adpcm_tone.append(0.5 * sin(TAU * 440.0 * i / 16000.0))
+	var adpcm_state := [0, 0]
+	var adpcm_enc: PackedByteArray = Adpcm.encode(adpcm_tone, adpcm_state)
+	var adpcm_dec: PackedFloat32Array = Adpcm.decode(adpcm_enc)
+	var adpcm_err := 0.0
+	var adpcm_sig := 0.0
+	for i in range(64, 640):  # after the step size adapts
+		adpcm_err += pow(adpcm_dec[i] - adpcm_tone[i], 2)
+		adpcm_sig += pow(adpcm_tone[i], 2)
+	expect(adpcm_enc.size() == 323 and adpcm_dec.size() == 640, "adpcm sizes %d %d" % [adpcm_enc.size(), adpcm_dec.size()])
+	expect(10.0 * log(adpcm_sig / maxf(adpcm_err, 1e-9)) / log(10.0) > 20.0, "adpcm SNR %.1f dB" % [10.0 * log(adpcm_sig / maxf(adpcm_err, 1e-9)) / log(10.0)])
+	var snd := Protocol.decode(golden["sound"].hex_decode())
+	expect(snd.get("type") == Protocol.T_SOUND and snd.sounds == [[1, 12288, -256], [17, 0, 65536]], "decode sound %s" % snd)
+	# Truncation must never decode.
+	var snap: PackedByteArray = golden["snapshot"].hex_decode()
+	for n in snap.size():
+		expect(Protocol.decode(snap.slice(0, n)).is_empty(), "truncated snapshot len %d" % n)
+	# Nick truncated on a character boundary (20 bytes -> 16).
+	var c := Protocol.encode_connect(1, "ąąąąąąąąąą", {"gender": 0, "age": 20, "city": "X", "email": "a@b.c",
+		"appearance": {"skin": 0, "hair_style": 0, "hair_color": 0, "shirt": 0, "pants": 0}})
+	expect(c[8] == 16 and c.slice(9, 25).get_string_from_utf8() == "ąąąąąąąą", "nick truncation")
+
+
+func _body_from(a: Array) -> Dictionary:
+	return Movement.body(int(a[0]), Vector2i(int(a[1]), int(a[2])), int(a[3]), int(a[4]), int(a[5]), int(a[6]) != 0, int(a[7]))
+
+
+func test_movement(path: String) -> void:
+	var building = Building.new()
+	building.load_path("res://maps/building.json")
+	expect(building.error == "", "building loads: " + building.error)
+	var data = load_json(path)
+	expect(int(data["building_crc"]) == building.crc, "building crc parity %d vs %d" % [int(data["building_crc"]), building.crc])
+	var case_i := 0
+	var floor_changes := 0
+	for c in data["cases"]:
+		var b := _body_from(c["start"])
+		var inputs: Array = c["inputs"]
+		var states: Array = c["states"]
+		var ok := true
+		for i in inputs.size():
+			var before: int = b.floor
+			b = Movement.step(building, b, int(inputs[i]))
+			if b.floor != before:
+				floor_changes += 1
+			var want := _body_from(states[i])
+			if b != want:
+				expect(false, "case %d step %d: got %s want %s" % [case_i, i, b, want])
+				ok = false
+				break
+		expect(ok, "movement case %d" % case_i)
+		case_i += 1
+	expect(floor_changes >= 3, "vectors exercise stairs/elevator (%d floor changes)" % floor_changes)
+	# Two lifts: the door tiles know theirs (the Doors packet's order).
+	expect(building.lift_ids == ["A", "B"], "lift ids %s" % [building.lift_ids])
+	expect(building.lift_at_door(0, Vector2i(37, 43)) == 0 and building.lift_at_door(4, Vector2i(41, 43)) == 1
+		and building.lift_at_door(0, Vector2i(30, 50)) == -1, "doors belong to their lift")
+	# Locked stall door (dynamic overlay): same result as stalls.rs in Rust.
+	var m = building.get_floor(4)
+	var walk_left := func() -> Dictionary:
+		var bd := Movement.body(4, Movement.tile_center(7, 45), 0, Movement.LOCK_NONE, MapData.ACCESS_CARD)
+		for i in 60:
+			bd = Movement.step(building, bd, Movement.IN_LEFT)
+		return bd
+	expect(walk_left.call().pos.x < Movement.tile_center(5, 45).x, "open stall door: walks in")
+	m.set_closed_tiles([Vector2i(5, 45)])
+	expect(walk_left.call().pos.x == 6 * 256 + 5 * 16, "locked stall door stops at the door (%d)" % walk_left.call().pos.x)
+	m.set_closed_tiles([])
+
+
+## A wide doorway has one floor under it (not half carpet, half planks).
+func test_doorway_floors() -> void:
+	var Painter = preload("res://map/map_painter.gd")
+	var building = Building.new()
+	building.load_path("res://maps/building.json")
+	for f in [0, 3, 4, 5, 6]:
+		var p = Painter.new()
+		p.map = building.get_floor(f)
+		var bad := []
+		for y in p.map.height:
+			for x in p.map.width:
+				for d in [Vector2i(1, 0), Vector2i(0, 1)]:
+					if p._is_door(x, y) and p._is_door(x + d.x, y + d.y) and p._floor_under(x, y) != p._floor_under(x + d.x, y + d.y):
+						bad.append(Vector2i(x, y))
+		expect(bad.is_empty(), "floor %d: doorways with two floors at %s" % [f, bad])
+		p.free()
+
+## Door plaques: the room behind the door, read from the other side.
+func test_door_plaques() -> void:
+	var building = Building.new()
+	building.load_path("res://maps/building.json")
+	var m0 = building.get_floor(0)
+	var m1 = building.get_floor(4)
+	var at := func(m, x: int, y: int) -> String:
+		return m.room_name(m.plaque_at(x, y, m.room_at_tile(x, y))) if m.plaque_at(x, y, m.room_at_tile(x, y)) else ""
+	var icon := func(m, x: int, y: int) -> String:
+		return m.plaque_icon(m.plaque_at(x, y, m.room_at_tile(x, y)))
+	expect(at.call(m1, 42, 14) == "HR", "HR from the corridor: %s" % at.call(m1, 42, 14))
+	expect(at.call(m1, 44, 14) == "", "no plaque for the corridor (from inside HR)")
+	expect(at.call(m1, 30, 19) == "Zarząd", "the board room's door")
+	# Obvious places have none: the balcony, the shop, the stairwell.
+	expect(at.call(m1, 23, 7) == "" and at.call(m1, 23, 5) == "", "no plaque on the balcony's door")
+	expect(at.call(m1, 37, 44) == "", "no plaque on the lift")
+	expect(at.call(m1, 37, 20) == "", "nothing away from doors")
+	expect(at.call(m0, 22, 58) == "", "no plaque on the shop: %s" % at.call(m0, 22, 58))
+	expect(at.call(m0, 28, 42) == "" and at.call(m1, 30, 41) == "", "no plaque on the stairwell's doors")
+	expect(at.call(m1, 52, 45) == "Mordor", "Mordor from the east corridor: %s" % at.call(m1, 52, 45))
+	# Toilets: a sign instead of words; between two doors, the one you face.
+	var face := func(m, x: int, y: int, d: Vector2i) -> String:
+		return m.plaque_icon(m.plaque_at(x, y, m.room_at_tile(x, y), d))
+	expect(icon.call(m1, 34, 19) == "female", "women's, from the corridor: %s" % icon.call(m1, 34, 19))
+	expect(at.call(m1, 36, 18) == "" and at.call(m1, 38, 18) == "", "none on the stalls inside the bathroom")
+	expect(face.call(m1, 37, 27, Vector2i(0, -1)) == "male", "men's (facing up)")
+	expect(face.call(m1, 37, 27, Vector2i(0, 1)) == "accessible", "the disabled toilet (facing down)")
+	expect(face.call(m1, 37, 28, Vector2i(0, 1)) == "accessible", "the disabled toilet, from its doorway")
+	expect(icon.call(m0, 41, 53) == "unisex", "the lodge's toilet: both signs: %s" % icon.call(m0, 41, 53))
+	expect(icon.call(m1, 42, 14) == "", "HR in words")
+
+
+## Sealed packets: the same bytes as the server's (and back).
+func test_sealed(path: String) -> void:
+	var Seal = load("res://net/seal.gd")
+	var g: Dictionary = load_json(path)
+	var s = Seal.from_key(str(g.key).hex_decode())
+	var inner: PackedByteArray = str(g.inner).hex_decode()
+	var prefix: PackedByteArray = Seal.session_prefix(Protocol.MAGIC, Protocol.VERSION, int(g.token))
+	var to_server: PackedByteArray = s.seal(Seal.TO_SERVER, prefix, int(g.to_server_counter), inner)
+	expect(to_server.hex_encode() == g.to_server, "seal to server")
+	var cprefix: PackedByteArray = Seal.connect_prefix(Protocol.MAGIC, Protocol.VERSION, str(g.ticket).hex_decode())
+	expect(s.seal(Seal.TO_SERVER, cprefix, 1, inner).hex_encode() == g.connect, "seal a Connect")
+	var opened: Array = s.open(Seal.TO_CLIENT, 8, str(g.to_client).hex_decode())
+	expect(opened.size() == 2 and opened[0] == int(g.to_client_counter) and opened[1] == inner, "open from the server")
+	expect(s.open(Seal.TO_SERVER, 8, str(g.to_client).hex_decode()).is_empty(), "wrong direction")
+	var bad: PackedByteArray = str(g.to_client).hex_decode()
+	bad[20] ^= 1
+	expect(s.open(Seal.TO_CLIENT, 8, bad).is_empty(), "tampered")
+	expect(s.accept(3) and s.accept(1) and not s.accept(3) and s.accept(80) and not s.accept(10), "replay window")
+
+
+## Every script of the game compiles (a missing preload in a window that the
+## other tests never open shows up here, not in the middle of a game).
+func test_scripts_compile() -> void:
+	var dirs := ["res://"]
+	var count := 0
+	while not dirs.is_empty():
+		var dir: String = dirs.pop_back()
+		for sub in DirAccess.get_directories_at(dir):
+			if not sub.begins_with(".") and sub != "addons":
+				dirs.append(dir.path_join(sub))
+		for f in DirAccess.get_files_at(dir):
+			if f.ends_with(".gd"):
+				var script = load(dir.path_join(f))
+				expect(script != null and script.can_instantiate(), "compiles: %s" % dir.path_join(f))
+				count += 1
+	expect(count > 40, "scripts found (%d)" % count)
+
+
+## The rolling minigame's scoring.
+## Movement keys under a turned 3D camera (camera_rig.screen_to_map).
+func test_camera_keys() -> void:
+	var rig = preload("res://world3d/camera_rig.gd").new()
+	var cases := [  # [yaw in 45-degree steps, screen key, map direction]
+		[0, Vector2i(0, -1), Vector2i(0, -1)],
+		[2, Vector2i(0, -1), Vector2i(-1, 0)],
+		[4, Vector2i(1, 0), Vector2i(-1, 0)],
+		[6, Vector2i(1, 0), Vector2i(0, 1)],
+		[1, Vector2i(0, -1), Vector2i(-1, -1)],
+		[1, Vector2i(1, -1), Vector2i(0, -1)],
+		[-1, Vector2i(0, -1), Vector2i(1, -1)],
+		[3, Vector2i(0, 0), Vector2i(0, 0)],
+	]
+	for c in cases:
+		rig._yaw_goal = c[0] * PI / 4
+		var got: Vector2i = rig.screen_to_map(c[1])
+		expect(got == c[2], "camera keys: yaw %d x45, key %s -> %s, want %s" % [c[0], c[1], got, c[2]])
+	rig.camera.free()
+	rig.free()
+
+
+func test_roll_scores() -> void:
+	var RollGame = preload("res://ui/roll_game.gd")
+	expect(RollGame.fill_score(0.7) == 100 and RollGame.fill_score(0.3) == 0 and RollGame.fill_score(0.85) == 80, "fill score")
+	expect(RollGame.roll_score(0.5) == 100 and RollGame.roll_score(0.0) == 0, "roll score")
+	expect(RollGame.seal_score(0.0) == 100 and RollGame.seal_score(-1.0) == 20 and RollGame.seal_score(1.0) == 0, "seal score")
+
+
+## The office terminal's make-believe shell.
+func test_shell() -> void:
+	var sh = preload("res://ui/office/shell.gd").new()
+	sh.setup("Ola", "Pixel Pierogi", "Mobile")
+	expect(sh.prompt() == "ola@startup:~$ ", "prompt %s" % sh.prompt())
+	expect(sh.run("ls").contains("notatki.txt") and not sh.run("ls").contains(".bash_history"), "ls hides dotfiles")
+	expect(sh.run("ls -la").contains(".bash_history"), "ls -la")
+	expect(sh.run("cd /srv/startup") == "" and sh.run("pwd") == "/srv/startup", "cd")
+	expect(sh.run("cat README.md").contains("Pixel Pierogi"), "cat (relative)")
+	expect(sh.run("cd ../..") == "" and sh.run("pwd") == "/", "cd ..")
+	expect(sh.run("cd /nie/ma").begins_with("cd:"), "cd to nowhere")
+	expect(sh.run("cat /etc").contains("katalog"), "cat a directory")
+	expect(sh.run("rm -rf /").contains("Prezes"), "rm -rf /")
+	expect(sh.run("make").contains("Brak reguły") and sh.run("make coffee").contains("418"), "make coffee")
+	expect(sh.run("foo").contains("nie znaleziono"), "unknown command")
+	expect(sh.run("clear") == sh.CLEAR and sh.run("exit") == sh.EXIT, "clear / exit")
+	expect(sh.run("history").contains("rm -rf /"), "history")
+
+
+func test_rejects_garbage() -> void:
+	expect(Protocol.decode(PackedByteArray()).is_empty(), "empty")
+	expect(Protocol.decode(PackedByteArray([0, 0, 1, 2])).is_empty(), "bad magic")
+	expect(Protocol.decode(PackedByteArray([0x54, 0x53, 9, 2])).is_empty(), "bad version")
+	expect(Protocol.decode(PackedByteArray([0x54, 0x53, 1, 200])).is_empty(), "unknown type")
+
+
+func test_parse_address() -> void:
+	var cases := {
+		"127.0.0.1:7777": ["127.0.0.1", 7777],
+		"127.0.0.1": ["127.0.0.1", 7777],
+		"game.example.com:9000": ["game.example.com", 9000],
+		"localhost": ["localhost", 7777],
+		"[::1]:7000": ["::1", 7000],
+		"[::1]": ["::1", 7777],
+		"::1": ["::1", 7777],
+		"2001:db8::5": ["2001:db8::5", 7777],
+		"[2001:db8::5]:1234": ["2001:db8::5", 1234],
+		"  10.0.0.2:80  ": ["10.0.0.2", 80],
+		"": [],
+		"host:": [],
+		"host:abc": [],
+		"host:70000": [],
+		"[::1": [],
+		"[::1]x": [],
+		":7777": [],
+	}
+	for input in cases:
+		var got := NetClient.parse_address(input)
+		expect(got == cases[input], "parse_address(%s) = %s, want %s" % [input, got, cases[input]])
+
+
+func test_windows_asset() -> void:
+	var assets := [
+		{"name": "StartupSim-0.4.0.dmg", "browser_download_url": "https://x/mac.dmg"},
+		{"name": "StartupSim3D-0.4.0-windows-x86_64.zip", "browser_download_url": "https://x/win.zip"},
+	]
+	expect(Updates.asset_url(assets, "-windows-x86_64.zip", "page") == "https://x/win.zip", "windows asset found")
+	expect(Updates.asset_url(assets, "-windows-arm64.zip", "page") == "page", "no arm64 asset -> release page")
+	expect(Updates.asset_url(null, "-windows-x86_64.zip", "page") == "page", "no assets -> release page")
+	assets.append({"name": "StartupSim-0.4.0-debug.apk", "browser_download_url": "https://x/debug.apk"})
+	expect(Updates.asset_url(assets, Updates.asset_suffix("Android", true), "page") == "page", "debug apk is not offered")
+	assets.append({"name": "StartupSim-0.4.0.apk", "browser_download_url": "https://x/a.apk"})
+	expect(Updates.asset_url(assets, Updates.asset_suffix("Android", true), "page") == "https://x/a.apk", "android apk found")
+	expect(Updates.asset_url(assets, Updates.asset_suffix("macOS", true), "page") == "https://x/mac.dmg", "mac dmg found")
+	expect(Updates.asset_suffix("iOS", true) == "" and Updates.asset_suffix("Windows", true) == "-windows-arm64.zip", "suffixes")
+
+
+## Login: "Inny serwer…" takes a typed host:port; the game's servers keep their names.
+func test_custom_server() -> void:
+	var ln = load("res://ui/login_screen.gd").new()
+	ln._fill_servers()
+	var listed: String = ln._servers[0].address
+	ln.set_address(listed)
+	expect(ln.address() == listed and not ln._custom_selected(), "listed server selected by address")
+	ln.set_address("192.168.1.20:7777")
+	expect(ln._custom_selected() and ln.address() == "192.168.1.20:7777", "unknown address -> Inny serwer")
+	ln.custom_edit.text = "dom:port"
+	expect(ln.address() == "", "bad custom address rejected")
+	expect(load("res://net/auth_client.gd").server_name("10.0.0.5:7777") == "Inny serwer: 10.0.0.5:7777", "custom server labelled")
+	for n in [ln.server_opt, ln.custom_edit, ln.nick_edit, ln.pass_edit, ln.new_pass_edit, ln.remember_box,
+			ln.status, ln._form, ln._quick, ln._quick_label, ln]:
+		n.free()

@@ -109,3 +109,22 @@ logu w lewym dolnym rogu.
 **F3** (`debug_overlay.gd`): FPS, ping, tick serwera i czas renderu, piętro i pokój,
 widoczni gracze, id/kafel, inputy w locie, liczba korekt, procent klatek z
 pustym buforem interpolacji, transfer.
+
+**Platformy** (`platform/platform.gd`, statyczne): jedyne miejsce z
+rozróżnieniem komputer / telefon — `is_ios`, `is_mobile`, `can_self_update`
+(bez „Pobierz” na iOS), profil jakości (`quality()`: skala 3D, SSAO, kaskady
+cienia, deszcz, dym; `--quality=mobile` na komputerze; `apply_quality` —
+Android i iOS), możliwości renderera (`supports_ssao`, `supports_fsr`),
+`can_quit` (bez „Wyjdź” na iOS i Androidzie), bezpieczny obszar
+ekranu (`safe_area(viewport)` / `safe_margins` — wcięcie, Dynamic Island,
+pasek domowy; we współrzędnych viewportu; `--safe-area=l,t,r,b` udaje
+wcięcie, `touch.gd` korzysta z tego samego), klawiatura ekranowa
+(`show_keyboard`, `keyboard_height`; `LineEdit`/`TextEdit` pokazują ją
+same) i zgoda na mikrofon (`request_microphone`, na Androidzie przez
+`android.gd`; iOS pyta sam przy pierwszym
+`AudioStreamMicrophone`, sesja audio „Play and Record”). W tle
+(`NOTIFICATION_APPLICATION_PAUSED`) sesja liczy się jako zakończona czysto —
+iOS może zamknąć aplikację w tle bez ostrzeżenia, to nie awaria; po powrocie
+(`RESUMED`) `net_client` otwiera nowe gniazdo w tej samej sesji. Budowanie:
+[wydania](wydania.md#budowanie-klienta-na-ios).
+

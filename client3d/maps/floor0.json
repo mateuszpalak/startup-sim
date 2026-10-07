@@ -1,0 +1,734 @@
+{
+ "version": 1,
+ "id": "floor0",
+ "floor": 0,
+ "tile_px": 16,
+ "width": 70,
+ "height": 72,
+ "legend": {
+  "#": {
+   "type": "wall",
+   "solid": true,
+   "color": "#3b3b4f"
+  },
+  ".": {
+   "type": "floor",
+   "solid": false,
+   "color": "#c9c2b0"
+  },
+  ":": {
+   "type": "tiles",
+   "solid": false,
+   "color": "#e6e6e6"
+  },
+  "_": {
+   "type": "lobby",
+   "solid": false,
+   "color": "#d8c7a0"
+  },
+  "=": {
+   "type": "parking",
+   "solid": false,
+   "color": "#6f6f6f"
+  },
+  "D": {
+   "type": "door",
+   "solid": false,
+   "color": "#a0522d"
+  },
+  "G": {
+   "type": "glass_door",
+   "solid": false,
+   "color": "#8fd3e8"
+  },
+  "m": {
+   "type": "card_door",
+   "solid": false,
+   "color": "#7a6a50",
+   "access": "card",
+   "free_dir": "down"
+  },
+  "q": {
+   "type": "card_door",
+   "solid": false,
+   "color": "#7a6a50",
+   "access": "card",
+   "free_dir": "right"
+  },
+  "L": {
+   "type": "service_door",
+   "solid": false,
+   "color": "#6a3a2a",
+   "access": "service"
+  },
+  "g": {
+   "type": "garage_gate",
+   "solid": false,
+   "color": "#9a9a9a",
+   "access": "card",
+   "free_dir": "up"
+  },
+  "x": {
+   "type": "locked_door",
+   "solid": true,
+   "color": "#7a2a2a"
+  },
+  "E": {
+   "type": "elevator_door",
+   "solid": false,
+   "color": "#b8c4cc",
+   "access": "card",
+   "free_dir": "down"
+  },
+  "e": {
+   "type": "elevator",
+   "solid": false,
+   "color": "#9aa8b0"
+  },
+  "S": {
+   "type": "stairs",
+   "solid": false,
+   "color": "#b09070"
+  },
+  "K": {
+   "type": "counter",
+   "solid": true,
+   "color": "#c9a37a"
+  },
+  "H": {
+   "type": "shelf",
+   "solid": true,
+   "color": "#7a7f8a"
+  },
+  "a": {
+   "type": "armchair",
+   "solid": true,
+   "color": "#8a4a5a"
+  },
+  "P": {
+   "type": "plant",
+   "solid": true,
+   "color": "#3f8a3a"
+  },
+  "A": {
+   "type": "ashtray",
+   "solid": true,
+   "color": "#6d6d6d"
+  },
+  "U": {
+   "type": "toilet",
+   "solid": true,
+   "color": "#f2f2f2"
+  },
+  "V": {
+   "type": "sink",
+   "solid": true,
+   "color": "#dfe8ee"
+  },
+  "X": {
+   "type": "car",
+   "solid": true,
+   "color": "#b03a2e"
+  },
+  "r": {
+   "type": "street",
+   "solid": false,
+   "color": "#55585e"
+  },
+  "t": {
+   "type": "tram_track",
+   "solid": false,
+   "color": "#6b6259"
+  },
+  "b": {
+   "type": "bike_rack",
+   "solid": true,
+   "color": "#9aa4ab"
+  },
+  "k": {
+   "type": "stall_door",
+   "solid": false,
+   "color": "#9fb3c8"
+  },
+  "v": {
+   "type": "grass",
+   "solid": false,
+   "color": "#5e8c4a"
+  },
+  "p": {
+   "type": "sidewalk",
+   "solid": false,
+   "color": "#a8a8a0"
+  },
+  "z": {
+   "type": "smoking_area",
+   "solid": false,
+   "color": "#8a7f6a"
+  },
+  "F": {
+   "type": "fence",
+   "solid": true,
+   "color": "#4a3a2a"
+  },
+  "/": {
+   "type": "ramp",
+   "solid": false,
+   "color": "#4f5258"
+  },
+  "[": {
+   "type": "ramp_wall",
+   "solid": true,
+   "color": "#b5b2aa"
+  },
+  "!": {
+   "type": "boom_barrier",
+   "solid": true,
+   "color": "#d23b2e"
+  },
+  "^": {
+   "type": "garage_shutter",
+   "solid": true,
+   "color": "#3a3d42"
+  },
+  "]": {
+   "type": "shelter_glass",
+   "solid": true,
+   "color": "#a9cfdc"
+  },
+  "{": {
+   "type": "shelter_bench",
+   "solid": true,
+   "color": "#8a6a45"
+  }
+ },
+ "tiles": [
+  "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF",
+  "FvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvF",
+  "FvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvF",
+  "FvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvF",
+  "FvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvF",
+  "FvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvF",
+  "FvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvF",
+  "FvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvF",
+  "FvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvF",
+  "Fvvvvvvvvvvv=============================vvvvvvvvvvvvvvvvvvvvvvvvvvvvF",
+  "Fvvvvvvvvvvv=============================vvvvvvvvvvvvvvvvvvvvvvvvvvvvF",
+  "Fvvvvvvvvvvv=============================vvvvvvvvvvvvvvvvvvvvvvvvvvvvF",
+  "Fvvvvvvvvvvv=============================vvvvvvvvvvvvvvvvvvvvvvvvvvvvF",
+  "Fvvvvvvvvvvv=====v###############gggggg################vvvvvvvvvvvvvvF",
+  "Fvvvvvvvvvvv=====v#===================================#vvvvvvvvvvvvvvF",
+  "Fvvvvvvvvvvv=====v#XXX=============================XXX#vvvvvvvvvvvvvvF",
+  "Fvvvvvvvvvvv=====v#XXX====XXX===============XXX====XXX#vvvvvvvvvvvvvvF",
+  "Fvvvvvvvvvvv=====v#=======XXX===============XXX=======#vvvvvvvvvvvvvvF",
+  "Fvvvvvvvvvvv=====v#===================================#vvvvvvvvvvvvvvF",
+  "Fvvvvvvvvvvv=====v#XXX=============================XXX#vvvvvvvvvvvvvvF",
+  "Fvvvvvvvvvvv=====v#XXX=============================XXX#vvvvvvvvvvvvvvF",
+  "Fvvvvvvvvvvv=====v#===================================#vvvvvvvvvvvvvvF",
+  "Fvvvvvvvvvvv=====v#===================================#vvvvvvvvvvvvvvF",
+  "Fvvvvvvvvvvv=====v#XXX=============================XXX#vvvvvvvvvvvvvvF",
+  "Fvvvvvvvvvvv=====v#XXX=============================XXX#vvvvvvvvvvvvvvF",
+  "Fvvvvvvvvvvv=====v#===================================#vvvvvvvvvvvvvvF",
+  "Fvvvvvvvvvvv=====v#===================================#vvvvvvvvvvvvvvF",
+  "Fvvvvvvvvvvv=====v#XXX=============================XXX#vvvvvvvvvvvvvvF",
+  "Fvvvvvvvvvvv=====v#XXX=============================XXX#vvvvvvvvvvvvvvF",
+  "Fvvvvvvvvvvv=====v#===================================#vvvvvvvvvvvvvvF",
+  "Fvvvvvvvvvvv=====v#===================================#vvvvvvvvvvvvvvF",
+  "Fvvvvvvvvvvv=====v#XXX=============================XXX#vvvvvvvvvvvvvvF",
+  "Fvvvvvvvvvvv=====v#XXX=============================XXX#vvvvvvvvvvvvvvF",
+  "Fvvvvvvvvvvv=====v#===================================#vvvvvvvvvvvvvvF",
+  "Fvvvvvvvvvvv=====v#===================================#vvvvvvvvvvvvvvF",
+  "Fvvvvvvvvvvv=====v#XXX=============================XXX#vvvvvvvvvvvvvvF",
+  "Fvvvvvvvvvvv=====v#XXX=============================XXX#vvvvvvvvvvvvvvF",
+  "Fvvvvvvvvvvv=====v#===================================#vvvvvvvvvvvvvvF",
+  "Fvvvvvvvvvvv=====v#===================================#vvvvvvvvvvvvvvF",
+  "Fvvvvvvvvvvv=====v#===================================#vvvvvvvvvvvvvvF",
+  "Fvvvvvvvvvvv=====v#############mm######################vvvvvvvvvvvvvvF",
+  "Fvvvvvvvvvvv=====v#SSS.....#P______#eee#eee#..........#vvvvvvvvvvvvvvF",
+  "Fvvvvvvvvvvv=====v#SSS.....q_______#eee#eee#..........#vvvvvvvvvvvvvvF",
+  "Fvvvvvvvvvvv=====v#........#_______#EEE#EEE#..........#vvvvvvvvvvvvvvF",
+  "Fvvvvvvv]]zz=====v##########_______________#..........#vvvvvvvvvvvvvvF",
+  "Fvvvvvvv]{zz=====v#........#_______________x..........#vvvvvvvvvvvvvvF",
+  "Fvvvvvvv]{zz=====v#H.HHH..H#_______#########..........#vvvvvvvvvvvvvvF",
+  "Fvvvvvvv]{zA=====v#H......H#_______K___#:U:#..........#vvvvvvvvvvvvvvF",
+  "Fvvvvvvv]{zz=====v#H......H#_______K___#:::#..........#vvvvvvvvvvvvvvF",
+  "Fvvvvvvv]]zz=====v#H.HHH..H#_______K___#:::#..........#vvvvvvvvvvvvvvF",
+  "Fv[^^^^^^^^[=====v#........#_______K___#::V#..........#vvvvvvvvvvvvvvF",
+  "Fv[////////[=====v#..HHH...#_______K___#:::#..........#vvvvvvvvvvvvvvF",
+  "Fv[////////[=====v#.......H#___________##k##..........#vvvvvvvvvvvvvvF",
+  "Fv[////////[=====v#.......H####DD###_______#..........#vvvvvvvvvvvvvvF",
+  "Fv[////////[=====v#KKK.....#_______#_______#..........#vvvvvvvvvvvvvvF",
+  "Fv[////////[=====v#........#_______#_______L..........#vvvvvvvvvvvvvvF",
+  "Fv[////////[=====v#........#P______#__a___P#..........#vvvvvvvvvvvvvvF",
+  "Fv[!!!!!!!![=====v####GG######GGG######################vvvvvvvvvvvvvvF",
+  "FpppppppppppppppppppppppApppppppppppbbbbpppppppppppppppppppppppppppppF",
+  "FppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppF",
+  "FppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppF",
+  "FrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrF",
+  "Fvv============================vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvF",
+  "Fvv=XXX==XXX==XXX==XXX==XXX====vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvF",
+  "Fvv=XXX==XXX==XXX==XXX==XXX====vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvF",
+  "Fvv============================vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvF",
+  "Fvv============================vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvF",
+  "Fvv============================vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvF",
+  "Fvv============================vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvF",
+  "Fvv============================vpppppppppvvvvvvvvvvvvvvvvvvvvvvvvvvvvF",
+  "FttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttF",
+  "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"
+ ],
+ "rooms": [
+  "----------------------------------------------------------------------",
+  "-OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO-",
+  "-OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO-",
+  "-OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO-",
+  "-OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO-",
+  "-OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO-",
+  "-OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO-",
+  "-OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO-",
+  "-OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO-",
+  "-OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO-",
+  "-OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO-",
+  "-OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO-",
+  "-OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO-",
+  "-OOOOOOOOOOOOOOOOO---------------KKKKKK----------------OOOOOOOOOOOOOO-",
+  "-OOOOOOOOOOOOOOOOO-KKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKK-OOOOOOOOOOOOOO-",
+  "-OOOOOOOOOOOOOOOOO-KKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKK-OOOOOOOOOOOOOO-",
+  "-OOOOOOOOOOOOOOOOO-KKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKK-OOOOOOOOOOOOOO-",
+  "-OOOOOOOOOOOOOOOOO-KKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKK-OOOOOOOOOOOOOO-",
+  "-OOOOOOOOOOOOOOOOO-KKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKK-OOOOOOOOOOOOOO-",
+  "-OOOOOOOOOOOOOOOOO-KKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKK-OOOOOOOOOOOOOO-",
+  "-OOOOOOOOOOOOOOOOO-KKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKK-OOOOOOOOOOOOOO-",
+  "-OOOOOOOOOOOOOOOOO-KKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKK-OOOOOOOOOOOOOO-",
+  "-OOOOOOOOOOOOOOOOO-KKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKK-OOOOOOOOOOOOOO-",
+  "-OOOOOOOOOOOOOOOOO-KKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKK-OOOOOOOOOOOOOO-",
+  "-OOOOOOOOOOOOOOOOO-KKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKK-OOOOOOOOOOOOOO-",
+  "-OOOOOOOOOOOOOOOOO-KKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKK-OOOOOOOOOOOOOO-",
+  "-OOOOOOOOOOOOOOOOO-KKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKK-OOOOOOOOOOOOOO-",
+  "-OOOOOOOOOOOOOOOOO-KKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKK-OOOOOOOOOOOOOO-",
+  "-OOOOOOOOOOOOOOOOO-KKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKK-OOOOOOOOOOOOOO-",
+  "-OOOOOOOOOOOOOOOOO-KKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKK-OOOOOOOOOOOOOO-",
+  "-OOOOOOOOOOOOOOOOO-KKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKK-OOOOOOOOOOOOOO-",
+  "-OOOOOOOOOOOOOOOOO-KKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKK-OOOOOOOOOOOOOO-",
+  "-OOOOOOOOOOOOOOOOO-KKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKK-OOOOOOOOOOOOOO-",
+  "-OOOOOOOOOOOOOOOOO-KKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKK-OOOOOOOOOOOOOO-",
+  "-OOOOOOOOOOOOOOOOO-KKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKK-OOOOOOOOOOOOOO-",
+  "-OOOOOOOOOOOOOOOOO-KKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKK-OOOOOOOOOOOOOO-",
+  "-OOOOOOOOOOOOOOOOO-KKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKK-OOOOOOOOOOOOOO-",
+  "-OOOOOOOOOOOOOOOOO-KKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKK-OOOOOOOOOOOOOO-",
+  "-OOOOOOOOOOOOOOOOO-KKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKK-OOOOOOOOOOOOOO-",
+  "-OOOOOOOOOOOOOOOOO-KKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKK-OOOOOOOOOOOOOO-",
+  "-OOOOOOOOOOOOOOOOO-------------HH----------------------OOOOOOOOOOOOOO-",
+  "-OOOOOOOOOOOOOOOOO-QQQQQQQQ-HHHHHHH-LLL-lll-ZZZZZZZZZZ-OOOOOOOOOOOOOO-",
+  "-OOOOOOOOOOOOOOOOO-QQQQQQQQQHHHHHHH-LLL-lll-ZZZZZZZZZZ-OOOOOOOOOOOOOO-",
+  "-OOOOOOOOOOOOOOOOO-QQQQQQQQ-HHHHHHH-HHH-HHH-ZZZZZZZZZZ-OOOOOOOOOOOOOO-",
+  "-OOOOOOOMMMMOOOOOO----------HHHHHHHHHHHHHHH-ZZZZZZZZZZ-OOOOOOOOOOOOOO-",
+  "-OOOOOOOMMMMOOOOOO-SSSSSSSS-HHHHHHHHHHHHHHHZZZZZZZZZZZ-OOOOOOOOOOOOOO-",
+  "-OOOOOOOMMMMOOOOOO-SSSSSSSS-HHHHHHH---------ZZZZZZZZZZ-OOOOOOOOOOOOOO-",
+  "-OOOOOOOMMMMOOOOOO-SSSSSSSS-HHHHHHHHHHH-TTT-ZZZZZZZZZZ-OOOOOOOOOOOOOO-",
+  "-OOOOOOOMMMMOOOOOO-SSSSSSSS-HHHHHHHHHHH-TTT-ZZZZZZZZZZ-OOOOOOOOOOOOOO-",
+  "-OOOOOOOMMMMOOOOOO-SSSSSSSS-HHHHHHHHHHH-TTT-ZZZZZZZZZZ-OOOOOOOOOOOOOO-",
+  "-OOOOOOOOOOOOOOOOO-SSSSSSSS-HHHHHHHHHHH-TTT-ZZZZZZZZZZ-OOOOOOOOOOOOOO-",
+  "-OOOOOOOOOOOOOOOOO-SSSSSSSS-HHHHHHHHHHH-TTT-ZZZZZZZZZZ-OOOOOOOOOOOOOO-",
+  "-OOOOOOOOOOOOOOOOO-SSSSSSSS-HHHHHHHHHHH--T--ZZZZZZZZZZ-OOOOOOOOOOOOOO-",
+  "-OOOOOOOOOOOOOOOOO-SSSSSSSS----EE---HHHHHHH-ZZZZZZZZZZ-OOOOOOOOOOOOOO-",
+  "-OOOOOOOOOOOOOOOOO-SSSSSSSS-EEEEEEE-HHHHHHH-ZZZZZZZZZZ-OOOOOOOOOOOOOO-",
+  "-OOOOOOOOOOOOOOOOO-SSSSSSSS-EEEEEEE-HHHHHHHZZZZZZZZZZZ-OOOOOOOOOOOOOO-",
+  "-OOOOOOOOOOOOOOOOO-SSSSSSSS-EEEEEEE-HHHHHHH-ZZZZZZZZZZ-OOOOOOOOOOOOOO-",
+  "-OOOOOOOOOOOOOOOOO----SS------EEE----------------------OOOOOOOOOOOOOO-",
+  "-OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO-",
+  "-OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO-",
+  "-OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO-",
+  "-OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO-",
+  "-OORRRRRRRRRRRRRRRRRRRRRRRRRRRROOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO-",
+  "-OORRRRRRRRRRRRRRRRRRRRRRRRRRRROOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO-",
+  "-OORRRRRRRRRRRRRRRRRRRRRRRRRRRROOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO-",
+  "-OORRRRRRRRRRRRRRRRRRRRRRRRRRRROOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO-",
+  "-OORRRRRRRRRRRRRRRRRRRRRRRRRRRROOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO-",
+  "-OORRRRRRRRRRRRRRRRRRRRRRRRRRRROOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO-",
+  "-OORRRRRRRRRRRRRRRRRRRRRRRRRRRROOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO-",
+  "-OORRRRRRRRRRRRRRRRRRRRRRRRRRRROOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO-",
+  "-OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO-",
+  "----------------------------------------------------------------------"
+ ],
+ "room_defs": {
+  "O": {
+   "id": 1,
+   "name": "Na zewnątrz",
+   "type": "outside",
+   "see": [
+    "R"
+   ],
+   "outdoor": true
+  },
+  "K": {
+   "id": 2,
+   "name": "Parking wewnętrzny",
+   "type": "parking",
+   "light": "always"
+  },
+  "Q": {
+   "id": 21,
+   "name": "Klatka schodowa",
+   "type": "stairs",
+   "light": "always"
+  },
+  "S": {
+   "id": 6,
+   "name": "Sklep",
+   "type": "shop",
+   "detector": true,
+   "light": "always",
+   "windows": true
+  },
+  "H": {
+   "id": 3,
+   "name": "Hol",
+   "type": "hall",
+   "detector": true,
+   "light": "always",
+   "windows": true
+  },
+  "L": {
+   "id": 20,
+   "name": "Winda",
+   "type": "elevator",
+   "light": "always"
+  },
+  "l": {
+   "id": 22,
+   "name": "Winda 2",
+   "type": "elevator",
+   "light": "always"
+  },
+  "T": {
+   "id": 7,
+   "name": "Toaleta",
+   "type": "stall",
+   "light": "always"
+  },
+  "E": {
+   "id": 5,
+   "name": "Wiatrołap",
+   "type": "entrance",
+   "light": "always",
+   "windows": true
+  },
+  "Z": {
+   "id": 9,
+   "name": "Strefa zamknięta",
+   "type": "service",
+   "light": "always"
+  },
+  "R": {
+   "id": 8,
+   "name": "Parking zewnętrzny",
+   "type": "parking",
+   "see": [
+    "O"
+   ],
+   "outdoor": true
+  },
+  "M": {
+   "id": 10,
+   "name": "Strefa palenia",
+   "type": "smoking",
+   "outdoor": true
+  }
+ },
+ "links": [
+  {
+   "kind": "elevator",
+   "id": "A",
+   "area": [
+    36,
+    41,
+    3,
+    2
+   ]
+  },
+  {
+   "kind": "elevator",
+   "id": "B",
+   "area": [
+    40,
+    41,
+    3,
+    2
+   ]
+  },
+  {
+   "kind": "stairs",
+   "area": [
+    19,
+    41,
+    3,
+    2
+   ],
+   "to_floor": 5,
+   "to": [
+    32,
+    13
+   ]
+  }
+ ],
+ "spawns": [
+  [
+   26,
+   59
+  ],
+  [
+   27,
+   59
+  ],
+  [
+   28,
+   59
+  ],
+  [
+   29,
+   59
+  ],
+  [
+   30,
+   59
+  ],
+  [
+   31,
+   59
+  ],
+  [
+   32,
+   59
+  ],
+  [
+   33,
+   59
+  ],
+  [
+   34,
+   59
+  ],
+  [
+   35,
+   59
+  ],
+  [
+   26,
+   60
+  ],
+  [
+   27,
+   60
+  ],
+  [
+   28,
+   60
+  ],
+  [
+   29,
+   60
+  ],
+  [
+   30,
+   60
+  ],
+  [
+   31,
+   60
+  ],
+  [
+   32,
+   60
+  ],
+  [
+   33,
+   60
+  ],
+  [
+   34,
+   60
+  ],
+  [
+   35,
+   60
+  ]
+ ],
+ "npcs": [
+  {
+   "kind": "porter",
+   "name": "Pani Wiesia",
+   "home": [
+    37,
+    49
+   ],
+   "escort_to": [
+    4,
+    36,
+    36
+   ]
+  },
+  {
+   "kind": "cashier",
+   "name": "Kasjer",
+   "home": [
+    20,
+    55
+   ]
+  },
+  {
+   "kind": "guard",
+   "name": "Ochrona",
+   "home": [
+    25,
+    55
+   ],
+   "patrol": [
+    [
+     24,
+     47
+    ],
+    [
+     20,
+     48
+    ],
+    [
+     24,
+     50
+    ],
+    [
+     20,
+     52
+    ],
+    [
+     25,
+     55
+    ]
+   ]
+  },
+  {
+   "kind": "cleaner",
+   "name": "Pani Maria",
+   "home": [
+    46,
+    55
+   ]
+  },
+  {
+   "kind": "idler",
+   "name": "Paulina",
+   "home": [
+    38,
+    56
+   ]
+  }
+ ],
+ "places": {
+  "shelves": {
+   "1": [
+    21,
+    46,
+    3,
+    1
+   ],
+   "2": [
+    21,
+    49,
+    3,
+    1
+   ],
+   "3": [
+    26,
+    46,
+    1,
+    4
+   ],
+   "4": [
+    21,
+    51,
+    3,
+    1
+   ],
+   "5": [
+    19,
+    46,
+    1,
+    4
+   ],
+   "6": [
+    26,
+    52,
+    1,
+    2
+   ]
+  },
+  "street_y": 61,
+  "tram_y": 70,
+  "walk_home": [
+   2,
+   59
+  ],
+  "walk_arrival": [
+   1,
+   59
+  ],
+  "taxi": [
+   34,
+   60
+  ],
+  "tram_stop": [
+   36,
+   69
+  ],
+  "car_bays": [
+   [
+    5,
+    67
+   ],
+   [
+    10,
+    67
+   ],
+   [
+    15,
+    67
+   ],
+   [
+    20,
+    67
+   ],
+   [
+    25,
+    67
+   ],
+   [
+    28,
+    67
+   ]
+  ],
+  "bike_rack": [
+   [
+    36,
+    58
+   ],
+   [
+    37,
+    58
+   ],
+   [
+    38,
+    58
+   ],
+   [
+    39,
+    58
+   ]
+  ],
+  "police": [
+   34,
+   60
+  ],
+  "fire": [
+   28,
+   60
+  ]
+ }
+}

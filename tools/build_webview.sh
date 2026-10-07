@@ -3,7 +3,8 @@
 # - a native WebView (WebKit on macOS) as a GDExtension. Built here from
 # source at a pinned commit, never from prebuilt binaries:
 #
-#   tools/build_webview.sh        # -> client/addons/godot_wry/ (not in git)
+#   tools/build_webview.sh                 # -> client/addons/godot_wry/ (not in git)
+#   CLIENT=client3d tools/build_webview.sh # -> client3d/addons/godot_wry/
 #
 # Patched with tools/webview/*.patch. Without it the game still runs: the
 # office browser then only offers to open the page in the player's own
@@ -14,7 +15,7 @@ TAG="v1.0.2"
 COMMIT="7c6f33292eaf781dcb4d2473c7048d576854dd81"
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 SRC="$ROOT/.cache/godot_wry"  # (build/ is wiped by build-macos.sh)
-OUT="$ROOT/client/addons/godot_wry"
+OUT="$ROOT/${CLIENT:-client}/addons/godot_wry"  # CLIENT=client3d for the 3D client
 
 [[ "$(uname)" == "Darwin" ]] || { echo "build_webview.sh: macOS only for now" >&2; exit 1; }
 command -v cargo >/dev/null || export PATH="$HOME/.cargo/bin:$PATH"

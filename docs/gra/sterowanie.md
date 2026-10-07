@@ -70,6 +70,36 @@
 | **R** | menu psot: nasikaj / zesraj się na podłogę, nasikaj do ekspresu albo komuś do kubka |
 | **X** | uderz osobę obok (z nożem w rękach — dźgnij; **F** z nożem też) |
 
+## Ekran dotykowy (iPhone, iPad)
+
+Tylko w wersji 3D (`client3d/`). Na telefonie i tablecie gra sama włącza
+sterowanie dotykiem (na komputerze: `--touch`, wtedy mysz udaje palec).
+
+| Gest / przycisk | Co robi |
+|---|---|
+| **joystick** (lewy kciuk, pojawia się tam, gdzie dotkniesz) | chodzenie |
+| **stuknięcie w podłogę** | idź tam |
+| **stuknięcie w osobę albo mebel** | podejdź i użyj (jak **E**) |
+| **dwa palce**: rozsuń / zsuń, obróć | przybliż / oddal, obróć kamerę |
+| **duży przycisk z dłonią** (E) | to, co podpowiada napis nad ekwipunkiem |
+| **Użyj / Upuść / Podaj** (gdy coś trzymasz) | **F / Q / G** |
+| **Akcje** (⋯) | menu akcji (**Tab**) — też psoty, uderz, zamknij kabinę |
+| **Mów** | trzymaj — mówisz; krótkie stuknięcie włącza mikrofon na stałe (stuknij znowu, żeby wyłączyć) |
+| **Szept** | trzymaj — szept do osoby obok (**B**) |
+| **☰ / dymek / książka** (u góry) | menu gry, czat, dziennik dnia |
+| **kieszenie 1–3** | stuknij, żeby wyjąć / schować |
+| **✕** (gdy jest otwarte okno) | zamknij (**Esc**); przy komputerze — wstań |
+
+Mini-gry: skręcanie — przytrzymaj / stuknij palcem w dowolnym miejscu,
+szczotka — szoruj palcem, pojemniki — stuknij albo przeciągnij przedmiot,
+winda — stuknij czytnik i piętro. Pola tekstowe otwierają klawiaturę
+ekranową, a okno z polem przesuwa się nad nią.
+
+![HUD na telefonie](../media/3d/dotyk.jpg)
+
+W ustawieniach („Sterowanie dotykiem”): joystick po prawej, wielkość i
+widoczność przycisków.
+
 ## Ustawienia
 
 W menu (albo **Esc** w grze) → Ustawienia: głośność efektów, otoczenia i
