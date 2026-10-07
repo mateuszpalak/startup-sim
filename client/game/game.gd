@@ -44,6 +44,9 @@ const SmokeView = preload("res://game/smoke_view.gd")
 const LightView = preload("res://game/light_view.gd")
 const Settings = preload("res://ui/settings.gd")
 const Kit = preload("res://ui/ui_kit.gd")
+const Touch = preload("res://touch/touch.gd")
+const TouchControls = preload("res://touch/touch_controls.gd")
+const Coords = preload("res://world3d/coords.gd")
 
 ## Nick / bubble tags are drawn at screen scale (the 3D world places them).
 const ZOOM := 1.0
@@ -145,6 +148,9 @@ var _shelf_at := Vector2.ZERO     # where the shelf window was opened (walk away
 var container := ContainerWindow.new()
 var _container_at := Vector2.ZERO
 var _container_closed_ms := -10000
+## On-screen controls (touch screens only, touch/touch_controls.gd).
+var touch: Control = null
+var touch_layer := CanvasLayer.new()
 var coffee := CoffeeWindow.new()  # the coffee machine's panel
 var _coffee_at := Vector2.ZERO
 var _coffee_closed_ms := -10000
@@ -411,6 +417,7 @@ func setup(p_net, p_building, welcome: Dictionary, p_nick: String, args: Diction
 	status_layer.add_child(door_plaque)
 	status_layer.add_child(action_menu)
 	status_layer.add_child(notices)
+	status_layer.move_child(notices, shelf_window.get_index())  # under the windows
 	status_layer.add_child(log_history)
 	status_layer.add_child(chat_box)
 	chat_box.sent.connect(func(text: String):
@@ -430,6 +437,12 @@ func setup(p_net, p_building, welcome: Dictionary, p_nick: String, args: Diction
 			if not gadget.lift:
 				gadget.close())  # (the lift's panel: the server closes it, or shows it again)
 	screen_layer.add_child(screen)
+	if Touch.active:
+		touch_layer.layer = 13  # over the HUD and the computer (its close button)
+		add_child(touch_layer)
+		touch = TouchControls.new()
+		touch.game = self
+		touch_layer.add_child(touch)
 	add_child(world_view)  # last: it reads the state the rest updated this frame
 	_show_floor(0)
 	set_zoom_level.call_deferred(float(args["zoom"]) if args.has("zoom") else Settings.zoom)
@@ -543,7 +556,7 @@ func _sample_input(delta: float) -> int:
 	var b := 0
 	# Keys are screen directions; the camera may be turned (world_view),
 	# the input sent stays in map axes.
-	var sd := Vector2i.ZERO
+	var sd: Vector2i = touch.move_dir() if touch else Vector2i.ZERO
 	if Input.is_physical_key_pressed(KEY_W) or Input.is_physical_key_pressed(KEY_UP):
 		sd.y -= 1
 	if Input.is_physical_key_pressed(KEY_S) or Input.is_physical_key_pressed(KEY_DOWN):
@@ -552,7 +565,7 @@ func _sample_input(delta: float) -> int:
 		sd.x -= 1
 	if Input.is_physical_key_pressed(KEY_D) or Input.is_physical_key_pressed(KEY_RIGHT):
 		sd.x += 1
-	var md := world_view.screen_to_map(sd)
+	var md := world_view.screen_to_map(sd.clamp(-Vector2i.ONE, Vector2i.ONE))
 	if md.y < 0: b |= Movement.IN_UP
 	if md.y > 0: b |= Movement.IN_DOWN
 	if md.x < 0: b |= Movement.IN_LEFT
@@ -637,6 +650,81 @@ func _goto_input(delta: float) -> int:
 			return b
 		_goto_path.pop_front()
 	return 0
+
+
+## Touch: the joystick (or the action button) takes over from a tap-walk.
+func touch_walk_cancel() -> void:
+	goto_legs.clear()
+	_goto_path.clear()
+
+
+## Touch: a tap on the world. On a person or a piece of furniture: walk up
+## to it and press E; on the floor: walk there.
+func touch_tap_world(sp: Vector2) -> void:
+	if not have_state or input_blocked or me.status in Protocol.ACT_STUCK:
+		return
+	var map = building.get_floor(pred.floor)
+	var y := Coords.floor_y(pred.floor)
+	var rig = world_view.rig
+	var me_px := Movement.to_px(pred.pos)
+	var me_tile := Movement.tile_of_pos(pred.pos)
+	var target := Vector2i(-1, -1)
+	var interact := false
+	# Somebody under the finger (their middle is ~0.9 m up).
+	var body = rig.floor_point(sp, y + 0.9)
+	if body != null:
+		var bp := Coords.world_to_px(body)
+		var best := 14.0
+		for id in remotes:
+			var r = remotes[id]
+			if r.visible and r.position.distance_to(bp) < best:
+				best = r.position.distance_to(bp)
+				target = Vector2i(floori(r.position.x / 16.0), floori(r.position.y / 16.0))
+				interact = true
+	if not interact:
+		# Furniture: its top is ~0.7 m up; else the floor itself.
+		for h in [0.7, 0.0]:
+			var hit = rig.floor_point(sp, y + h)
+			if hit == null:
+				continue
+			var t := Vector2i((Coords.world_to_px(hit) / 16.0).floor())
+			if t.x < 0 or t.y < 0 or t.x >= map.width or t.y >= map.height:
+				continue
+			if map.is_blocked(t.x, t.y):
+				target = t
+				interact = true
+				break
+			if h == 0.0:
+				target = t
+	if target.x < 0:
+		return
+	touch_walk_cancel()
+	goto_delay = 0.0
+	if touch:
+		touch.flash_at(sp)
+	if not interact:
+		goto_legs = ["%d,%d" % [target.x, target.y]]
+		return
+	if Vector2(target * 16 + Vector2i(8, 8)).distance_to(me_px) <= 26.0:
+		goto_legs = ["E"]  # already next to it
+		return
+	# The free tile next to it closest to us.
+	var best_t := Vector2i(-1, -1)
+	var best_d := INF
+	for dy in [-1, 0, 1]:
+		for dx in [-1, 0, 1]:
+			var n: Vector2i = target + Vector2i(dx, dy)
+			if (dx == 0 and dy == 0 and map.is_blocked(n.x, n.y)) or n.x < 0 or n.y < 0 or n.x >= map.width or n.y >= map.height:
+				continue
+			if map.is_blocked(n.x, n.y):
+				continue
+			var dd := Vector2(n - me_tile).length() + (0.5 if dx != 0 and dy != 0 else 0.0)
+			if dd < best_d:
+				best_d = dd
+				best_t = n
+	if best_t.x < 0:
+		return
+	goto_legs = ["%d,%d" % [best_t.x, best_t.y], "E"]
 
 
 ## Dev helper; plans on the current floor only.

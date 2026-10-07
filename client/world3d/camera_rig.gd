@@ -74,6 +74,23 @@ static func _unit(x: float) -> int:
 	return 1 if x > 0.38 else (-1 if x < -0.38 else 0)
 
 
+## Touch: turn by an angle (two-finger twist), then `settle` on 45 degrees.
+func turn_by(rad: float) -> void:
+	_yaw_goal -= rad
+
+
+func settle() -> void:
+	_yaw_goal = round(_yaw_goal / (PI / 4)) * (PI / 4)
+
+
+## The point on the floor slab at height `y` under a screen position (UI /
+## canvas units), or null when the ray misses it.
+func floor_point(screen: Vector2, y: float) -> Variant:
+	var from := camera.project_ray_origin(screen)
+	var dir := camera.project_ray_normal(screen)
+	return Plane(Vector3.UP, y).intersects_ray(from, dir)
+
+
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_RIGHT:
 		_dragging = event.pressed

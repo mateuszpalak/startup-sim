@@ -632,6 +632,39 @@ static func draw_icon(ci: CanvasItem, name: String, c: Vector2, s: float, col: C
 			line.call([Vector2(2, 3), Vector2(2, 7)])
 			ring.call(Vector2(7, -3), 2.5, PI * 0.5, PI * 1.6)
 			ring.call(Vector2(4, -6), 2.5, -PI * 0.4, PI * 0.6)
+		"mic":
+			line.call([Vector2(-3, -5), Vector2(-3, 1)])
+			line.call([Vector2(3, -5), Vector2(3, 1)])
+			ring.call(Vector2(0, -5), 3, PI, TAU)
+			ring.call(Vector2(0, 1), 3, 0, PI)
+			ring.call(Vector2(0, 0), 7, 0.15, PI - 0.15)
+			line.call([Vector2(0, 7), Vector2(0, 10)])
+		"whisper":
+			line.call([Vector2(-6, -4), Vector2(-6, 0)])
+			line.call([Vector2(-2, -4), Vector2(-2, 0)])
+			ring.call(Vector2(-4, -4), 2, PI, TAU)
+			ring.call(Vector2(-4, 0), 2, 0, PI)
+			ring.call(Vector2(-4, 0), 5, 0.2, PI - 0.2)
+			ring.call(Vector2(3, -2), 3, -0.9, 0.9)
+			ring.call(Vector2(3, -2), 6, -0.9, 0.9)
+		"dots":
+			for x in [-6, 0, 6]:
+				ci.draw_circle(pt.call(x, 0), 1.8 * k, col)
+		"menu":
+			for y in [-6, 0, 6]:
+				line.call([Vector2(-8, y), Vector2(8, y)])
+		"drop":
+			line.call([Vector2(0, -9), Vector2(0, 3)])
+			line.call([Vector2(-5, -2), Vector2(0, 3), Vector2(5, -2)])
+			line.call([Vector2(-8, 8), Vector2(8, 8)])
+		"give":
+			line.call([Vector2(-9, 5), Vector2(-3, 5), Vector2(2, 2), Vector2(8, 2)])
+			line.call([Vector2(-9, 9), Vector2(6, 9), Vector2(9, 6)])
+			line.call([Vector2(-2, -8), Vector2(6, -8)])
+			line.call([Vector2(3, -11), Vector2(6, -8), Vector2(3, -5)])
+		"use":
+			ring.call(Vector2.ZERO, 8, -PI * 0.35, PI * 1.35)
+			line.call([Vector2(0, -10), Vector2(0, -2)])
 		_:
 			ci.draw_circle(c, 3 * k, col)
 

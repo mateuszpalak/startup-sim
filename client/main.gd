@@ -29,6 +29,7 @@ const Audio = preload("res://audio/audio.gd")
 const AuthClient = preload("res://net/auth_client.gd")
 const LoginScreen = preload("res://ui/login_screen.gd")
 const TitleBackdrop = preload("res://ui/title_backdrop_3d.gd")
+const Touch = preload("res://touch/touch.gd")
 
 const BUILDING_PATH := "res://maps/building.json"
 
@@ -80,6 +81,13 @@ func _ready() -> void:
 	# End-to-end scenarios keep their files (login, settings) to themselves.
 	if args.has("scenario"):
 		UserPaths.use_folder("e2e/" + str(args.get("scenario-id", args["scenario"])))
+	Touch.setup(args)
+	if Touch.active:
+		get_tree().root.size_changed.connect(func(): Touch.fit_ui(get_tree().root))
+		Touch.fit_ui(get_tree().root)
+		var lift := preload("res://touch/keyboard_lift.gd").new()
+		lift.fake = float(args.get("fake-keyboard", "0"))
+		add_child(lift)
 	Settings.load_once()
 	Settings.apply_window()
 	Settings.apply_fps()
