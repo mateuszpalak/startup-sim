@@ -42,7 +42,8 @@ for ARCH in $ARCHS; do
   LOG="$ROOT/build/$NAME.log"
   "$GODOT" --headless --path "$ROOT/$CLIENT" --export-release "$PRESET" "$STAGE/StartupSim.exe" 2>&1 | tee "$LOG"
   [ -s "$STAGE/StartupSim.exe" ] || { echo "brak $STAGE/StartupSim.exe"; exit 1; }
-  if grep -qE "^(ERROR|SCRIPT ERROR)" "$LOG"; then echo "błędy eksportu — zob. $LOG"; exit 1; fi
+  # godot_wry (the in-game browser, macOS only) complains while the editor loads it; it is not exported for Windows
+  if grep -E "^(ERROR|SCRIPT ERROR)" "$LOG" | grep -qv "register class 'WebView'"; then echo "błędy eksportu — zob. $LOG"; exit 1; fi
   printf 'Startup Sim %s (Windows %s)\r\n\r\nUruchom StartupSim.exe. Windows SmartScreen moze ostrzec przy pierwszym\r\nuruchomieniu: "Wiecej informacji" -> "Uruchom mimo to".\r\nUstawienia i logi: %%APPDATA%%\\Godot\\app_userdata\\Startup Sim\r\n' "$VERSION" "$ARCH" > "$STAGE/README.txt"
   ZIP="$ROOT/dist/$NAME.zip"
   rm -f "$ZIP"
