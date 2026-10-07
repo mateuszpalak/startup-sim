@@ -1,0 +1,3 @@
+# Mapy i pliki golden liczą sumy kontrolne zgodne z serwerem, więc zawsze LF
+# (także przy checkout na Windows z core.autocrlf).
+* text=auto eol=lf
