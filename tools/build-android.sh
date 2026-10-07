@@ -33,9 +33,10 @@ case "${1:-}" in
       exit 1
     fi
     if [ "$1" = --release ]; then
-      [ -d "$ROOT/client/android/build" ] || "$GODOT" --headless --path "$ROOT/client" --install-android-build-template --quit
+      TEMPLATE=()
+      [ -d "$ROOT/client/android/build" ] || TEMPLATE=(--install-android-build-template)
       OUT="$ROOT/build/StartupSim-$VERSION.aab"
-      "$GODOT" --headless --path "$ROOT/client" --export-release "Android AAB" "$OUT"
+      "$GODOT" --headless --path "$ROOT/client" ${TEMPLATE[@]+"${TEMPLATE[@]}"} --export-release "Android AAB" "$OUT"
     else
       OUT="$ROOT/build/StartupSim-$VERSION.apk"
       "$GODOT" --headless --path "$ROOT/client" --export-release "Android" "$OUT"
