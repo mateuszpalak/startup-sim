@@ -2,10 +2,18 @@
 
 *Dla deweloperów · [dokumentacja](../README.md) · [uruchomienie](uruchomienie.md)*
 
-Dwa klienty, jeden serwer: **2D** w `client/` (macOS) i **3D** w `client3d/`
-(macOS, iOS, Android, Windows). Skrypty iOS / Android / Windows budują klienta
-3D (`CLIENT=client` wybiera inny projekt), `tools/build-macos.sh` domyślnie 2D,
-z `--3d` — 3D.
+Dwa klienty, jeden serwer: **2D** w `client/` i **3D** w `client3d/`, oba na
+macOS, iOS, Android i Windows. Skrypty iOS / Android / Windows domyślnie
+budują klienta 3D, z `CLIENT=client` — 2D (`tools/client.sh`: pliki
+`StartupSim-<wersja>-…` zamiast `StartupSim3D-<wersja>-…`, identyfikator
+`pl.mateuszpalak.startupsim` zamiast `pl.mateuszpalak.startupsim3d`, katalogi
+`build/ios2d*`); `tools/build-macos.sh` domyślnie 2D, z `--3d` — 3D.
+
+Klient 2D na telefonach: renderer Compatibility
+(`rendering_method.mobile="gl_compatibility"`), bo gra jest płaska: działa na każdym telefonie, w emulatorze Androida i w
+symulatorze iOS bez osobnych ustawień (na komputerze zostaje Forward+).
+Kod platform: `client/platform/platform.gd` i `android.gd` (jak w 3D, bez
+profilu jakości 3D).
 
 ## Budowanie klienta na macOS
 
@@ -32,6 +40,7 @@ tools/build-ios.sh sim       # symulator: eksport, build, instalacja, start (SIM
 tools/build-ios.sh device    # podłączony iPhone (wymaga DEVELOPMENT_TEAM)
 tools/build-ios.sh archive   # build/ios/StartupSim.ipa do TestFlight / App Store
 tools/build-ios.sh project   # sam projekt Xcode w build/ios (do otwarcia w Xcode)
+CLIENT=client tools/build-ios.sh sim   # klient 2D (build/ios2d*, pl.mateuszpalak.startupsim)
 ```
 
 Godot eksportuje projekt Xcode (preset „iOS”, `client3d/export_presets.cfg`:
@@ -103,6 +112,7 @@ tools/build-android.sh                # → build/StartupSim3D-<wersja>-android-
 tools/build-android.sh --install      # to samo + adb install i uruchomienie
 tools/build-android.sh --release      # → build/StartupSim3D-<wersja>-android.aab (Google Play, Gradle)
 tools/build-android.sh --release-apk  # → build/StartupSim3D-<wersja>-android.apk (podpisany, do instalacji ręcznej)
+CLIENT=client tools/build-android.sh  # klient 2D → build/StartupSim-<wersja>-android-debug.apk (i tak dalej)
 ```
 
 Wymaga szablonów eksportu Godota 4.7.2 dla Androida, JDK 17
@@ -160,6 +170,7 @@ Z emulatora komputer to `10.0.2.2` — build debug na Androidzie ma na liście
 tools/build-windows.sh          # → dist/StartupSim3D-<wersja>-windows-x86_64.zip
 tools/build-windows.sh --arm64  # → …-windows-arm64.zip (Snapdragon itp.)
 tools/build-windows.sh --all    # oba
+CLIENT=client tools/build-windows.sh --all  # klient 2D → dist/StartupSim-<wersja>-windows-<arch>.zip
 ```
 
 Eksport działa bez Windowsa (macOS, Linux albo Git Bash na Windows): presety
@@ -180,9 +191,10 @@ to”). Z certyfikatem podpisz exe przed spakowaniem — na Windows
 `signtool sign /fd sha256 /tr http://timestamp.digicert.com /td sha256 /a StartupSim.exe`,
 na macOS/Linux `osslsigncode`.
 
-CI (`.github/workflows/windows.yml`) na `windows-latest` pobiera Godota 4.7.2
-z szablonami, uruchamia tam testy klienta, eksportuje oba zipy i zostawia je
-jako artefakt „startupsim-windows”. Po wypchnięciu tagu `v<wersja>` dokłada
+CI (`.github/workflows/windows.yml`, macierz: `client` i `client3d`) na
+`windows-latest` pobiera Godota 4.7.2 z szablonami, uruchamia tam testy
+klienta, eksportuje zipy (x86_64 i arm64) i zostawia je jako artefakty
+„startupsim-windows-client” / „startupsim-windows-client3d”. Po wypchnięciu tagu `v<wersja>` dokłada
 je do wydania (gdy wydania jeszcze nie ma — tworzy szkic do uzupełnienia).
 
 ## Aktualizacje u graczy
@@ -190,7 +202,10 @@ je do wydania (gdy wydania jeszcze nie ma — tworzy szkic do uzupełnienia).
 Gra przy starcie sprawdza najnowsze wydanie na GitHubie i, jeśli jest nowsze,
 proponuje „Pobierz” na ekranie tytułowym. Na Windows przycisk prowadzi
 wprost do zipa dla danej architektury (`…-windows-x86_64.zip` /
-`…-windows-arm64.zip` w zasobach wydania), a gdy go brak — na stronę wydania. Serwer odrzucający starą wersję
+`…-windows-arm64.zip` w zasobach wydania), na Androidzie do `…-android.apk`, na
+macOS do dmg, a gdy go brak — na stronę wydania. Każdy klient bierze tylko
+swoje pliki (`ASSET_PREFIX` w `net/updates.gd`: 2D `StartupSim-`, 3D
+`StartupSim3D-`), nigdy pliku drugiego klienta. Serwer odrzucający starą wersję
 (inny protokół) też kończy się tym przyciskiem. Szkiców i wydań
 „pre-release” klienci nie proponują.
 
@@ -201,7 +216,7 @@ wprost do zipa dla danej architektury (`…-windows-x86_64.zip` /
    `application/version`) — po niej klienci poznają, że jest nowsza.
 2. Zbuduj dmg: `tools/build-macos.sh` (2D) albo `tools/build-macos.sh --3d` (3D).
 3. `git tag -a v<wersja> -m "Startup Sim <wersja>"` i `git push origin v<wersja>`.
-4. `gh release create v<wersja> build/StartupSim-<wersja>.dmg build/StartupSim3D-<wersja>-macos.dmg build/StartupSim3D-<wersja>-android.apk --title "Startup Sim <wersja>" --notes "…"`
+4. `gh release create v<wersja> build/StartupSim-<wersja>.dmg build/StartupSim3D-<wersja>-macos.dmg build/StartupSim3D-<wersja>-android.apk build/StartupSim-<wersja>-android.apk --title "Startup Sim <wersja>" --notes "…"`
    (tag `v<wersja>` musi zgadzać się z `config/version`).
 5. Zipy dla Windows dołącza CI po tagu (albo ręcznie:
    `tools/build-windows.sh --all` i `gh release upload v<wersja> dist/*.zip`).

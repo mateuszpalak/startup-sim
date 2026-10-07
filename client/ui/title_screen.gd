@@ -6,6 +6,8 @@ extends Control
 const Ink = preload("res://ui/ink_ui.gd")
 const SettingsPanel = preload("res://ui/settings_panel.gd")
 const Updates = preload("res://net/updates.gd")
+const Platform = preload("res://platform/platform.gd")
+const Touch = preload("res://touch/touch.gd")
 
 signal play
 signal quit
@@ -14,6 +16,8 @@ var _menu := VBoxContainer.new()
 var _card := PanelContainer.new()
 var _settings := SettingsPanel.new()
 var _about := VBoxContainer.new()
+var _title: Label
+var _sub: Label
 var _t := 0.0
 # The backdrop in layers drawn once (again on resize): the sky, three groups
 # of stars (twinkling = fading the group), five clouds (drifting = moving
@@ -55,6 +59,7 @@ func _ready() -> void:
 	title.position = Vector2(-400, 60)
 	title.size = Vector2(800, 110)
 	add_child(title)
+	_title = title
 	var sub := Ink.label("symulator pracy w startupie IT", 24, Ink.GOLD)
 	sub.add_theme_constant_override("outline_size", 8)
 	sub.add_theme_color_override("font_outline_color", Ink.INK)
@@ -63,6 +68,7 @@ func _ready() -> void:
 	sub.position = Vector2(-400, 165)
 	sub.size = Vector2(800, 40)
 	add_child(sub)
+	_sub = sub
 	_card.add_theme_stylebox_override("panel", Ink.box("paper"))
 	_card.set_anchors_preset(Control.PRESET_CENTER)
 	add_child(_card)
@@ -72,12 +78,16 @@ func _ready() -> void:
 	box.add_child(_menu)
 	for entry in [["Graj", func(): play.emit(), true], ["Ustawienia", func(): _show(_settings), false],
 			["O grze", func(): _show(_about), false], ["Wyjdź", func(): quit.emit(), false]]:
+		if entry[0] == "Wyjdź" and not Platform.can_quit():
+			continue  # iOS guidelines / Android: the system closes apps
 		var b := Ink.button(entry[0], entry[2])
-		b.custom_minimum_size = Vector2(320, 48)
+		b.custom_minimum_size = Vector2(320, 58 if Touch.active else 48)
 		b.add_theme_font_size_override("font_size", 26)
 		b.pressed.connect(entry[1])
 		_menu.add_child(b)
 	_settings.visible = false
+	if Touch.active:
+		_settings.fixed_height = 190.0
 	_settings.back.connect(func(): _show(_menu))
 	box.add_child(_settings)
 	_about.visible = false
@@ -88,7 +98,7 @@ func _ready() -> void:
 			"Czcionka: Patrick Hand (Patrick Wagesreiter), licencja SIL OFL.", "Grafika i kod narysowane w kodzie — bez gotowych assetów.",
 			"Kod źródłowy (licencja AGPL-3.0): github.com/mateuszpalak/startup-sim"]:
 		var l := Ink.label(line, 18, Ink.TEXT_INK, true)
-		l.custom_minimum_size = Vector2(520, 0)
+		l.custom_minimum_size = Vector2(380 if Touch.active else 520, 0)
 		_about.add_child(l)
 	var back := Ink.button("Wróć")
 	back.pressed.connect(func(): _show(_menu))
@@ -118,6 +128,26 @@ func _center_card() -> void:
 	_card.reset_size()
 	var vs := get_viewport_rect().size
 	_card.position = Vector2((vs.x - _card.size.x) / 2, maxf(230.0, (vs.y - _card.size.y) / 2 + 60))
+	if Touch.active and _title:
+		_touch_layout(vs)
+
+
+## Touch screens: an upright phone has the name over the card; a short
+## (landscape) screen has the name on the left, the card on the right.
+func _touch_layout(vs: Vector2) -> void:
+	var sr := Touch.safe_rect(get_viewport())
+	_sub.visible = not Touch.phone or vs.y > vs.x
+	if vs.y > vs.x:
+		_title.position = Vector2((vs.x - _title.size.x) / 2, sr.position.y + 30)
+		_sub.position = Vector2((vs.x - _sub.size.x) / 2, _title.position.y + 100)
+		_card.position = Vector2((vs.x - _card.size.x) / 2, maxf(_sub.position.y + 60, (vs.y - _card.size.y) / 2))
+		_card.position.y = maxf(minf(_card.position.y, sr.end.y - _card.size.y - 8), sr.position.y + 8)
+	elif 230.0 + _card.size.y > sr.end.y:
+		var half := sr.size.x / 2
+		_title.position = Vector2(sr.position.x + (half - _title.size.x) / 2, sr.position.y + sr.size.y / 2 - 90)
+		_sub.position = Vector2(sr.position.x + (half - _sub.size.x) / 2, _title.position.y + 100)
+		_card.position = Vector2(minf(sr.position.x + half + maxf((half - _card.size.x) / 2, 0), sr.end.x - _card.size.x - 12),
+			sr.position.y + maxf((sr.size.y - _card.size.y) / 2, 8))
 
 
 func _fit() -> void:

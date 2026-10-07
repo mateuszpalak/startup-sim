@@ -8,6 +8,8 @@ const MapData = preload("res://map/map_data.gd")
 const Building = preload("res://map/building.gd")
 const NetClient = preload("res://net/net_client.gd")
 const Updates = preload("res://net/updates.gd")
+const PadMap = preload("res://pad/pad_map.gd")
+const CameraRig = preload("res://world3d/camera_rig.gd")
 
 var failures := 0
 var checks := 0
@@ -26,6 +28,8 @@ func _init() -> void:
 	test_doorway_floors()
 	test_door_plaques()
 	test_camera_keys()
+	test_pad_map()
+	test_pad_glyphs()
 	test_windows_asset()
 	test_custom_server()
 	print("%d checks, %d failures" % [checks, failures])
@@ -367,10 +371,83 @@ func test_scripts_compile() -> void:
 	expect(count > 40, "scripts found (%d)" % count)
 
 
+## Gamepad bindings (pad/pad_map.gd): every action has a pad input, a press
+## stands for the key the game reads, the sticks give the keys' eight
+## directions (so the movement bits, and the prediction, match the server).
+func test_pad_map() -> void:
+	PadMap.register()
+	for action in PadMap.ACTIONS:
+		var a: Dictionary = PadMap.ACTIONS[action]
+		expect(not a.buttons.is_empty() or not a.axis.is_empty(), "pad input for %s" % action)
+		expect(InputMap.has_action("pad_" + action), "InputMap pad_%s" % action)
+	var used := {}
+	for action in PadMap.ACTIONS:
+		for b in PadMap.ACTIONS[action].buttons:
+			expect(not used.has(b), "button %d bound once (%s)" % [b, action])
+			used[b] = true
+	var keys := {"interact": KEY_E, "back": KEY_ESCAPE, "use": KEY_F, "actions": KEY_TAB, "talk": KEY_V,
+		"whisper": KEY_B, "chat": KEY_ENTER, "journal": KEY_H, "menu": KEY_ESCAPE, "move_up": KEY_W}
+	for action in keys:
+		expect(PadMap.key_of(action) == keys[action], "%s -> key %d" % [action, keys[action]])
+	expect(PadMap.action_of_button(JOY_BUTTON_A) == "interact", "A interacts")
+	expect(PadMap.action_of_button(JOY_BUTTON_B) == "back", "B goes back")
+	expect(PadMap.action_of_button(JOY_BUTTON_Y) == "actions", "Y opens the action menu")
+	expect(PadMap.action_of_button(JOY_BUTTON_START) == "menu", "Start = the game menu")
+	var ev := InputEventJoypadButton.new()
+	ev.button_index = JOY_BUTTON_X
+	ev.pressed = true
+	expect(ev.is_action("pad_use"), "the InputMap knows X = use")
+	var mv := InputEventJoypadMotion.new()
+	mv.axis = JOY_AXIS_LEFT_Y
+	mv.axis_value = -0.9
+	expect(mv.is_action("pad_move_up"), "left stick up = move_up")
+	# Sticks: dead zone, four axes, diagonals only near 45 degrees.
+	var cases := [[Vector2(0.1, -0.2), Vector2i.ZERO], [Vector2(0, -1), Vector2i(0, -1)], [Vector2(1, 0), Vector2i(1, 0)],
+		[Vector2(-0.7, 0.7), Vector2i(-1, 1)], [Vector2(0.95, -0.3), Vector2i(1, 0)], [Vector2(0.5, -0.5), Vector2i(1, -1)],
+		[Vector2(0.2, 0.9), Vector2i(0, 1)]]
+	for c in cases:
+		expect(PadMap.stick_dir(c[0]) == c[1], "stick %s -> %s (got %s)" % [c[0], c[1], PadMap.stick_dir(c[0])])
+	expect(PadMap.stick_value(Vector2(0.2, 0)) == Vector2.ZERO, "stick value: dead zone")
+	expect(is_equal_approx(PadMap.stick_value(Vector2(1, 0)).x, 1.0), "stick value: full tilt = 1")
+	# Every stick direction gives the same movement bits as its key pair.
+	var rig = CameraRig.new()
+	for d in [Vector2i(0, -1), Vector2i(1, -1), Vector2i(-1, 1), Vector2i(1, 0)]:
+		var v := Vector2(d).normalized()
+		expect(rig.screen_to_map(PadMap.stick_dir(v)) == rig.screen_to_map(d), "stick %s walks like the keys" % d)
+	rig.camera.free()
+	rig.free()
+
+
+## Pad glyphs: the family by the controller's name, the labels, the hints.
+func test_pad_glyphs() -> void:
+	var names := {"Xbox Series Controller": "xbox", "PS5 Controller": "ps", "DualSense Wireless Controller": "ps",
+		"Sony PLAYSTATION(R)3 Controller": "ps", "Nintendo Switch Pro Controller": "nintendo",
+		"Steam Deck": "xbox", "Generic USB Joystick": "xbox", "Joy-Con (L/R)": "nintendo"}
+	for n in names:
+		expect(PadMap.style_for(n) == names[n], "%s -> %s glyphs" % [n, names[n]])
+	expect(PadMap.button_label(JOY_BUTTON_A, "xbox") == "A", "Xbox bottom button: A")
+	expect(PadMap.button_label(JOY_BUTTON_A, "nintendo") == "B", "Switch bottom button: B")
+	expect(PadMap.ps_shape(JOY_BUTTON_A) == "cross" and PadMap.ps_shape(JOY_BUTTON_Y) == "triangle", "PlayStation shapes")
+	expect(PadMap.button_label(PadMap.RT, "ps") == "R2", "PlayStation right trigger: R2")
+	expect(PadMap.button_label(JOY_BUTTON_LEFT_SHOULDER, "nintendo") == "L", "Switch left bumper: L")
+	var h: Array = PadMap.pad_hint("[E] Połóż laptop", "xbox")
+	expect(h[0] == JOY_BUTTON_A and h[1] == "Połóż laptop", "hint [E] -> A glyph (got %s)" % [h])
+	h = PadMap.pad_hint("[E] Usiądź  ·  [E] tabliczka", "nintendo")
+	expect(h[0] == JOY_BUTTON_A and h[1] == "Usiądź  ·  (B) tabliczka", "second key named inline (got %s)" % [h])
+	h = PadMap.pad_hint("[V] mów · [B] szept: Ola", "ps")
+	expect(h[0] == PadMap.RT and h[1] == "mów · (L2) szept: Ola", "voice hint on triggers (got %s)" % [h])
+	h = PadMap.pad_hint("Jedziemy…", "xbox")
+	expect(h[0] == -1 and h[1] == "Jedziemy…", "no key: unchanged")
+	expect(PadMap.hint_button("Q") == -1, "Q (drop) has no pad button: hidden in pad hints")
+	var Glyphs = preload("res://pad/pad_glyphs.gd")
+	expect(Glyphs.width(JOY_BUTTON_A, "xbox", 24.0) == 24.0, "face glyph is round")
+	expect(Glyphs.width(JOY_BUTTON_START, "ps", 24.0) > 24.0, "Options glyph is wider")
+
+
 ## The rolling minigame's scoring.
 ## Movement keys under a turned 3D camera (camera_rig.screen_to_map).
 func test_camera_keys() -> void:
-	var rig = preload("res://world3d/camera_rig.gd").new()
+	var rig = CameraRig.new()
 	var cases := [  # [yaw in 45-degree steps, screen key, map direction]
 		[0, Vector2i(0, -1), Vector2i(0, -1)],
 		[2, Vector2i(0, -1), Vector2i(-1, 0)],
@@ -463,6 +540,12 @@ func test_windows_asset() -> void:
 	assets.append({"name": "StartupSim3D-0.4.0-macos.dmg", "browser_download_url": "https://x/mac3d.dmg"})
 	expect(Updates.asset_url(assets, Updates.asset_suffix("macOS", true), "page") == "https://x/mac3d.dmg", "3D mac dmg found")
 	expect(Updates.asset_suffix("iOS", true) == "" and Updates.asset_suffix("Windows", true) == "-windows-arm64.zip", "suffixes")
+	var only_2d := [
+		{"name": "StartupSim-0.4.0-windows-x86_64.zip", "browser_download_url": "https://x/win2d.zip"},
+		{"name": "StartupSim-0.4.0-android.apk", "browser_download_url": "https://x/a2d.apk"},
+	]
+	expect(Updates.asset_url(only_2d, "-windows-x86_64.zip", "page") == "page", "2D zip is not offered to the 3D client")
+	expect(Updates.asset_url(only_2d, "-android.apk", "page") == "page", "2D apk is not offered to the 3D client")
 
 
 ## Login: "Inny serwer…" takes a typed host:port; the game's servers keep their names.

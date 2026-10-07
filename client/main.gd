@@ -9,6 +9,8 @@
 ##   --commute=3  (dev: pick this way to work every morning; 1 foot .. 5 tram)
 ##   --auto-recruit=1 [--auto-recruit-delay=2]  (dev: apply for offer 1, answer
 ##     at random until hired, waiting N s before each click)
+##   --touch[=phone|tablet] [--safe-area=l,t,r,b] [--fake-keyboard=0.4]  (dev:
+##     touch mode on a desktop, the mouse acts as a finger; see touch/touch.gd)
 extends Node
 
 const NetClient = preload("res://net/net_client.gd")
@@ -28,6 +30,8 @@ const Settings = preload("res://ui/settings.gd")
 const Audio = preload("res://audio/audio.gd")
 const AuthClient = preload("res://net/auth_client.gd")
 const LoginScreen = preload("res://ui/login_screen.gd")
+const Platform = preload("res://platform/platform.gd")
+const Touch = preload("res://touch/touch.gd")
 
 const BUILDING_PATH := "res://maps/building.json"
 
@@ -78,7 +82,10 @@ func _ready() -> void:
 	# End-to-end scenarios keep their files (login, settings) to themselves.
 	if args.has("scenario"):
 		UserPaths.use_folder("e2e/" + str(args.get("scenario-id", args["scenario"])))
+	_setup_touch()
 	Settings.load_once()
+	if Platform.is_mobile():
+		Settings.fullscreen = true  # phones: always (Android: immersive, no system bars)
 	Settings.apply_window()
 	Settings.apply_fps()
 	add_child(audio)
@@ -513,9 +520,12 @@ func _show_update(version: String, url: String, required: bool) -> void:
 	var label := Ink.label(text, 18, Ink.TEXT_INK)
 	label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	row.add_child(label)
-	var get_it := Ink.button("Pobierz", true)
-	get_it.pressed.connect(func(): OS.shell_open(url))
-	row.add_child(get_it)
+	if Platform.can_self_update():
+		var get_it := Ink.button("Pobierz", true)
+		get_it.pressed.connect(func(): OS.shell_open(url))
+		row.add_child(get_it)
+	else:  # iOS: apps come only from TestFlight / the App Store
+		label.text += "\nZaktualizuj grę w TestFlight."
 	var later := Ink.button("Zamknij" if required else "Później")
 	later.pressed.connect(func(): panel.queue_free())
 	row.add_child(later)
@@ -593,6 +603,8 @@ func _send_crash_report(report: Dictionary, status: Label, panel: Control = null
 
 
 func _notification(what: int) -> void:
+	if AndroidPlatform.handle_back(what):
+		return
 	match what:
 		NOTIFICATION_WM_CLOSE_REQUEST:
 			net.close()
@@ -601,3 +613,28 @@ func _notification(what: int) -> void:
 			Settings.apply_fps(false)  # in the background: draw less
 		NOTIFICATION_APPLICATION_FOCUS_IN:
 			Settings.apply_fps(true)
+		# Phones: the system may end a backgrounded app without telling it;
+		# that is not a crash, so the session counts as clean while paused.
+		NOTIFICATION_APPLICATION_PAUSED:
+			Settings.apply_fps(false)
+			if CrashReports.enabled(args):
+				CrashReports.end_session()
+			Settings.save()
+		NOTIFICATION_APPLICATION_RESUMED:
+			Settings.apply_fps(true)
+			if CrashReports.enabled(args):
+				CrashReports.mark_running()
+
+
+## Touch screens (or --touch): bigger UI on phones, the text field above the
+## on-screen keyboard (--fake-keyboard=0.4 pretends one on a desktop).
+func _setup_touch() -> void:
+	Touch.setup(args)
+	if not Touch.active:
+		return
+	var root := get_tree().root
+	root.size_changed.connect(func(): Touch.fit_ui(root))
+	Touch.fit_ui(root)
+	var lift := preload("res://touch/keyboard_lift.gd").new()
+	lift.fake = float(args.get("fake-keyboard", "0"))
+	add_child(lift)

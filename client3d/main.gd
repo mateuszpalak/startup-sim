@@ -30,6 +30,7 @@ const AuthClient = preload("res://net/auth_client.gd")
 const LoginScreen = preload("res://ui/login_screen.gd")
 const TitleBackdrop = preload("res://ui/title_backdrop_3d.gd")
 const Touch = preload("res://touch/touch.gd")
+const Pad = preload("res://pad/pad.gd")
 const Platform = preload("res://platform/platform.gd")
 
 const BUILDING_PATH := "res://maps/building.json"
@@ -48,6 +49,7 @@ var title_layer := CanvasLayer.new()
 var title := TitleScreen.new()
 var pause_layer := CanvasLayer.new()
 var pause := PauseMenu.new()
+var pad := Pad.new()
 var _leaving := false  # "Wyjdź do menu": the disconnect goes to the title
 var audio := Audio.new()
 var auth := AuthClient.new()
@@ -86,9 +88,10 @@ func _ready() -> void:
 	if Touch.active:
 		get_tree().root.size_changed.connect(func(): Touch.fit_ui(get_tree().root))
 		Touch.fit_ui(get_tree().root)
-		var lift := preload("res://touch/keyboard_lift.gd").new()
-		lift.fake = float(args.get("fake-keyboard", "0"))
-		add_child(lift)
+	# Text fields slide above an on-screen keyboard (the phone's or the pad's).
+	var lift := preload("res://touch/keyboard_lift.gd").new()
+	lift.fake = float(args.get("fake-keyboard", "0"))
+	add_child(lift)
 	if args.has("quality"):  # dev: --quality=mobile previews the phone profile
 		Platform.forced_profile = str(args["quality"])
 	Settings.load_once()
@@ -174,6 +177,9 @@ func _ready() -> void:
 			if game:
 				game.apply_settings())
 	portal.menu_requested.connect(func(): pause.open())
+	# Gamepads: over every screen (pad/pad.gd).
+	pad.main = self
+	add_child(pad)
 	if args.has("nick") or args.has("autoconnect"):
 		title_layer.visible = false
 	else:
@@ -463,6 +469,13 @@ func _input(event: InputEvent) -> void:
 			get_viewport().set_input_as_handled()
 
 
+## The game menu, if a game is on and nothing covers it (the pad was
+## unplugged mid-walk).
+func open_pause() -> void:
+	if game and not pause.visible and not title_layer.visible:
+		pause.open()
+
+
 ## "Wyjdź do menu": leave the server, back to the title.
 func _leave_to_menu() -> void:
 	_leaving = true
@@ -559,7 +572,7 @@ func _show_update(version: String, url: String, required: bool) -> void:
 		var get_it := Kit.button("Pobierz", true)
 		get_it.pressed.connect(func(): OS.shell_open(url))
 		row.add_child(get_it)
-	else:  # iOS: apps come only from TestFlight / the App Store, no .dmg
+	else:  # iOS: apps come only from TestFlight / the App Store
 		label.text += "\nZaktualizuj grę w TestFlight."
 	var later := Kit.button("Zamknij" if required else "Później")
 	later.pressed.connect(func(): panel.queue_free())

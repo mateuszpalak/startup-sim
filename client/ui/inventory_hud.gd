@@ -6,6 +6,7 @@ extends Control
 
 const ItemArt = preload("res://game/item_art.gd")
 const Ink = preload("res://ui/ink_ui.gd")
+const Touch = preload("res://touch/touch.gd")
 
 signal slot_clicked(pocket: int)
 
@@ -63,10 +64,18 @@ func _place() -> void:
 	size = vs
 	_panel.reset_size()
 	_panel.position = Vector2((vs.x - _panel.size.x) / 2, vs.y - _panel.size.y - 30)
+	_keys.visible = not Touch.active  # no keys on a touch screen (the buttons say it)
+	if Touch.active:
+		_panel.position.y = Touch.safe_rect(get_viewport()).end.y - _panel.size.y - 10
 	_keys.size = Vector2(vs.x, 24)
 	_keys.position = Vector2(0, vs.y - 28)
 	_caption.size = Vector2(vs.x, 28)
 	_caption.position = Vector2(0, _panel.position.y - 32)
+
+
+## Where the bar is (touch buttons keep clear of it).
+func panel_rect() -> Rect2:
+	return Rect2(_panel.position, _panel.size)
 
 
 ## Top of the bar (for placing hints above it).

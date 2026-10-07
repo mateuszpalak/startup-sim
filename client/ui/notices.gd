@@ -4,6 +4,7 @@
 extends VBoxContainer
 
 const Ink = preload("res://ui/ink_ui.gd")
+const Touch = preload("res://touch/touch.gd")
 
 const SHOW_SEC := 7.0
 const MAX_SHOWN := 4
@@ -24,6 +25,9 @@ func _ready() -> void:
 ## Top right, under the stats (a CanvasLayer has no anchors to lean on).
 func _place() -> void:
 	position = Vector2(get_viewport_rect().size.x - 380, 112)
+	if Touch.active:
+		var sr := Touch.safe_rect(get_viewport())
+		position = Vector2(sr.end.x - 380, sr.position.y + 112 + (90 if Touch.narrow(get_viewport()) else 0))
 
 
 func push(icon: int, text: String) -> void:

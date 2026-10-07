@@ -1,6 +1,6 @@
-# The Windows client (the 3D one, client3d/): on a Windows runner, export the build with Godot
-# (tools/build-windows.sh), run the client's unit tests there too and keep
-# the zips as an artifact. On a release tag (v*) the zips are attached to
+# The Windows clients (2D client/ and 3D client3d/, a matrix): on a Windows
+# runner, export each build with Godot (tools/build-windows.sh), run the
+# client's unit tests there too and keep the zips as artifacts. On a release tag (v*) the zips are attached to
 # that GitHub release (created if it doesn't exist yet).
 name: Windows
 
@@ -10,7 +10,7 @@ on:
     tags: ["v*"]
     paths-ignore: ["docs/**", "**.md", "server/**"]
   pull_request:
-    paths: ["client3d/**", "tools/build-windows.sh", ".github/workflows/windows.yml"]
+    paths: ["client/**", "client3d/**", "tools/build-windows.sh", "tools/client.sh", ".github/workflows/windows.yml"]
   workflow_dispatch:
 
 permissions:
@@ -22,11 +22,16 @@ concurrency:
 
 jobs:
   build:
-    name: Klient Windows (eksport + testy)
+    name: Klient Windows ${{ matrix.client }} (eksport + testy)
     runs-on: windows-latest
     timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        client: [client, client3d]
     env:
       GODOT_VERSION: 4.7.2
+      CLIENT: ${{ matrix.client }}
     defaults:
       run:
         shell: bash
@@ -59,10 +64,10 @@ jobs:
         run: echo "GODOT=$HOME/godot/Godot_v${GODOT_VERSION}-stable_win64_console.exe" >> "$GITHUB_ENV"
       - name: Import projektu
         run: |
-          "$GODOT" --headless --path client3d --import || true
+          "$GODOT" --headless --path "$CLIENT" --import || true
       - name: Testy klienta (na Windows)
         run: |
-          "$GODOT" --headless --path client3d -s tests/run_tests.gd 2>&1 | tee godot-tests.log
+          "$GODOT" --headless --path "$CLIENT" -s tests/run_tests.gd 2>&1 | tee godot-tests.log
           grep -q ", 0 failures" godot-tests.log
       - name: Eksport (x86_64 + arm64)
         run: tools/build-windows.sh --all
@@ -73,7 +78,7 @@ jobs:
           done
       - uses: actions/upload-artifact@v5
         with:
-          name: startupsim-windows
+          name: startupsim-windows-${{ matrix.client }}
           path: dist/*.zip
           if-no-files-found: error
 
@@ -88,7 +93,8 @@ jobs:
     steps:
       - uses: actions/download-artifact@v5
         with:
-          name: startupsim-windows
+          pattern: startupsim-windows-*
+          merge-multiple: true
           path: dist
       - name: Wyślij zipy do wydania
         env:

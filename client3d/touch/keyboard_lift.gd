@@ -2,12 +2,15 @@
 ## a LineEdit / TextEdit has focus and the keyboard is up, the CanvasLayer
 ## holding that field slides up just enough (back down when it closes).
 ## `--fake-keyboard=0.4` (dev, desktop): pretend a keyboard that covers
-## this part of the window, to see the layouts.
+## this part of the window, to see the layouts. The pad's on-screen
+## keyboard (pad/pad_keyboard.gd) sets `cover` the same way.
 extends Node
 
 const Touch = preload("res://touch/touch.gd")
 
 var fake := 0.0
+## Part of the window the pad keyboard covers (0: none).
+static var cover := 0.0
 var _layer: CanvasLayer = null
 var _lift := 0.0
 
@@ -21,6 +24,8 @@ func _process(delta: float) -> void:
 		kb_px = float(DisplayServer.virtual_keyboard_get_height())
 	if fake > 0.0 and typing:
 		kb_px = vp.get_window().size.y * fake
+	if cover > 0.0 and typing:
+		kb_px = maxf(kb_px, vp.get_window().size.y * cover)
 	var want := 0.0
 	var layer: CanvasLayer = null
 	if typing and kb_px > 0.0:

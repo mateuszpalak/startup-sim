@@ -4,6 +4,7 @@
 extends Control
 
 const Ink = preload("res://ui/ink_ui.gd")
+const Touch = preload("res://touch/touch.gd")
 
 const PLATE := Color("#d9c27a")
 const PLATE_LO := Color("#a88f4a")
@@ -72,6 +73,7 @@ func _place() -> void:
 	size = vs
 	_plate.reset_size()
 	_plate.position = (vs - _plate.size) / 2
+	Touch.place_center(_plate, get_viewport())
 
 
 ## Four screws in the corners and an engraved line.

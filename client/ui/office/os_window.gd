@@ -3,11 +3,13 @@
 extends PanelContainer
 
 const Ink = preload("res://ui/ink_ui.gd")
+const Touch = preload("res://touch/touch.gd")
 
 signal closed
 signal focused
 
 var content := MarginContainer.new()
+var draggable := true
 var _title := Label.new()
 
 
@@ -24,9 +26,12 @@ func setup(title: String, body: Control, pad := 12) -> void:
 	Ink.style_label(_title, 16, Color.WHITE)
 	_title.text = title
 	_title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_title.clip_text = Touch.active
 	row.add_child(_title)
 	var x := Ink.button("X", false, true)
 	x.focus_mode = Control.FOCUS_NONE
+	if Touch.active:
+		x.custom_minimum_size = Vector2(48, 44)
 	x.pressed.connect(func(): closed.emit())
 	row.add_child(x)
 	bar.gui_input.connect(_drag)
@@ -39,7 +44,18 @@ func setup(title: String, body: Control, pad := 12) -> void:
 	col.add_child(content)
 	body.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	body.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	content.add_child(body)
+	if Touch.active:
+		# Small screens: an app wider / taller than the window scrolls
+		# instead of pushing the window (and the monitor) off the screen.
+		var sc := ScrollContainer.new()
+		sc.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		sc.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+		sc.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+		sc.custom_minimum_size = Vector2(160, 120)
+		content.add_child(sc)
+		sc.add_child(body)
+	else:
+		content.add_child(body)
 
 
 func set_title(t: String) -> void:
@@ -47,7 +63,7 @@ func set_title(t: String) -> void:
 
 
 func _drag(ev: InputEvent) -> void:
-	if ev is InputEventMouseMotion and ev.button_mask & MOUSE_BUTTON_MASK_LEFT:
+	if draggable and ev is InputEventMouseMotion and ev.button_mask & MOUSE_BUTTON_MASK_LEFT:
 		var p := get_parent() as Control
 		position += ev.relative
 		if p:  # keep the title bar on the screen
