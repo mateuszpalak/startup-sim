@@ -138,6 +138,7 @@ func _touch_layout(vs: Vector2) -> void:
 		_title.position = Vector2((vs.x - _title.size.x) / 2, sr.position.y + 30)
 		_sub.position = Vector2((vs.x - _sub.size.x) / 2, _title.position.y + 100)
 		_card.position = Vector2((vs.x - _card.size.x) / 2, maxf(_sub.position.y + 60, (vs.y - _card.size.y) / 2))
+		_card.position.y = maxf(minf(_card.position.y, sr.end.y - _card.size.y - 8), sr.position.y + 8)
 	elif 230.0 + _card.size.y > sr.end.y:
 		var half := sr.size.x / 2
 		_title.position = Vector2(sr.position.x + (half - _title.size.x) / 2, sr.position.y + sr.size.y / 2 - 90)

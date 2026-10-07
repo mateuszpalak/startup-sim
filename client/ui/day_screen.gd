@@ -5,6 +5,7 @@
 extends Control
 
 const Ink = preload("res://ui/ink_ui.gd")
+const Touch = preload("res://touch/touch.gd")
 
 const Protocol = preload("res://net/protocol.gd")
 
@@ -27,7 +28,7 @@ var _title := Label.new()
 var _sub := Label.new()
 var _info := Label.new()
 var _sky := Control.new()
-var _modes := HBoxContainer.new()
+var _modes: Container = null  # (wraps into rows on a touch screen)
 var _mode_buttons := {}   # mode -> Button
 var _skip := Ink.button("Pomiń czekanie  »", true)
 var _vote := PanelContainer.new()
@@ -52,13 +53,24 @@ func _ready() -> void:
 		l.add_theme_color_override("font_color", Color.WHITE)
 		l.add_theme_constant_override("outline_size", 8)
 		l.add_theme_color_override("font_outline_color", Ink.INK)
+		if Touch.active:
+			l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		col.add_child(l)
 	_title.add_theme_font_size_override("font_size", 64)
 	_sub.add_theme_font_size_override("font_size", 24)
 	_info.add_theme_font_size_override("font_size", 20)
 	_info.add_theme_color_override("font_color", Color(1, 1, 1, 0.8))
-	_modes.alignment = BoxContainer.ALIGNMENT_CENTER
-	_modes.add_theme_constant_override("separation", 10)
+	if Touch.active:
+		var flow := HFlowContainer.new()
+		flow.alignment = FlowContainer.ALIGNMENT_CENTER
+		flow.add_theme_constant_override("h_separation", 10)
+		flow.add_theme_constant_override("v_separation", 10)
+		_modes = flow
+	else:
+		var hb := HBoxContainer.new()
+		hb.alignment = BoxContainer.ALIGNMENT_CENTER
+		hb.add_theme_constant_override("separation", 10)
+		_modes = hb
 	col.add_child(_modes)
 	for id in MODES:
 		var b := Button.new()
@@ -119,6 +131,11 @@ func _fit() -> void:
 	size = get_viewport_rect().size
 	_bg.size = size
 	_sky.size = size
+	if Touch.active:  # an upright phone: the vote card fits the width
+		var w := minf(560.0, size.x - 32.0)
+		_vote.custom_minimum_size.x = w
+		_vote_text.custom_minimum_size.x = w - 40.0
+		_title.add_theme_font_size_override("font_size", 48 if size.x < 700 else 64)
 
 
 static func hhmm(m: int) -> String:
