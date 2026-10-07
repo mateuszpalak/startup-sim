@@ -4,6 +4,7 @@
 extends Control
 
 const Kit = preload("res://ui/ui_kit.gd")
+const Touch = preload("res://touch/touch.gd")
 
 signal scrubbed
 
@@ -30,7 +31,7 @@ func _ready() -> void:
 	col.add_theme_constant_override("separation", 8)
 	_panel.add_child(col)
 	col.add_child(Kit.label("Szorowanie sedesu", 24, Kit.TEXT_INK))
-	col.add_child(Kit.label("Trzymaj lewy przycisk myszy i szoruj smugi szczotką · Esc — odpuść", 15, Kit.TEXT_MUTED))
+	col.add_child(Kit.label(Touch.say("Trzymaj lewy przycisk myszy i szoruj smugi szczotką · Esc — odpuść", "Szoruj smugi palcem · ✕ — odpuść"), 15, Kit.TEXT_MUTED))
 	_area.custom_minimum_size = AREA
 	_area.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	_area.mouse_filter = Control.MOUSE_FILTER_STOP
@@ -52,6 +53,7 @@ func _place() -> void:
 	size = vs
 	_panel.reset_size()
 	_panel.position = ((vs - _panel.size) / 2).floor()
+	Touch.place_center(_panel, get_viewport())
 
 
 func start() -> void:

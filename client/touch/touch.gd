@@ -118,3 +118,28 @@ static func tap(code: Key, hold := 0.12) -> void:
 
 static func is_held(code: Key) -> bool:
 	return _held.get(code, false)
+
+
+## Touch screens: centre a window in the safe area, shrunk to fit when it's
+## taller / wider than the screen (no-op elsewhere).
+static func place_center(c: Control, vp: Viewport) -> void:
+	if not active:
+		return
+	var sr := safe_rect(vp).grow(-4)
+	var sz := c.size.max(c.get_combined_minimum_size())
+	if sz.x <= 0 or sz.y <= 0:
+		return
+	var s := minf(1.0, minf(sr.size.x / sz.x, sr.size.y / sz.y))
+	c.pivot_offset = Vector2.ZERO
+	c.scale = Vector2(s, s)
+	c.position = (sr.position + (sr.size - sz * s) / 2).floor()
+
+
+## Touch: the same words for the key or the finger.
+static func say(keys: String, finger: String) -> String:
+	return finger if active else keys
+
+
+## Touch, a narrow (portrait) screen: the HUD stacks its top rows.
+static func narrow(vp: Viewport) -> bool:
+	return active and safe_rect(vp).size.x < 760

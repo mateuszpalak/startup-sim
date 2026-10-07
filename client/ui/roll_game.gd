@@ -5,11 +5,14 @@
 extends Control
 
 const Kit = preload("res://ui/ui_kit.gd")
+const Touch = preload("res://touch/touch.gd")
 
 signal rolled(quality: int)
 
 const STEPS := ["Napchaj tytoń: przytrzymaj SPACJĘ i puść na zielonym", "Zwiń bibułkę: SPACJA, gdy znacznik jest na środku",
 	"Poliż i sklej: SPACJA, gdy pojawi się TERAZ!"]
+const TOUCH_STEPS := ["Napchaj tytoń: przytrzymaj palec na ekranie i puść na zielonym", "Zwiń bibułkę: stuknij, gdy znacznik jest na środku",
+	"Poliż i sklej: stuknij, gdy pojawi się TERAZ!"]
 ## Step 1: the green zone of the fill (0..1) and how fast it fills.
 const FILL_FROM := 0.55
 const FILL_TO := 0.8
@@ -59,6 +62,7 @@ func _place() -> void:
 	size = vs
 	_panel.reset_size()
 	_panel.position = Vector2((vs.x - _panel.size.x) / 2, vs.y * 0.3)
+	Touch.place_center(_panel, get_viewport())
 
 
 ## Open it (the tobacco is in hands).
@@ -121,6 +125,14 @@ func _process(delta: float) -> void:
 	_bar.queue_redraw()
 
 
+## Touch screens: a finger anywhere is the space bar (the close button
+## takes its own touches first).
+func _input(event: InputEvent) -> void:
+	if visible and _done_at < 0.0 and event is InputEventScreenTouch:
+		get_viewport().set_input_as_handled()
+		_space(event.pressed)
+
+
 func _unhandled_input(event: InputEvent) -> void:
 	if not visible or _done_at >= 0.0 or not (event is InputEventKey):
 		return
@@ -131,18 +143,22 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event.keycode != KEY_SPACE or event.echo:
 		return
 	get_viewport().set_input_as_handled()
+	_space(event.pressed)
+
+
+func _space(pressed: bool) -> void:
 	match step:
 		0:
-			if event.pressed:
+			if pressed:
 				_holding = true
 			elif _holding:
 				_holding = false
 				_next(fill_score(_fill))
 		1:
-			if event.pressed:
+			if pressed:
 				_next(roll_score(_marker()))
 		2:
-			if event.pressed:
+			if pressed:
 				_next(seal_score(_t - _seal_at if _t >= _seal_at else -1.0))
 
 
@@ -169,7 +185,7 @@ func _next(score: int) -> void:
 
 func _show() -> void:
 	_title.text = "Skręcanie (%d/3)" % (step + 1)
-	_hint.text = STEPS[step] + "  ·  Esc — odłóż"
+	_hint.text = (TOUCH_STEPS[step] + "  ·  ✕ — odłóż") if Touch.active else (STEPS[step] + "  ·  Esc — odłóż")
 	_bar.queue_redraw()
 
 

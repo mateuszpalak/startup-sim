@@ -4,6 +4,7 @@
 extends Control
 
 const Kit = preload("res://ui/ui_kit.gd")
+const Touch = preload("res://touch/touch.gd")
 
 const PLATE := Color("#f3f4f6")  # brushed acrylic
 const SIGN := Color("#3a3d48")
@@ -75,6 +76,7 @@ func _place() -> void:
 	size = vs
 	_plate.reset_size()
 	_plate.position = (vs - _plate.size) / 2
+	Touch.place_center(_plate, get_viewport())
 
 
 ## Four screws in the corners and an engraved line.

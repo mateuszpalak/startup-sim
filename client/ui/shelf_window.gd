@@ -3,6 +3,7 @@
 extends Control
 
 const Kit = preload("res://ui/ui_kit.gd")
+const Touch = preload("res://touch/touch.gd")
 const ItemIcons = preload("res://ui/item_icons.gd")
 
 const ItemArt = preload("res://game/item_art.gd")
@@ -29,7 +30,7 @@ func _ready() -> void:
 	_list.add_theme_constant_override("separation", 6)
 	col.add_child(_list)
 	var hint := Label.new()
-	hint.text = "1–9 weź · Esc zamknij · płaci się przy kasie"
+	hint.text = Touch.say("1–9 weź · Esc zamknij · płaci się przy kasie", "Weź to, co chcesz · płaci się przy kasie")
 	Kit.style_label(hint, 16, Kit.TEXT_MUTED)
 	col.add_child(hint)
 	_panel.resized.connect(_place)
@@ -41,6 +42,7 @@ func _place() -> void:
 	position = Vector2.ZERO
 	size = vs
 	_panel.position = Vector2((vs.x - _panel.size.x) / 2, vs.y - _panel.size.y - 110)
+	Touch.place_center(_panel, get_viewport())
 
 
 static func zl(gr: int) -> String:

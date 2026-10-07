@@ -109,6 +109,7 @@ var elevator_doors := {} # floor -> Array of ElevatorDoorView
 var lifts := []
 var ride_mask := RideMask.new()
 var clock_label := Label.new()
+var clock_panel: Control = null
 var daylight := CanvasModulate.new()   # time-of-day tint of the world
 var game_minute := 8 * 60
 var weather := Protocol.WEATHER_SUNNY
@@ -322,6 +323,7 @@ func setup(p_net, p_building, welcome: Dictionary, p_nick: String, args: Diction
 	hud.slot_clicked.connect(_pocket_key)
 	status_layer.add_child(stats_hud)
 	var cp := Kit.panel("hud")
+	clock_panel = cp
 	cp.position = Vector2(16, 14)
 	var crow := HBoxContainer.new()
 	crow.add_theme_constant_override("separation", 10)
@@ -846,7 +848,13 @@ func _fit_hud_text() -> void:
 		var want: Vector2 = l.get_combined_minimum_size()
 		if l.size != want:
 			l.size = want
-	status_label.position = Vector2((vs.x - status_label.size.x) / 2, 24)
+	var sr := Touch.safe_rect(get_viewport())
+	status_label.position = Vector2((vs.x - status_label.size.x) / 2, sr.position.y + 24)
+	if clock_panel:
+		clock_panel.position = sr.position + Vector2(16, 14)
+	if Touch.active:  # above the joystick
+		log_label.size = Vector2(minf(420, vs.x * 0.4), 200)
+		log_label.position = Vector2(sr.position.x + 16, sr.end.y - 200 - 190)
 	hint_label.position = Vector2((vs.x - hint_label.size.x) / 2, hud.top() - hint_label.size.y - 10)
 
 

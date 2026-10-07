@@ -6,6 +6,7 @@
 extends Control
 
 const Kit = preload("res://ui/ui_kit.gd")
+const Touch = preload("res://touch/touch.gd")
 const ItemIcons = preload("res://ui/item_icons.gd")
 const ItemArt = preload("res://game/item_art.gd")
 const Protocol = preload("res://net/protocol.gd")
@@ -59,7 +60,7 @@ func _ready() -> void:
 	col.add_child(_caption)
 	_buttons.add_theme_constant_override("separation", 8)
 	col.add_child(_buttons)
-	col.add_child(Kit.label("Przeciągnij myszką (albo kliknij), żeby wyjąć lub włożyć · Esc zamknij", 14, Kit.TEXT_MUTED))
+	col.add_child(Kit.label(Touch.say("Przeciągnij myszką (albo kliknij), żeby wyjąć lub włożyć · Esc zamknij", "Stuknij albo przeciągnij palcem, żeby wyjąć lub włożyć"), 14, Kit.TEXT_MUTED))
 	_panel.resized.connect(_place)
 	_panel.minimum_size_changed.connect(_place.call_deferred)
 	get_viewport().size_changed.connect(_place)
@@ -71,6 +72,7 @@ func _place() -> void:
 	size = vs
 	_panel.reset_size()
 	_panel.position = ((vs - _panel.size) / 2).floor()
+	Touch.place_center(_panel, get_viewport())
 
 
 ## `inner` taking drops of things dragged from `from` ("box" / "inv").

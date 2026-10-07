@@ -7,6 +7,7 @@
 extends Control
 
 const Kit = preload("res://ui/ui_kit.gd")
+const Touch = preload("res://touch/touch.gd")
 
 ## [name, true if high = bad, colour, icon (Kit.draw_icon)]
 const ROWS := [
@@ -83,9 +84,15 @@ func _place() -> void:
 	position = Vector2.ZERO
 	size = vs
 	_bar.reset_size()
-	_bar.position = Vector2(vs.x - _bar.size.x - 16, 14)
+	var sr := Touch.safe_rect(get_viewport())
+	_bar.position = Vector2(sr.end.x - _bar.size.x - 16, sr.position.y + 14)
+	_bar.scale = Vector2.ONE
+	if Touch.narrow(get_viewport()):  # portrait: a row of its own under the clock
+		var k := minf(1.0, (sr.size.x - 24) / _bar.size.x)
+		_bar.scale = Vector2(k, k)
+		_bar.position = Vector2(sr.end.x - _bar.size.x * k - 12, sr.position.y + 66)
 	_note.reset_size()
-	_note.position = Vector2(vs.x - _note.size.x - 16, _bar.position.y + _bar.size.y + 8)
+	_note.position = Vector2(sr.end.x - _note.size.x - 16, _bar.position.y + _bar.size.y * _bar.scale.y + 8)
 
 
 func update_stats(p: Dictionary) -> void:

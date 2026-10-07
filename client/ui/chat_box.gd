@@ -4,6 +4,7 @@
 extends PanelContainer
 
 const Kit = preload("res://ui/ui_kit.gd")
+const Touch = preload("res://touch/touch.gd")
 
 signal sent(text: String)
 
@@ -25,7 +26,7 @@ func _ready() -> void:
 	row.add_child(l)
 	_input.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_input.max_length = MAX_CHARS
-	_input.placeholder_text = "do pokoju · /s szept · /k krzyk · Esc — zamknij"
+	_input.placeholder_text = Touch.say("do pokoju · /s szept · /k krzyk · Esc — zamknij", "do pokoju · /s szept · /k krzyk")
 	_input.text_submitted.connect(_submit)
 	_input.gui_input.connect(func(e: InputEvent):
 		if e is InputEventKey and e.pressed and e.keycode == KEY_ESCAPE:
@@ -38,6 +39,11 @@ func _ready() -> void:
 func _place() -> void:
 	var vs := get_viewport_rect().size
 	position = Vector2((vs.x - size.x) / 2, vs.y - 200)
+	if Touch.active:
+		var sr := Touch.safe_rect(get_viewport())
+		size.x = minf(560, sr.size.x - 24)
+		custom_minimum_size.x = size.x
+		position = Vector2(sr.position.x + (sr.size.x - size.x) / 2, sr.end.y - 200)
 
 
 ## Typing: the game doesn't walk or react to keys meanwhile.

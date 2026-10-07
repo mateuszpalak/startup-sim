@@ -4,6 +4,7 @@
 extends Control
 
 const Kit = preload("res://ui/ui_kit.gd")
+const Touch = preload("res://touch/touch.gd")
 const ItemIcons = preload("res://ui/item_icons.gd")
 const ItemArt = preload("res://game/item_art.gd")
 
@@ -37,7 +38,7 @@ func _ready() -> void:
 	col.add_child(_empty)
 	var hint := Label.new()
 	Kit.style_label(hint, 14, Kit.TEXT_MUTED)
-	hint.text = "Klawisz numeru albo klik · Tab / Esc zamknij"
+	hint.text = Touch.say("Klawisz numeru albo klik · Tab / Esc zamknij", "Stuknij, co chcesz zrobić · ✕ zamyka")
 	col.add_child(hint)
 	get_viewport().size_changed.connect(_place)
 
@@ -139,6 +140,7 @@ func _place() -> void:
 	_panel.reset_size()
 	_panel.size = _panel.get_combined_minimum_size()
 	_panel.position = ((vs - _panel.size) / 2).floor()
+	Touch.place_center(_panel, get_viewport())
 
 
 func _unhandled_input(event: InputEvent) -> void:

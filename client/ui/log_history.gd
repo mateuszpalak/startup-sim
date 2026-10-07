@@ -3,6 +3,7 @@
 extends PanelContainer
 
 const Kit = preload("res://ui/ui_kit.gd")
+const Touch = preload("res://touch/touch.gd")
 
 const MAX_LINES := 400
 
@@ -21,7 +22,7 @@ func _ready() -> void:
 	add_child(col)
 	var title := Label.new()
 	Kit.style_label(title, 22, Kit.TEXT_INK)
-	title.text = "Dziennik dnia  (H — zamknij)"
+	title.text = Touch.say("Dziennik dnia  (H — zamknij)", "Dziennik dnia")
 	col.add_child(title)
 	_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
@@ -34,6 +35,7 @@ func _ready() -> void:
 func _place() -> void:
 	var vs := get_viewport_rect().size
 	position = (vs - size) / 2
+	Touch.place_center(self, get_viewport())
 
 
 func add(line: String) -> void:

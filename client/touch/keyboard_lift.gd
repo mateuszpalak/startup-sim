@@ -26,10 +26,9 @@ func _process(delta: float) -> void:
 		var vis := vp.get_visible_rect().size
 		var units := kb_px * vis.y / float(vp.get_window().size.y)
 		var kb_top := vis.y - units
-		var r: Rect2 = focus.get_global_rect()
-		var bottom := r.end.y - _lift + 10.0  # where it'd be unlifted
-		want = maxf(0.0, bottom - kb_top)
-		want = minf(want, maxf(r.position.y - _lift - 8.0, 0.0))  # its top stays on screen
+		var r: Rect2 = focus.get_global_rect()  # in the layer (without its offset)
+		want = maxf(0.0, r.end.y + 10.0 - kb_top)
+		want = minf(want, maxf(r.position.y - 8.0, 0.0))  # its top stays on screen
 	if layer != _layer and _layer != null:
 		_layer.offset.y = 0.0
 		_lift = 0.0

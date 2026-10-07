@@ -102,14 +102,14 @@ func layout() -> void:
 	buttons.whisper.r = rb * 0.86
 	buttons.whisper.at = buttons.talk.at + Vector2(-(rb * 2 + 14) * (1.0 if left else -1.0), rb * 0.3)
 	# Menu, chat, journal: a row under the clock (top left).
-	var top := sr.position.y + 62
+	var top := sr.position.y + (124 if Touch.narrow(get_viewport()) else 62)
 	var x := sr.position.x + m + rs
 	for id in ["pause", "chat", "log"]:
 		buttons[id].r = rs
 		buttons[id].at = Vector2(x, top + rs)
 		x += rs * 2 + 12
 	buttons.close.r = rs
-	buttons.close.at = Vector2(sr.end.x - m - rs, sr.position.y + m + rs + 64)
+	buttons.close.at = Vector2(sr.end.x - m - rs, top + rs)
 	_joy_home = Vector2(sr.position.x + m + _joy_r + 24, floor_y - m - _joy_r - 20) if left \
 		else Vector2(sr.end.x - m - _joy_r - 24, floor_y - m - _joy_r - 20)
 	queue_redraw()

@@ -5,6 +5,7 @@
 extends Control
 
 const Kit = preload("res://ui/ui_kit.gd")
+const Touch = preload("res://touch/touch.gd")
 const ItemIcons = preload("res://ui/item_icons.gd")
 const ItemArt = preload("res://game/item_art.gd")
 
@@ -52,6 +53,7 @@ func _place() -> void:
 	if _panel.size != want:
 		_panel.size = want
 	_panel.position = Vector2((vs.x - want.x) / 2, maxf(8.0, vs.y - want.y - 120))
+	Touch.place_center(_panel, get_viewport())
 
 
 func _process(_delta: float) -> void:
@@ -92,6 +94,8 @@ func on_dialog(p: Dictionary) -> void:
 		var b := Kit.button("%d. %s" % [i + 1, p.options[i]])
 		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
 		b.focus_mode = Control.FOCUS_NONE
+		if Touch.active:
+			b.custom_minimum_size.y = 50
 		b.pressed.connect(func(): _choose(choice))
 		_opts.add_child(b)
 	var was := visible
