@@ -1275,3 +1275,22 @@ fn the_laptop_carried_out_is_still_yours_after_logging_back_in() {
     relog(&mut s, 3, 4);
     assert_eq!(s.computers.iter().find(|c| c.handle == 900).unwrap().owner(), 4);
 }
+
+#[test]
+fn at_the_till_e_pays_the_cashier_even_with_the_guard_closer() {
+    let mut s = server();
+    add_player(&mut s, 1);
+    let cashier = s.npcs.iter().find(|n| n.role == crate::npc::Role::Cashier).unwrap();
+    let (cashier_id, floor, till) = (cashier.id, cashier.body.floor, cashier.body.pos);
+    // Next to the cashier; the guard, stopped for a look around, right on top of us.
+    let me = Body::at(floor, Pos { x: till.x + 24, ..till });
+    s.players.get_mut(&1).unwrap().body = me;
+    let guard = s.npcs.iter_mut().find(|n| n.role == crate::npc::Role::Guard).unwrap();
+    guard.body = Body::at(floor, me.pos);
+    assert!(guard.is_idle());
+    let events = s.handle_interactions(&[(1, me)]);
+    assert!(
+        events.iter().any(|e| matches!(e, crate::npc::Event::Checkout { npc, player: 1 } if *npc == cashier_id)),
+        "E at the till goes to the cashier, not the guard: {events:?}"
+    );
+}

@@ -43,8 +43,10 @@ impl Server {
         if self.use_supplies(pid, body) {
             return;
         }
-        // NPCs at their post first (a porter still standing next to the
-        // guest he just brought mustn't shadow the receptionist). At a shop
+        // The cashier first: at the till E pays, even with the guard (who
+        // stops for a look around between the aisles) standing closer. Then
+        // NPCs at their post (a porter still standing next to the guest he
+        // just brought mustn't shadow the receptionist). At a shop
         // shelf only somebody right next to you (the guard walks the aisles).
         let shelf_here = crate::shop::shelf_in_reach(&self.shelves, body).is_some();
         let close = |n: &npc::Npc| super::dist2(n.body.pos, body.pos) <= crate::needs::USE_RADIUS * crate::needs::USE_RADIUS;
@@ -53,7 +55,7 @@ impl Server {
             .iter()
             .enumerate()
             .filter(|(_, n)| n.in_talk_range(body) && (!shelf_here || close(n)))
-            .min_by_key(|(_, n)| (!n.is_idle(), (n.body.pos.x - body.pos.x).abs() + (n.body.pos.y - body.pos.y).abs()))
+            .min_by_key(|(_, n)| (n.role != npc::Role::Cashier, !n.is_idle(), (n.body.pos.x - body.pos.x).abs() + (n.body.pos.y - body.pos.y).abs()))
             .map(|(i, _)| i);
         if let Some(i) = nearest {
             let n = &mut self.npcs[i];
