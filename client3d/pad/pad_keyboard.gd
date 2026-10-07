@@ -29,7 +29,6 @@ var _hints := Control.new()
 
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
-	set_anchors_preset(Control.PRESET_FULL_RECT)
 	visible = false
 	_panel.add_theme_stylebox_override("panel", Kit.box("paper"))
 	add_child(_panel)

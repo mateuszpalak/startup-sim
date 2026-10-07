@@ -50,6 +50,8 @@ var _ui_repeat := 0.0
 var _pocket := -1
 var _turning := false
 var _ctx := ""
+## A menu the cursor opened (StartOS): the pad walks it with its keys.
+var popup: PopupMenu = null
 
 
 func _ready() -> void:
@@ -112,6 +114,8 @@ func _set_active(on: bool, dev := -1) -> void:
 ## What the pad drives now: "keyboard" (typing), "ui" (a window / menu),
 ## "game" (walking around), "" (nothing to do: loading).
 func context() -> String:
+	if popup and is_instance_valid(popup) and popup.visible:
+		return "popup"
 	if keyboard.visible:
 		return "keyboard"
 	if ui_root() != null:
@@ -150,6 +154,12 @@ func ui_root() -> Node:
 func _button(b: int, down: bool) -> void:
 	_buttons[b] = down
 	var ctx := context()
+	if ctx == "popup":
+		var key: Key = {JOY_BUTTON_DPAD_UP: KEY_UP, JOY_BUTTON_DPAD_DOWN: KEY_DOWN, JOY_BUTTON_A: KEY_ENTER,
+			JOY_BUTTON_B: KEY_ESCAPE, JOY_BUTTON_START: KEY_ESCAPE}.get(b, KEY_NONE)
+		if key != KEY_NONE:
+			press(key, down)
+		return
 	if ctx == "keyboard":
 		if down:
 			keyboard.pad_button(b)
@@ -279,7 +289,7 @@ func _process(delta: float) -> void:
 		"game":
 			_walk(d)
 			_camera(delta)
-		"ui", "keyboard":
+		"ui", "keyboard", "popup":
 			_brush_or_nav(d, delta)
 			var rs := PadMap.stick_value(_stick(JOY_AXIS_RIGHT_X, JOY_AXIS_RIGHT_Y))
 			if rs.y != 0.0:
@@ -343,6 +353,10 @@ func _brush_or_nav(d: Vector2i, delta: float) -> void:
 ## One step: a slider / choice list changes with left / right, the rest
 ## moves the focus.
 func _nav(d: Vector2i) -> void:
+	if _ctx == "popup":
+		if d.y != 0 and not _buttons.get(JOY_BUTTON_DPAD_UP, false) and not _buttons.get(JOY_BUTTON_DPAD_DOWN, false):
+			tap(KEY_DOWN if d.y > 0 else KEY_UP, 0.05)
+		return
 	if d.x != 0 and d.y == 0 and cursor.adjust(d.x):
 		return
 	cursor.move(Vector2(0, d.y) if d.x != 0 and d.y != 0 else Vector2(d))

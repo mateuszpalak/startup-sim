@@ -19,7 +19,6 @@ var _remember := {}  # root instance id -> its last target (back to it on return
 
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
-	set_anchors_preset(Control.PRESET_FULL_RECT)
 	visible = false
 
 
@@ -227,6 +226,9 @@ func activate() -> void:
 		(c.get_meta("pad_press") as Callable).call()
 	elif c is OptionButton:
 		_cycle(c, 1)
+	elif c is MenuButton:
+		(c as MenuButton).show_popup()
+		pad.popup = (c as MenuButton).get_popup()
 	elif c is BaseButton:
 		var b: BaseButton = c
 		if b.toggle_mode:
