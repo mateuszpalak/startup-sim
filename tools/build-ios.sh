@@ -30,7 +30,7 @@ CLIENT=${CLIENT:-client3d}
 MODE=${1:-sim}
 TEAM=${DEVELOPMENT_TEAM:-}
 SIM=${SIM:-iPhone 18 Pro}
-BUNDLE=com.mateuszpalak.startupsim3d
+BUNDLE=pl.mateuszpalak.startupsim3d
 GODOT=${GODOT:-godot}
 
 case "$MODE" in
