@@ -35,7 +35,7 @@ func _ready() -> void:
 		cb.text = pair[1]
 		_style_check(cb)
 		_content.add_child(cb)
-	_full.visible = not OS.get_name() in ["iOS", "Android"]  # always full screen there
+	_full.visible = not preload("res://platform/platform.gd").is_mobile()  # always full screen there
 	_full.button_pressed = Settings.fullscreen
 	_battery.button_pressed = Settings.battery
 	_crashes.button_pressed = Settings.crash_reports_always
@@ -228,7 +228,8 @@ func _render_row() -> void:
 		_save())
 	row.add_child(s)
 	_content.add_child(row)
-	_content.add_child(Kit.label("Niższa = płynniej (obraz skalowany przez FSR, napisy zostają ostre).", 16, Kit.TEXT_MUTED))
+	var upscaler := "FSR" if preload("res://platform/platform.gd").supports_fsr() else "skalowanie"
+	_content.add_child(Kit.label("Niższa = płynniej (obraz skalowany przez %s, napisy zostają ostre)." % upscaler, 16, Kit.TEXT_MUTED))
 
 
 func _update_zoom_label() -> void:

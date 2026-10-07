@@ -26,6 +26,7 @@ func _init() -> void:
 	test_door_plaques()
 	test_camera_keys()
 	test_windows_asset()
+	test_custom_server()
 	print("%d checks, %d failures" % [checks, failures])
 	quit(1 if failures > 0 else 0)
 
@@ -455,3 +456,26 @@ func test_windows_asset() -> void:
 	expect(U.asset_url(assets, "-windows-x86_64.zip", "page") == "https://x/win.zip", "windows asset found")
 	expect(U.asset_url(assets, "-windows-arm64.zip", "page") == "page", "no arm64 asset -> release page")
 	expect(U.asset_url(null, "-windows-x86_64.zip", "page") == "page", "no assets -> release page")
+	assets.append({"name": "StartupSim-0.4.0-debug.apk", "browser_download_url": "https://x/debug.apk"})
+	expect(U.asset_url(assets, U.asset_suffix("Android", true), "page") == "page", "debug apk is not offered")
+	assets.append({"name": "StartupSim-0.4.0.apk", "browser_download_url": "https://x/a.apk"})
+	expect(U.asset_url(assets, U.asset_suffix("Android", true), "page") == "https://x/a.apk", "android apk found")
+	expect(U.asset_url(assets, U.asset_suffix("macOS", true), "page") == "https://x/mac.dmg", "mac dmg found")
+	expect(U.asset_suffix("iOS", true) == "" and U.asset_suffix("Windows", true) == "-windows-arm64.zip", "suffixes")
+
+
+## Login: "Inny serwer…" takes a typed host:port; the game's servers keep their names.
+func test_custom_server() -> void:
+	var L = load("res://ui/login_screen.gd").new()
+	L._fill_servers()
+	var listed: String = L._servers[0].address
+	L.set_address(listed)
+	expect(L.address() == listed and not L._custom_selected(), "listed server selected by address")
+	L.set_address("192.168.1.20:7777")
+	expect(L._custom_selected() and L.address() == "192.168.1.20:7777", "unknown address -> Inny serwer")
+	L.custom_edit.text = "dom:port"
+	expect(L.address() == "", "bad custom address rejected")
+	expect(load("res://net/auth_client.gd").server_name("10.0.0.5:7777") == "Inny serwer: 10.0.0.5:7777", "custom server labelled")
+	for n in [L.server_opt, L.custom_edit, L.nick_edit, L.pass_edit, L.new_pass_edit, L.remember_box,
+			L.status, L._form, L._quick, L._quick_label, L]:
+		n.free()

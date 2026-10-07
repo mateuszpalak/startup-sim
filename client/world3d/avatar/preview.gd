@@ -48,7 +48,7 @@ func _env() -> void:
 	e.tonemap_mode = Environment.TONE_MAPPER_ACES
 	e.tonemap_exposure = 0.82
 	e.tonemap_white = 6.0
-	e.ssao_enabled = true
+	e.ssao_enabled = preload("res://platform/platform.gd").supports_ssao()
 	e.ssao_radius = 0.9
 	e.ssao_intensity = 3.0
 	e.ssao_power = 1.6

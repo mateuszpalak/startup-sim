@@ -59,8 +59,8 @@ func _ready() -> void:
 	box.add_child(_menu)
 	for entry in [["Graj", func(): play.emit(), true], ["Ustawienia", func(): _show(_settings), false],
 			["O grze", func(): _show(_about), false], ["Wyjdź", func(): quit.emit(), false]]:
-		if entry[0] == "Wyjdź" and OS.get_name() == "iOS":
-			continue  # iOS apps don't quit themselves
+		if entry[0] == "Wyjdź" and not preload("res://platform/platform.gd").can_quit():
+			continue  # iOS guidelines / Android: the system closes apps
 		var b := Kit.button(entry[0], entry[2])
 		b.custom_minimum_size = Vector2(300, 58 if Touch.active else 50)
 		b.add_theme_font_size_override("font_size", 22)

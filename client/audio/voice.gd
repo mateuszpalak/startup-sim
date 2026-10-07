@@ -66,7 +66,7 @@ func _exit_tree() -> void:
 ## The microphone starts on the first push-to-talk (macOS and iOS ask
 ## for permission then).
 func _open_mic() -> void:
-	if _mic or not AndroidPlatform.microphone_allowed():
+	if _mic:
 		return
 	if not Platform.request_microphone():
 		return  # Android: asked now, the next press opens it

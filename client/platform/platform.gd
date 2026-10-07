@@ -65,21 +65,32 @@ static func quality() -> Dictionary:
 	}
 
 
+## Pretended screen insets (left, top, right, bottom in window pixels) from
+## `--safe-area=l,t,r,b`: previews a notch on a desktop.
+static var dev_insets := Rect2()
+
+
 ## The part of the screen nothing covers (notch / Dynamic Island, rounded
-## corners, home indicator), in the root viewport's coordinates (after the
+## corners, home indicator), in the viewport's coordinates (after the
 ## canvas_items stretch) - put touch buttons and HUD edges inside it. On
-## desktops: the whole viewport.
+## desktops: the whole viewport (unless --safe-area pretends a notch).
 static func safe_area(vp: Viewport) -> Rect2:
-	var visible := vp.get_visible_rect()
-	if not is_mobile():
-		return visible
-	var safe := DisplayServer.get_display_safe_area()
-	var screen := DisplayServer.screen_get_size()
-	if safe.size.x <= 0 or screen.x <= 0:
-		return visible
-	# Window pixels -> viewport units (the stretch scales uniformly).
-	var k := visible.size.x / float(screen.x)
-	return Rect2(visible.position + Vector2(safe.position) * k, Vector2(safe.size) * k)
+	var vis := vp.get_visible_rect()
+	var win := vp.get_window() if vp is not Window else vp as Window
+	var wsize := Vector2(win.size) if win else vis.size
+	var px_per := wsize.x / vis.size.x if vis.size.x > 0 else 1.0
+	var ins := dev_insets
+	if ins == Rect2() and is_mobile():
+		var safe := Rect2(DisplayServer.get_display_safe_area())
+		var full := Rect2(Vector2(DisplayServer.window_get_position()), wsize)
+		if safe.size.x > 0 and safe.size.y > 0:
+			ins = Rect2(maxf(safe.position.x - full.position.x, 0), maxf(safe.position.y - full.position.y, 0),
+				maxf(full.end.x - safe.end.x, 0), maxf(full.end.y - safe.end.y, 0))
+	var l := ins.position.x / px_per
+	var t := ins.position.y / px_per
+	var r := ins.size.x / px_per
+	var b := ins.size.y / px_per
+	return Rect2(vis.position + Vector2(l, t), vis.size - Vector2(l + r, t + b))
 
 
 ## Margins of the safe area from each edge (left, top, right, bottom).
@@ -116,12 +127,41 @@ static func keyboard_height(vp: Viewport) -> float:
 	return h * vp.get_visible_rect().size.y / float(screen.y)
 
 
-## Microphone: Android needs a runtime permission (RECORD_AUDIO); iOS asks
-## by itself the first time AudioStreamMicrophone starts (text from
-## NSMicrophoneUsageDescription) and macOS likewise. True = go ahead.
+## Microphone: Android needs a runtime permission (RECORD_AUDIO, asked
+## here; the next push-to-talk opens it); iOS and macOS ask by themselves the
+## first time AudioStreamMicrophone starts. True = go ahead.
 static func request_microphone() -> bool:
-	if OS.has_feature("android"):
-		if not OS.get_granted_permissions().has("android.permission.RECORD_AUDIO"):
-			OS.request_permission("android.permission.RECORD_AUDIO")
-			return false
-	return true
+	return AndroidPlatform.microphone_allowed()
+
+
+## The running renderer: "forward_plus", "mobile" or "gl_compatibility".
+static func renderer() -> String:
+	return RenderingServer.get_current_rendering_method()
+
+
+## SSAO exists only in Forward+.
+static func supports_ssao() -> bool:
+	return renderer() == "forward_plus"
+
+
+## FSR 1 upscaling: Forward+ and Mobile, not Compatibility (OpenGL).
+static func supports_fsr() -> bool:
+	return renderer() != "gl_compatibility"
+
+
+## The mobile profile's viewport and shadow settings (Android and iOS, or
+## --quality=mobile on a desktop), before the saved settings take over.
+static func apply_quality(vp: Viewport) -> void:
+	if not low_end():
+		return
+	vp.msaa_3d = Viewport.MSAA_DISABLED
+	vp.screen_space_aa = Viewport.SCREEN_SPACE_AA_DISABLED
+	RenderingServer.directional_shadow_atlas_set_size(2048, true)
+	RenderingServer.directional_soft_shadow_filter_set_quality(RenderingServer.SHADOW_QUALITY_SOFT_LOW)
+	RenderingServer.positional_soft_shadow_filter_set_quality(RenderingServer.SHADOW_QUALITY_HARD)
+
+
+## Android and iOS: no "quit" button (iOS guidelines; Android leaves apps
+## with Home / Back).
+static func can_quit() -> bool:
+	return not (OS.has_feature("ios") or OS.has_feature("android"))

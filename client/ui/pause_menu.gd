@@ -37,8 +37,8 @@ func _ready() -> void:
 	for entry in [["Wróć do gry", func(): close(), true], ["Ustawienia", func(): _show(_settings), false],
 			["Wyjdź do menu", func(): close(); to_menu.emit(), false], ["Wyloguj", func(): close(); logout.emit(), false],
 			["Wyjdź z gry", func(): quit.emit(), false]]:
-		if entry[0] == "Wyjdź z gry" and OS.get_name() in ["iOS", "Android"]:
-			continue  # phones close apps themselves
+		if entry[0] == "Wyjdź z gry" and not preload("res://platform/platform.gd").can_quit():
+			continue  # iOS guidelines / Android: the system closes apps
 		var b := Kit.button(entry[0], entry[2])
 		b.custom_minimum_size = Vector2(300, Touch.TARGET if Touch.active else 44.0)
 		b.add_theme_font_size_override("font_size", 24)

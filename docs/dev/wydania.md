@@ -30,7 +30,8 @@ tools/build-ios.sh project   # sam projekt Xcode w build/ios (do otwarcia w Xcod
 Godot eksportuje projekt Xcode (preset „iOS”, `client/export_presets.cfg`:
 identyfikator `com.mateuszpalak.startupsim3d`, iOS 16+, iPhone i iPad, tylko
 poziomo, ikona `client/icons/icon_ios.png` — kwadrat bez przezroczystości,
-z `icon.svg`), a `xcodebuild` go buduje i podpisuje. W repozytorium nie ma
+obraz do krawędzi; ikony telefonów, także adaptacyjne Androida, robi z
+`icon.svg` skrypt `python3 tools/make_icons.py`), a `xcodebuild` go buduje i podpisuje. W repozytorium nie ma
 zespołu: w presecie jest zaślepka `XXXXXXXXXX`, prawdziwy **Team ID** idzie
 do `xcodebuild` z `DEVELOPMENT_TEAM` (środowisko albo
 `tools/ios/signing.env`, poza repozytorium, np. `DEVELOPMENT_TEAM=AB12CD34EF`).
@@ -120,12 +121,16 @@ na Vulkanie), „Android AAB” (Gradle, min SDK 24) i „Android (emulator)”
 (arm64 + x86_64, uruchamiany z `--rendering-method gl_compatibility`, bo
 emulator nie wyświetla obrazu z Vulkana — na ekranie jest czarno).
 Kod tylko dla Androida: `client/platform/android.gd` (przycisk Wstecz działa
-jak Esc, prośba o mikrofon przy pierwszym czacie głosowym, lżejsze cienie).
+jak Esc, prośba o mikrofon przy pierwszym czacie głosowym); jakość grafiki
+to wspólny profil „mobile” z `client/platform/platform.gd` (jak na iOS).
+Gra jest zawsze na pełnym ekranie (tryb immersyjny, bez pasków systemu).
 
 Na telefonie: włącz *Opcje programisty → Debugowanie USB*, podłącz kabel i
 `tools/build-android.sh --install` (albo `adb install -r build/StartupSim-<wersja>-debug.apk`).
 Serwer: gra oferuje serwery z `client/net/servers.cfg` (wkładany do
-paczki). Żeby grać z telefonu na serwerze z komputera w tej samej sieci
+paczki) oraz „Inny serwer…” — pole adres:port (np. serwer domowy), wyraźnie
+oznaczone jako spoza listy gry; jego certyfikat jest przypinany przy
+pierwszym połączeniu jak każdego innego. Żeby grać z telefonu na serwerze z komputera w tej samej sieci
 (`cargo run` w `server/`), dopisz go tam przed budowaniem, np. sekcja
 `[dom]` z `name="Serwer domowy"` i `address="192.168.1.20:7777"`.
 

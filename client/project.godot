@@ -28,6 +28,7 @@ general/ios/mix_with_others=true
 
 window/size/viewport_width=1280
 window/size/viewport_height=720
+window/size/mode.mobile=3
 window/vsync/vsync_mode=1
 window/stretch/mode="canvas_items"
 window/stretch/aspect="expand"

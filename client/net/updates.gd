@@ -54,10 +54,24 @@ func check() -> Dictionary:
 	if version == "" or not is_newer(version, current()):
 		return {}
 	var url := str(data.get("html_url", DOWNLOAD_PAGE))
-	if OS.has_feature("windows"):
-		var arch := "arm64" if OS.has_feature("arm64") else "x86_64"
-		url = asset_url(data.get("assets", []), "-windows-%s.zip" % arch, url)
+	var suffix := asset_suffix(OS.get_name(), OS.has_feature("arm64"))
+	if suffix != "":
+		url = asset_url(data.get("assets", []), suffix, url)
 	return {"version": version, "url": url}
+
+
+## Which release file this platform installs from (as the tools/build-*.sh
+## scripts name them): Windows its zip, Android the release APK, macOS the
+## .dmg. "" = the release page (iOS updates through TestFlight).
+static func asset_suffix(os_name: String, arm64: bool) -> String:
+	match os_name:
+		"Windows":
+			return "-windows-%s.zip" % ("arm64" if arm64 else "x86_64")
+		"Android":
+			return ".apk"
+		"macOS":
+			return ".dmg"
+	return ""
 
 
 ## Windows players get the zip for their machine straight away (assets named
@@ -66,6 +80,7 @@ static func asset_url(assets, suffix: String, fallback: String) -> String:
 	if typeof(assets) != TYPE_ARRAY:
 		return fallback
 	for a in assets:
-		if typeof(a) == TYPE_DICTIONARY and str(a.get("name", "")).ends_with(suffix):
+		var name := str(a.get("name", "")) if typeof(a) == TYPE_DICTIONARY else ""
+		if name.ends_with(suffix) and not name.ends_with("-debug" + suffix):
 			return str(a.get("browser_download_url", fallback))
 	return fallback

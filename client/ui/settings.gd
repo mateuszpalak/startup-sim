@@ -79,8 +79,11 @@ static func apply_audio() -> void:
 	AudioServer.input_device = mic_device if list.has(mic_device) else "Default"
 
 
+## Phones are always full screen (on Android that is the immersive mode: a
+## windowed mode would bring the system bars back).
 static func apply_window() -> void:
-	var want := DisplayServer.WINDOW_MODE_FULLSCREEN if fullscreen else DisplayServer.WINDOW_MODE_WINDOWED
+	var full := fullscreen or preload("res://platform/platform.gd").is_mobile()
+	var want := DisplayServer.WINDOW_MODE_FULLSCREEN if full else DisplayServer.WINDOW_MODE_WINDOWED
 	if DisplayServer.window_get_mode() != want:
 		DisplayServer.window_set_mode(want)
 
@@ -107,5 +110,6 @@ static func effective_render_scale() -> float:
 static func apply_render(vp: Viewport) -> void:
 	var s := effective_render_scale()
 	vp.scaling_3d_scale = s
-	vp.scaling_3d_mode = Viewport.SCALING_3D_MODE_FSR if s < 0.99 else Viewport.SCALING_3D_MODE_BILINEAR
+	var fsr := preload("res://platform/platform.gd").supports_fsr()
+	vp.scaling_3d_mode = Viewport.SCALING_3D_MODE_FSR if s < 0.99 and fsr else Viewport.SCALING_3D_MODE_BILINEAR
 	vp.fsr_sharpness = 0.25

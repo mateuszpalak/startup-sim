@@ -9,10 +9,11 @@
 ## its keyboard handling, a button just presses the same key.
 extends RefCounted
 
+const Platform = preload("res://platform/platform.gd")
+
 static var active := false
 ## A phone-sized screen (the UI is scaled up, layouts go compact).
 static var phone := false
-static var _dev_insets := Rect2()   # x = left, y = top, w = right, h = bottom
 static var _held := {}
 
 ## Logical UI size of the screen's short side: phones get bigger UI.
@@ -35,7 +36,7 @@ static func setup(args: Dictionary) -> void:
 	if args.has("safe-area"):
 		var p: PackedStringArray = str(args["safe-area"]).split(",")
 		if p.size() == 4:
-			_dev_insets = Rect2(float(p[0]), float(p[1]), float(p[2]), float(p[3]))
+			Platform.dev_insets = Rect2(float(p[0]), float(p[1]), float(p[2]), float(p[3]))
 	if args.has("touch") and not _mobile_os():
 		Input.emulate_touch_from_mouse = true
 
@@ -72,24 +73,7 @@ static func fit_ui(win: Window) -> void:
 ## The part of the visible UI area not under a notch, rounded corners or
 ## the home indicator, in UI units (CanvasLayer coordinates).
 static func safe_rect(vp: Viewport) -> Rect2:
-	var vis := vp.get_visible_rect()
-	if not active:
-		return vis
-	var win := vp.get_window() if vp is not Window else vp as Window
-	var wsize := Vector2(win.size) if win else vis.size
-	var px_per := wsize.x / vis.size.x if vis.size.x > 0 else 1.0
-	var ins := _dev_insets
-	if ins == Rect2() and _mobile_os():
-		var safe := Rect2(DisplayServer.get_display_safe_area())
-		var full := Rect2(Vector2(DisplayServer.window_get_position()), wsize)
-		if safe.size.x > 0 and safe.size.y > 0:
-			ins = Rect2(maxf(safe.position.x - full.position.x, 0), maxf(safe.position.y - full.position.y, 0),
-				maxf(full.end.x - safe.end.x, 0), maxf(full.end.y - safe.end.y, 0))
-	var l := ins.position.x / px_per
-	var t := ins.position.y / px_per
-	var r := ins.size.x / px_per
-	var b := ins.size.y / px_per
-	return Rect2(vis.position + Vector2(l, t), vis.size - Vector2(l + r, t + b))
+	return Platform.safe_area(vp) if active else vp.get_visible_rect()
 
 
 ## Press / release a key as if on a keyboard (both key codes, so

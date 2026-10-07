@@ -96,7 +96,7 @@ func _ready() -> void:
 	Settings.apply_fps()
 	if args.has("render-scale"):  # dev: --render-scale=0.6 (not saved)
 		Settings.render_scale = clampf(float(args["render-scale"]), 0.25, 1.0)
-	AndroidPlatform.apply_quality(get_viewport())
+	Platform.apply_quality(get_viewport())
 	Settings.apply_render(get_viewport())
 	if args.has("perf"):
 		Engine.max_fps = 0  # measure the headroom (run with --disable-vsync)
@@ -645,18 +645,24 @@ func _notification(what: int) -> void:
 		NOTIFICATION_WM_CLOSE_REQUEST:
 			net.close()
 			get_tree().quit()
-		NOTIFICATION_APPLICATION_FOCUS_OUT, NOTIFICATION_APPLICATION_PAUSED:
-			if not args.has("perf"):  # benchmarks: never throttled
-				Settings.apply_fps(false)  # in the background: draw less
-		NOTIFICATION_APPLICATION_FOCUS_IN, NOTIFICATION_APPLICATION_RESUMED:
-			if not args.has("perf"):
-				Settings.apply_fps(true)
+		NOTIFICATION_APPLICATION_FOCUS_OUT:
+			_throttle(true)
+		NOTIFICATION_APPLICATION_FOCUS_IN:
+			_throttle(false)
 		# Phones: the system may end a backgrounded app without telling it;
 		# that is not a crash, so the session counts as clean while paused.
 		NOTIFICATION_APPLICATION_PAUSED:
+			_throttle(true)
 			if CrashReports.enabled(args):
 				CrashReports.end_session()
 			Settings.save()
 		NOTIFICATION_APPLICATION_RESUMED:
+			_throttle(false)
 			if CrashReports.enabled(args):
 				CrashReports.mark_running()
+
+
+## In the background: draw less (benchmarks are never throttled).
+func _throttle(background: bool) -> void:
+	if not args.has("perf"):
+		Settings.apply_fps(not background)

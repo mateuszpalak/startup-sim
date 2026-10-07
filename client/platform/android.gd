@@ -1,7 +1,7 @@
 class_name AndroidPlatform
 ## Android-only glue, kept apart from the shared code (every entry point is a
-## no-op elsewhere): the back button, the microphone permission, pausing in
-## the background, lighter rendering defaults and the emulator's host server.
+## no-op elsewhere): the back button, the microphone permission and the emulator's
+## host server (quality: platform.gd, pausing: main.gd).
 
 const MIC_PERMISSION := "android.permission.RECORD_AUDIO"
 ## The machine running the emulator, as seen from inside it.
@@ -36,17 +36,6 @@ static func microphone_allowed() -> bool:
 		return true
 	OS.request_permission(MIC_PERMISSION)
 	return false
-
-
-## Phone defaults, applied before the saved settings take over.
-static func apply_quality(viewport: Viewport) -> void:
-	if not active():
-		return
-	viewport.msaa_3d = Viewport.MSAA_DISABLED
-	viewport.screen_space_aa = Viewport.SCREEN_SPACE_AA_DISABLED
-	RenderingServer.directional_shadow_atlas_set_size(2048, true)
-	RenderingServer.directional_soft_shadow_filter_set_quality(RenderingServer.SHADOW_QUALITY_SOFT_LOW)
-	RenderingServer.positional_soft_shadow_filter_set_quality(RenderingServer.SHADOW_QUALITY_SOFT_LOW)
 
 
 ## Extra servers offered on Android: the dev machine through the emulator.

@@ -90,7 +90,7 @@ func _setup_environment() -> void:
 	e.tonemap_mode = Environment.TONE_MAPPER_AGX
 	e.tonemap_exposure = 1.05
 	e.tonemap_white = 8.0
-	e.ssao_enabled = q.ssao and RenderingServer.get_current_rendering_method() != "mobile"
+	e.ssao_enabled = q.ssao and preload("res://platform/platform.gd").supports_ssao()
 	e.ssao_radius = 0.9
 	e.ssao_intensity = 2.6
 	e.ssao_power = 1.5
