@@ -96,6 +96,9 @@ static func apply_fps(focused := true) -> void:
 static func effective_render_scale() -> float:
 	if render_scale > 0.0:
 		return render_scale
+	var profile_scale: float = preload("res://platform/platform.gd").quality().render_scale
+	if profile_scale > 0.0:
+		return profile_scale
 	return 0.7 if DisplayServer.screen_get_scale() > 1.0 else 1.0
 
 

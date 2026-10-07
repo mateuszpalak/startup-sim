@@ -11,6 +11,7 @@
 /client/net/servers.cfg
 /client/net/pins/*.pem
 /tools/macos/signing.env
+/tools/ios/signing.env
 __pycache__/
 /crash-reports
 # The in-game WebView (tools/build_webview.sh builds it from source).

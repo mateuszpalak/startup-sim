@@ -30,6 +30,7 @@ const AuthClient = preload("res://net/auth_client.gd")
 const LoginScreen = preload("res://ui/login_screen.gd")
 const TitleBackdrop = preload("res://ui/title_backdrop_3d.gd")
 const Touch = preload("res://touch/touch.gd")
+const Platform = preload("res://platform/platform.gd")
 
 const BUILDING_PATH := "res://maps/building.json"
 
@@ -88,6 +89,8 @@ func _ready() -> void:
 		var lift := preload("res://touch/keyboard_lift.gd").new()
 		lift.fake = float(args.get("fake-keyboard", "0"))
 		add_child(lift)
+	if args.has("quality"):  # dev: --quality=mobile previews the phone profile
+		Platform.forced_profile = str(args["quality"])
 	Settings.load_once()
 	Settings.apply_window()
 	Settings.apply_fps()
@@ -551,9 +554,12 @@ func _show_update(version: String, url: String, required: bool) -> void:
 	var label := Kit.label(text, 18, Kit.TEXT_INK)
 	label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	row.add_child(label)
-	var get_it := Kit.button("Pobierz", true)
-	get_it.pressed.connect(func(): OS.shell_open(url))
-	row.add_child(get_it)
+	if Platform.can_self_update():
+		var get_it := Kit.button("Pobierz", true)
+		get_it.pressed.connect(func(): OS.shell_open(url))
+		row.add_child(get_it)
+	else:  # iOS: apps come only from TestFlight / the App Store, no .dmg
+		label.text += "\nZaktualizuj grę w TestFlight."
 	var later := Kit.button("Zamknij" if required else "Później")
 	later.pressed.connect(func(): panel.queue_free())
 	row.add_child(later)
@@ -642,3 +648,12 @@ func _notification(what: int) -> void:
 		NOTIFICATION_APPLICATION_FOCUS_IN:
 			if not args.has("perf"):
 				Settings.apply_fps(true)
+		# Phones: the system may end a backgrounded app without telling it;
+		# that is not a crash, so the session counts as clean while paused.
+		NOTIFICATION_APPLICATION_PAUSED:
+			if CrashReports.enabled(args):
+				CrashReports.end_session()
+			Settings.save()
+		NOTIFICATION_APPLICATION_RESUMED:
+			if CrashReports.enabled(args):
+				CrashReports.mark_running()

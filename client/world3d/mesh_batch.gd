@@ -9,9 +9,14 @@
 extends RefCounted
 
 var xf := Transform3D.IDENTITY
+## > 0: split the geometry into square cells of this size (m, on x/z) -
+## one mesh per cell (to_chunks). The Mobile renderer lights a mesh with at
+## most 8 omni lights, so a whole-floor mesh would lose most room lamps.
+var chunk := 0.0
 ## material key -> SurfaceTool
 var _tools := {}
-var _counts := {}
+## chunked: material key -> {Vector2i cell: SurfaceTool}
+var _cells := {}
 
 
 func _st(mat: String) -> SurfaceTool:
@@ -20,7 +25,19 @@ func _st(mat: String) -> SurfaceTool:
 		st = SurfaceTool.new()
 		st.begin(Mesh.PRIMITIVE_TRIANGLES)
 		_tools[mat] = st
-		_counts[mat] = 0
+	return st
+
+
+## The tool for a material at a world point (its cell when chunked).
+func _st_at(mat: String, p: Vector3) -> SurfaceTool:
+	if chunk <= 0.0:
+		return _st(mat)
+	var cell := Vector2i(floori(p.x / chunk), floori(p.z / chunk))
+	var per: Dictionary = _cells.get_or_add(mat, {})
+	var st: SurfaceTool = per.get(cell)
+	if st == null:
+		st = _st("%s@%d,%d" % [mat, cell.x, cell.y])
+		per[cell] = st
 	return st
 
 
@@ -45,15 +62,14 @@ func _tri(st: SurfaceTool, a: Vector3, b: Vector3, c: Vector3, n: Vector3, col: 
 ## A quad a-b-c-d (in order around the edge) facing `n` (local space).
 ## `uv2` is free per-surface data (the ground shader reads the pattern in x).
 func quad(a: Vector3, b: Vector3, c: Vector3, d: Vector3, n: Vector3, mat: String, col: Color, uv2 := Vector2.ZERO) -> void:
-	var st := _st(mat)
 	a = xf * a
 	b = xf * b
 	c = xf * c
 	d = xf * d
 	n = (xf.basis * n).normalized()
+	var st := _st_at(mat, (a + c) * 0.5)
 	_tri(st, a, b, c, n, col, uv2)
 	_tri(st, a, c, d, n, col, uv2)
-	_counts[mat] += 6
 
 
 ## Horizontal rectangle at height y, facing up.
@@ -96,9 +112,8 @@ func cylinder(base: Vector3, r_bottom: float, r_top: float, h: float, mat: Strin
 		quad(base + d0 * r_bottom, base + d1 * r_bottom, base + d1 * r_top + Vector3(0, h, 0), base + d0 * r_top + Vector3(0, h, 0), n, mat, col)
 		if caps and r_top > 0.0:
 			var c := base + Vector3(0, h, 0)
-			var st := _st(mat)
+			var st := _st_at(mat, xf * c)
 			_tri(st, xf * c, xf * (c + d0 * r_top), xf * (c + d1 * r_top), (xf.basis * Vector3.UP).normalized(), col, Vector2.ZERO)
-			_counts[mat] += 3
 
 
 ## Low-poly sphere (an icosphere-ish UV sphere), optionally squashed.
@@ -124,12 +139,17 @@ func sphere(c: Vector3, r: float, mat: String, col: Color, scale := Vector3.ONE,
 func commit(materials: Dictionary) -> ArrayMesh:
 	if _tools.is_empty():
 		return null
+	return _commit(_tools.keys(), materials)
+
+
+func _commit(keys: Array, materials: Dictionary) -> ArrayMesh:
 	var mesh := ArrayMesh.new()
-	for key in _tools:
+	for key in keys:
 		var st: SurfaceTool = _tools[key]
 		st.commit(mesh)
-		mesh.surface_set_material(mesh.get_surface_count() - 1, materials.get(key))
-		mesh.surface_set_name(mesh.get_surface_count() - 1, key)
+		var mat: String = key.get_slice("@", 0)
+		mesh.surface_set_material(mesh.get_surface_count() - 1, materials.get(mat))
+		mesh.surface_set_name(mesh.get_surface_count() - 1, mat)
 	return mesh
 
 
@@ -140,3 +160,25 @@ func to_instance(materials: Dictionary, name := "Batch") -> MeshInstance3D:
 	mi.mesh = commit(materials)
 	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
 	return mi
+
+
+## The batch as nodes: one MeshInstance3D, or (chunk > 0) a Node3D with a
+## MeshInstance3D per cell.
+func to_node(materials: Dictionary, name := "Batch") -> Node3D:
+	if chunk <= 0.0:
+		return to_instance(materials, name)
+	var cells := {}
+	for key in _tools:
+		var cell: String = key.get_slice("@", 1)
+		if not cells.has(cell):
+			cells[cell] = []
+		cells[cell].append(key)
+	var root := Node3D.new()
+	root.name = name
+	for cell in cells:
+		var mi := MeshInstance3D.new()
+		mi.name = cell.replace(",", "_")
+		mi.mesh = _commit(cells[cell], materials)
+		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+		root.add_child(mi)
+	return root

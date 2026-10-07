@@ -7,7 +7,8 @@ extends Node3D
 const Coords = preload("res://world3d/coords.gd")
 const SmokeView = preload("res://game/smoke_view.gd")
 
-const MAX_PER_ROOM := 220
+const Platform = preload("res://platform/platform.gd")
+var max_per_room: int = Platform.quality().smoke_max
 
 var wv: Node3D
 var _rooms := {}      # room -> GPUParticles3D (shown floor)
@@ -167,7 +168,7 @@ func _make_room(tiles: Array) -> GPUParticles3D:
 	var mesh: QuadMesh = _puff.duplicate()
 	mesh.material = mat
 	var p := GPUParticles3D.new()
-	p.amount = clampi(tiles.size() * 2, 24, MAX_PER_ROOM)
+	p.amount = clampi(tiles.size() * 2, 24, max_per_room)
 	p.lifetime = 7.0
 	p.preprocess = 4.0
 	p.local_coords = false

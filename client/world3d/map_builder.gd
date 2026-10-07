@@ -24,6 +24,7 @@ const WALL_T := 0.28          # wall thickness
 const DOOR_H := 2.15          # top of door openings
 const SILL := 0.9             # windows: bottom / top
 const WIN_TOP := 2.25
+const CHUNK_M := 8.0          # Mobile renderer: mesh cell size (m)
 const SLAB := 0.35            # floor slab thickness (edges seen from above)
 
 ## Floor types -> [pattern, colour] (the legend colour is blended in).
@@ -76,6 +77,11 @@ var props := Props.new()
 func build(building, floor_index: int, floor_names := {}) -> Node3D:
 	map = building.get_floor(floor_index)
 	f = floor_index
+	# The Mobile renderer (phones) lights each mesh with at most 8 omni
+	# lights: cut the floor into cells so every room keeps its lamps.
+	if RenderingServer.get_current_rendering_method() == "mobile":
+		for batch in [ground, walls, things]:
+			batch.chunk = CHUNK_M
 	var root := Node3D.new()
 	root.name = "Floor%d" % f
 	root.position.y = Coords.floor_y(f)
@@ -98,8 +104,7 @@ func build(building, floor_index: int, floor_names := {}) -> Node3D:
 	for pair in [[ground, "Ground"], [walls, "Walls"], [things, "Things"]]:
 		var b: MeshBatch = pair[0]
 		if not b.is_empty():
-			var mi := b.to_instance(mats, pair[1])
-			root.add_child(mi)
+			root.add_child(b.to_node(mats, pair[1]))
 	_labels(root, floor_names)
 	root.set_meta("heights", heights)
 	root.set_meta("lamps", _lamps())
