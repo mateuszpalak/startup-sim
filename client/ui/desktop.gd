@@ -173,7 +173,15 @@ func _build_desktop() -> void:
 	row.add_child(start_btn)
 	_taskbar.add_theme_constant_override("separation", 6)
 	_taskbar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	row.add_child(_taskbar)
+	if Touch.active:  # many windows on a narrow screen: the buttons scroll, the clock stays
+		var sc := ScrollContainer.new()
+		sc.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		sc.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+		sc.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_NEVER
+		sc.add_child(_taskbar)
+		row.add_child(sc)
+	else:
+		row.add_child(_taskbar)
 	_clock.add_theme_font_size_override("font_size", 15)
 	_clock.add_theme_color_override("font_color", Color(1, 1, 1, 0.85))
 	row.add_child(_clock)

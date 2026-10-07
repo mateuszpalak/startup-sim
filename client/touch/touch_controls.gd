@@ -358,7 +358,7 @@ func _draw_button(id: String, b: Dictionary, alpha: float) -> void:
 	var bg := Color(Kit.DARK, 0.62 * alpha)
 	var fg := Color(Kit.TEXT, alpha)
 	if id == "act":
-		var ready: bool = game.hint_label.visible and game.hint_label.text.begins_with("[E]")
+		var ready: bool = game.hint_label.visible and game.hint_text.begins_with("[E]")
 		bg = Color(Kit.ACCENT if ready else Kit.DARK, (0.95 if ready else 0.6) * alpha)
 	if id in ["talk", "whisper"] and down:
 		bg = Color(Kit.RED, 0.95 * alpha)

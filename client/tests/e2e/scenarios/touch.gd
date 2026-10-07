@@ -56,7 +56,7 @@ func run() -> void:
 		return
 
 	# The action button = E: the laptop goes on the desk, then sit down.
-	if not await until(func(): return g.hint_label.text.begins_with("[E]"), 10.0, "an [E] hint by the desk"):
+	if not await until(func(): return g.hint_text.begins_with("[E]"), 10.0, "an [E] hint by the desk"):
 		return
 	await tap(button("act"))
 	if not await until(func(): return not holding(Item.LAPTOP), 5.0, "laptop put on the desk by the action button"):

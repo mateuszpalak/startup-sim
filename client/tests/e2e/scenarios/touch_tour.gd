@@ -39,6 +39,8 @@ func run() -> void:
 	var g = game()
 	g.notices.push(1, "Nowy mail od Kuba: Kawa o 11?")
 	await shot("hud")
+	g.stats_hud._show_tip(1)  # what a tap on a gauge shows
+	await shot("stat_tip")
 	# The thumb on the joystick.
 	var home: Vector2 = g.touch._joy_home
 	touch(3, home + Vector2(-10, 6), true)
@@ -93,9 +95,11 @@ func run() -> void:
 	await shot("brush_game")
 	g.brush_game.visible = false
 
+	g.set_process(false)  # (else the hint update closes it: no door here)
 	g.door_plaque.open(g.room_id if g.room_id != 0 else 1, "Produkt / IT")
 	await shot("door_plaque")
 	g.door_plaque.close()
+	g.set_process(true)
 
 	var chat = g.chat_box
 	chat.open()

@@ -488,8 +488,11 @@ func _build() -> void:
 	_style_label(_url, 14, Kit.TEXT_MUTED)
 	addr.add_child(_url)
 	_browser.add_child(addr)
-	var marks := HBoxContainer.new()
+	# (wraps into rows on a narrow touch screen)
+	var marks: Container = HFlowContainer.new() if Touch.active else HBoxContainer.new()
 	marks.add_theme_constant_override("separation", 6)
+	marks.add_theme_constant_override("h_separation", 6)
+	marks.add_theme_constant_override("v_separation", 6)
 	marks.add_child(_mini_label("Ulubione:"))
 	var marks_list := [["home", "⌂ Start"], ["web", "🌐 Internet"], ["lunch", "★ Obiady do biura"], ["tasks", "★ Tablica zadań"]]
 	for bm in marks_list:
@@ -663,10 +666,13 @@ func _build() -> void:
 	var lh := Label.new()
 	_style_label(lh, 20, Kit.TEXT_INK)
 	lh.text = "Obiady do biura — dostawa na recepcję (piętro 4)"
+	if Touch.narrow(get_viewport()):
+		lh.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		lh.custom_minimum_size.x = 240
 	_lunch_view.add_child(lh)
 	_style_label(_lunch_status, 15, Kit.ACCENT)
 	_lunch_status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_lunch_status.custom_minimum_size = Vector2(300 if Touch.phone else 600, 0)
+	_lunch_status.custom_minimum_size = Vector2(240 if Touch.narrow(get_viewport()) else (300 if Touch.phone else 600), 0)
 	_lunch_view.add_child(_lunch_status)
 	_lunch_list.add_theme_constant_override("separation", 6)
 	_lunch_view.add_child(_lunch_list)
@@ -1009,7 +1015,7 @@ func _co_label(text: String, size: int, color := Kit.TEXT_INK, wrap := false) ->
 	l.text = text
 	if wrap:
 		l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		l.custom_minimum_size = Vector2(300 if Touch.phone else 600, 0)
+		l.custom_minimum_size = Vector2(240 if Touch.narrow(get_viewport()) else (300 if Touch.phone else 600), 0)
 	return l
 
 
@@ -1018,7 +1024,7 @@ func _co_edit(key: String, value: String, max_len: int, width: int) -> LineEdit:
 	var e := LineEdit.new()
 	e.text = _co_drafts.get(key, value)
 	e.max_length = max_len
-	e.custom_minimum_size = Vector2(width, 32)
+	e.custom_minimum_size = Vector2(mini(width, 220) if Touch.narrow(get_viewport()) else width, 44 if Touch.active else 32)
 	e.add_theme_font_size_override("font_size", 14)
 	e.add_theme_color_override("font_color", Kit.TEXT_INK)
 	e.add_theme_color_override("font_placeholder_color", Kit.TEXT_MUTED)
@@ -1037,7 +1043,7 @@ func _position_card(o: Dictionary) -> Control:
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 6)
 	card.add_child(box)
-	var r1 := HBoxContainer.new()
+	var r1 := _co_flow()
 	r1.add_theme_constant_override("separation", 8)
 	box.add_child(r1)
 	var tkey := "title:%d" % id
@@ -1059,7 +1065,7 @@ func _position_card(o: Dictionary) -> Control:
 	del.tooltip_text = "Zamyka rekrutację (zatrudnieni zostają)"
 	del.pressed.connect(func(): company_action.emit(Protocol.CO_REMOVE_POSITION, id, 0, ""))
 	r1.add_child(del)
-	var r2 := HBoxContainer.new()
+	var r2 := _co_flow()
 	r2.add_theme_constant_override("separation", 8)
 	box.add_child(r2)
 	var minus := _button("−", false)
@@ -1096,7 +1102,7 @@ func _new_position_card(count: int) -> Control:
 	box.add_theme_constant_override("separation", 6)
 	card.add_child(box)
 	box.add_child(_co_label("Nowe stanowisko", 16, Kit.ACCENT))
-	var r1 := HBoxContainer.new()
+	var r1 := _co_flow()
 	r1.add_theme_constant_override("separation", 8)
 	box.add_child(r1)
 	var title := _co_edit("new:title", "", 40, 240)
@@ -1108,7 +1114,7 @@ func _new_position_card(count: int) -> Control:
 	var qs := _set_select(str(_co_drafts.get("new:set", "general")))
 	qs.item_selected.connect(func(i: int): _co_drafts["new:set"] = qs.get_item_metadata(i))
 	r1.add_child(qs)
-	var r2 := HBoxContainer.new()
+	var r2 := _co_flow()
 	r2.add_theme_constant_override("separation", 8)
 	box.add_child(r2)
 	var desc := _co_edit("new:desc", "", 200, 500)
@@ -1152,6 +1158,14 @@ func _set_select(selected: String) -> OptionButton:
 	return o
 
 
+## A row of the company panel's fields: wraps on a touch screen (narrow windows).
+func _co_flow() -> Container:
+	var c: Container = HFlowContainer.new() if Touch.active else HBoxContainer.new()
+	c.add_theme_constant_override("h_separation", 8)
+	c.add_theme_constant_override("v_separation", 6)
+	return c
+
+
 func _co_row() -> HBoxContainer:
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 10)
@@ -1173,7 +1187,7 @@ func _render_company() -> void:
 		titles[o.id] = o.title
 
 	_co_view.add_child(_co_label("Panel założyciela", 22))
-	var row := _co_row()
+	var row := _co_flow()
 	row.add_child(_co_label("Nazwa firmy:", 15, Kit.TEXT_MUTED))
 	var name_edit := _co_edit("name", company_offers.name, 40, 360)
 	row.add_child(name_edit)
@@ -1267,20 +1281,27 @@ func _render_lunch() -> void:
 		row.add_child(icon)
 		var info := VBoxContainer.new()
 		info.custom_minimum_size = Vector2(170 if Touch.phone else 320, 0)
+		if Touch.narrow(get_viewport()):  # portrait: the name wraps, "Zamów" stays in view
+			info.custom_minimum_size.x = 0
+			info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		info.add_theme_constant_override("separation", 0)
 		var n := Label.new()
 		_style_label(n, 16, Kit.TEXT_INK)
 		n.text = d.name
+		if Touch.narrow(get_viewport()):
+			n.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		info.add_child(n)
 		var r := Label.new()
 		_style_label(r, 13, Kit.TEXT_MUTED)
 		r.text = "%s · ok. %d min" % [d.restaurant, d.eta]
+		if Touch.narrow(get_viewport()):
+			r.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		info.add_child(r)
 		row.add_child(info)
 		var price := Label.new()
 		_style_label(price, 16, Color("#8f5a1a"))
 		price.text = "%d,%02d zł" % [d.price / 100, d.price % 100]
-		price.custom_minimum_size = Vector2(90, 0)
+		price.custom_minimum_size = Vector2(70 if Touch.narrow(get_viewport()) else 90, 0)
 		row.add_child(price)
 		var b := _button("Zamów", true)
 		b.disabled = lunch.state != Protocol.LUNCH_NONE

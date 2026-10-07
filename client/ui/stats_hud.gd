@@ -33,6 +33,8 @@ var _shown: Array[float] = []   # animated level of each ring
 var _hover := -1
 var _coin := Control.new()
 var _note := Label.new()
+var _tip := Label.new()
+var _tip_until := 0
 var _bar := PanelContainer.new()
 var _row := HBoxContainer.new()
 
@@ -63,6 +65,9 @@ func _ready() -> void:
 		var idx := i
 		b.draw.connect(func(): _draw_badge(b, idx))
 		b.mouse_entered.connect(func(): _set_hover(idx))
+		b.gui_input.connect(func(ev: InputEvent):
+				if ev is InputEventMouseButton and ev.pressed and ev.button_index == MOUSE_BUTTON_LEFT:
+					_show_tip(idx))  # a tap: the gauge's name and value (no hover on touch)
 		b.mouse_exited.connect(func():
 				if _hover == idx:
 					_set_hover(-1))
@@ -73,6 +78,10 @@ func _ready() -> void:
 	Kit.style_label(_note, 15, Kit.TEXT)
 	_note.visible = false
 	add_child(_note)
+	_tip.add_theme_stylebox_override("normal", Kit.box("hud"))
+	Kit.style_label(_tip, 16, Kit.TEXT)
+	_tip.visible = false
+	add_child(_tip)
 	visible = false
 	get_viewport().size_changed.connect(_place)
 	_bar.resized.connect(_place)
@@ -125,6 +134,18 @@ func badness(i: int) -> int:
 	return values[i] if ROWS[i][1] else 100 - values[i]
 
 
+func _show_tip(i: int) -> void:
+	_tip.text = "%s: %d%%%s" % [ROWS[i][0], values[i], " — źle!" if badness(i) >= CRITICAL else ""]
+	_tip.reset_size()
+	var b := _badges[i]
+	var r := b.get_global_rect()
+	_tip.position = Vector2(clampf(r.get_center().x - _tip.size.x / 2, 8, get_viewport_rect().size.x - _tip.size.x - 8),
+		_bar.position.y + _bar.size.y * _bar.scale.y + (8 if not _note.visible else 16 + _note.size.y))
+	_tip.visible = true
+	_tip_until = Time.get_ticks_msec() + 2200
+	Kit.fade_in(_tip)
+
+
 func _set_hover(i: int) -> void:
 	_hover = i
 	for b in _badges:
@@ -134,6 +155,8 @@ func _set_hover(i: int) -> void:
 func _process(delta: float) -> void:
 	if not visible:
 		return
+	if _tip.visible and Time.get_ticks_msec() > _tip_until:
+		_tip.visible = false
 	var t := Time.get_ticks_msec() / 1000.0
 	for i in _badges.size():
 		var crit := badness(i) >= CRITICAL

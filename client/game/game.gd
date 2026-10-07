@@ -110,6 +110,9 @@ var lifts := []
 var ride_mask := RideMask.new()
 var clock_label := Label.new()
 var clock_panel: Control = null
+## The hint as the game words it (with "[E] ..."; the label may show it
+## without keys on a touch screen).
+var hint_text := ""
 var daylight := CanvasModulate.new()   # time-of-day tint of the world
 var game_minute := 8 * 60
 var weather := Protocol.WEATHER_SUNNY
@@ -1304,7 +1307,7 @@ func _actions_here() -> Array:
 	var out := []
 	var add := func(key: String, text: String, run: Callable, icon: Variant = "") -> void:
 		out.append({"key": key, "text": text, "run": run, "icon": icon})
-	var hint: String = hint_label.text if hint_label.visible else ""
+	var hint: String = hint_text if hint_label.visible else ""
 	if hint.begins_with("[E] "):
 		var what := hint.substr(4).get_slice("  ·  ", 0)
 		add.call("E", what, _menu_interact, "hand")
@@ -1394,6 +1397,7 @@ func _item_action(action: int, slot: int) -> void:
 ## Context hint at the bottom of the screen: elevator, NPC to talk to, or a
 ## gate that needs a pass.
 func _update_hint() -> void:
+	hint_text = ""
 	var text := ""
 	plaque_here = 0
 	if me.status == Protocol.ACT_HELD:
@@ -1562,8 +1566,16 @@ func _update_hint() -> void:
 		door_plaque.close()  # walked off
 	if text == "" and voice.whisper_to >= 0:
 		text = "[V] mów · [B] szept: %s" % nicks.get(voice.whisper_to, "?")
-	hint_label.text = text
+	hint_text = text
+	hint_label.text = _touch_words(text) if touch else text
 	hint_label.visible = text != ""
+
+
+## Touch screens: no keys in the hint ("[E] Usiądź" -> "Usiądź", the hand
+## button does it).
+static func _touch_words(text: String) -> String:
+	var re := RegEx.create_from_string("\\[[^\\]]{1,5}\\] ")
+	return re.sub(text.replace("[V] mów · [B] szept", "Mów / Szept"), "", true)
 
 
 ## Outdoors: rain / fog on screen, an umbrella if you carry one, a darker
