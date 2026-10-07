@@ -23,6 +23,11 @@ static var mic_device := "Default"
 static var touch_left := true
 static var touch_size := 1.0
 static var touch_opacity := 0.85
+## Gamepad: the right stick's zoom inverted, how fast it turns / zooms,
+## rumble on events.
+static var pad_invert_y := false
+static var pad_sensitivity := 1.0
+static var pad_vibration := true
 static var _loaded := false
 
 
@@ -46,6 +51,9 @@ static func load_once() -> void:
 	touch_left = bool(cfg.get_value("touch", "left", true))
 	touch_size = clampf(float(cfg.get_value("touch", "size", 1.0)), 0.8, 1.4)
 	touch_opacity = clampf(float(cfg.get_value("touch", "opacity", 0.85)), 0.3, 1.0)
+	pad_invert_y = bool(cfg.get_value("pad", "invert_y", false))
+	pad_sensitivity = clampf(float(cfg.get_value("pad", "sensitivity", 1.0)), 0.4, 2.0)
+	pad_vibration = bool(cfg.get_value("pad", "vibration", true))
 	if render_scale != 0.0:
 		render_scale = clampf(render_scale, 0.5, 1.0)
 
@@ -65,6 +73,9 @@ static func save() -> void:
 	cfg.set_value("touch", "left", touch_left)
 	cfg.set_value("touch", "size", touch_size)
 	cfg.set_value("touch", "opacity", touch_opacity)
+	cfg.set_value("pad", "invert_y", pad_invert_y)
+	cfg.set_value("pad", "sensitivity", pad_sensitivity)
+	cfg.set_value("pad", "vibration", pad_vibration)
 	cfg.save(UserPaths.at("settings.cfg"))
 
 

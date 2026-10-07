@@ -103,6 +103,52 @@ ekranową, a okno z polem przesuwa się nad nią.
 W ustawieniach („Sterowanie dotykiem”): joystick po prawej, wielkość i
 widoczność przycisków.
 
+## Pad (Xbox, PlayStation, Switch Pro, Steam Deck)
+
+Tylko w wersji 3D (`client3d/`), na komputerze i telefonie. Wystarczy
+podłączyć pad (też w trakcie gry) i nacisnąć cokolwiek: podpowiedzi
+pokazują wtedy przyciski pada (A/B/X/Y, na PlayStation ✕ ○ □ △, na Switchu
+B/A/Y/X), a przyciski dotykowe się chowają. Dowolny klawisz, klik albo
+dotknięcie przełącza z powrotem. Odłączenie pada w trakcie chodzenia
+otwiera menu gry.
+
+| Pad (Xbox / PlayStation / Switch) | Co robi | Klawisz |
+|---|---|---|
+| **lewa gałka**, **krzyżak** | chodzenie (8 kierunków) | WASD |
+| **prawa gałka** ← → | obrót kamery (puść — dosuwa do 45°) | , . |
+| **prawa gałka** ↑ ↓ | przybliż / oddal | + / - |
+| **A / ✕ / B** (dolny) | to, co podpowiada napis (usiądź, połóż, rozmawiaj…) | E |
+| **B / ○ / A** (prawy) | wstecz: zamknij okno, wstań od komputera | Esc |
+| **X / □ / Y** (lewy) | użyj trzymanego przedmiotu | F |
+| **Y / △ / X** (górny) | menu akcji (upuść, podaj, uderz, psoty, kabina…) | Tab |
+| **LB / RB** (L1 / R1, L / R) | poprzednia / następna kieszeń | 1–3 |
+| **LT** (L2, ZL) — trzymaj | szept do osoby obok | B |
+| **RT** (R2, ZR) — trzymaj | mów do pomieszczenia | V |
+| **Menu / Options / +** | menu gry | Esc |
+| **View / Share / −** | czat tekstowy | Enter |
+| **wciśnięcie lewej gałki** | dziennik dnia | H |
+| **wciśnięcie prawej gałki** | kamera prosto | Home |
+
+**Okna i menu** (ekran tytułowy, logowanie, postać, ustawienia, rozmowy,
+pojemniki, sklep, ekspres, pilot, boombox, winda, wybór dojazdu, rozmowa
+kwalifikacyjna, komputer i wszystkie jego aplikacje): pomarańczowa ramka
+pokazuje, co jest wybrane — **krzyżak / lewa gałka** przesuwa ją, **A**
+naciska, **B** zamyka (jak Esc), **← →** na suwaku albo liście wyboru
+zmienia wartość, **prawa gałka** i **LB / RB** przewijają. Menu StartOS
+otwiera się **A**, wybór krzyżakiem.
+
+**Pola tekstowe** (czat, terminal, poczta, logowanie…): **A** na polu
+otwiera klawiaturę ekranową — ramką wybierasz litery, **X** usuwa, **Y**
+spacja, **LB** polskie litery, **RB** wielkie, **Start** = Enter (wyślij),
+**B** chowa klawiaturę. Przy czacie jest rząd gotowych zwrotów.
+
+Mini-gry: skręcanie — **A** zamiast spacji, szczotka — lewa gałka szoruje.
+
+![Podpowiedź z przyciskiem pada](../media/3d/pad/hint_xbox.jpg)
+
+W ustawieniach („Pad”): odwrócenie osi prawej gałki, czułość gałki,
+wibracje (nokaut, przyjazd windy).
+
 ## Ustawienia
 
 W menu (albo **Esc** w grze) → Ustawienia: głośność efektów, otoczenia i
