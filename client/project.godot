@@ -20,6 +20,8 @@ boot_splash/show_image=true
 [audio]
 
 driver/enable_input=true
+general/ios/session_category=2
+general/ios/mix_with_others=true
 
 [display]
 
@@ -28,6 +30,9 @@ window/size/viewport_height=720
 window/vsync/vsync_mode=1
 window/stretch/mode="canvas_items"
 window/stretch/aspect="expand"
+window/handheld/orientation=4
+window/ios/hide_home_indicator=true
+window/ios/hide_status_bar=true
 
 [physics]
 
@@ -36,11 +41,18 @@ common/max_physics_steps_per_frame=8
 
 [rendering]
 
+renderer/rendering_method="forward_plus"
+renderer/rendering_method.mobile="mobile"
+renderer/rendering_method.ios_simulator="gl_compatibility"
+
 anti_aliasing/quality/msaa_3d=0
 anti_aliasing/quality/screen_space_aa=1
 lights_and_shadows/directional_shadow/size=4096
+lights_and_shadows/directional_shadow/size.mobile=2048
 lights_and_shadows/directional_shadow/soft_shadow_filter_quality=2
+lights_and_shadows/directional_shadow/soft_shadow_filter_quality.mobile=1
 lights_and_shadows/positional_shadow/soft_shadow_filter_quality=2
+lights_and_shadows/positional_shadow/soft_shadow_filter_quality.mobile=0
 
 textures/vram_compression/import_etc2_astc=true
 
