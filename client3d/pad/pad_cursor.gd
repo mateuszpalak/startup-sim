@@ -28,6 +28,7 @@ func set_root(r: Node) -> void:
 			_remember[root.get_instance_id()] = target
 		root = r
 		target = null
+		_last_center = Vector2(-1, -1)  # a new window: its first control
 		if r:
 			var t = _remember.get(r.get_instance_id())
 			if t and is_instance_valid(t) and _valid(t) and _in_root(t):

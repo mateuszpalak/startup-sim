@@ -88,6 +88,8 @@ var status_label := Label.new()
 var hint_label := Label.new()
 var hint_glyph := Control.new()  # the pad's button left of the hint
 var _hint_button := -1
+var _hint_next := -1
+var _pad_seen := ""
 var _rumble_status := 0  # rumble when this changes to knocked out
 var log_label := Label.new()
 var _log: Array = []  # [msec, text]
@@ -882,6 +884,10 @@ func _process(delta: float) -> void:
 		if me.status == Protocol.ACT_KNOCKED_OUT:
 			Pad.rumble(0.9, 1.0, 0.5)
 	hint_glyph.size.y = hint_label.size.y
+	var pk := "%s/%s" % [Pad.active, Pad.style]
+	if pk != _pad_seen:
+		_pad_seen = pk  # pad on / off or another pad: the key caps redraw
+		hud._hints.queue_redraw()
 	if hint_label.visible or status_label.visible:
 		_fit_hud_text()
 	# Fire alarm: the screen pulses red.
@@ -904,6 +910,7 @@ func _process(delta: float) -> void:
 		var frac := Engine.get_physics_interpolation_fraction()
 		me.position = Movement.to_px(prev_pos).lerp(Movement.to_px(pred.pos), frac) + error_offset
 		_update_hint()
+		_set_hint_glyph(_hint_next)
 		if not _log.is_empty():
 			_refresh_log()
 	for id in floor_items.keys():
@@ -1417,7 +1424,7 @@ func _item_action(action: int, slot: int) -> void:
 ## gate that needs a pass.
 func _update_hint() -> void:
 	hint_text = ""
-	_set_hint_glyph(-1)
+	_hint_next = -1
 	var text := ""
 	plaque_here = 0
 	if me.status == Protocol.ACT_HELD:
@@ -1590,7 +1597,7 @@ func _update_hint() -> void:
 	hint_text = text
 	if Pad.active and text != "":
 		var ph := PadMap.pad_hint(text, Pad.style)
-		_set_hint_glyph(ph[0])
+		_hint_next = ph[0]
 		hint_label.text = ph[1]
 	else:
 		hint_label.text = _touch_words(text) if touch else text
@@ -1607,8 +1614,9 @@ func _set_hint_glyph(button: int) -> void:
 	var box: StyleBox = Kit.box("hud")
 	if button >= 0:
 		box = box.duplicate()
-		hint_glyph.position = Vector2(box.content_margin_left, 0)
-		box.content_margin_left += PadGlyphs.width(button, Pad.style, 26.0) + 8
+		var left := box.get_margin(SIDE_LEFT)
+		hint_glyph.position = Vector2(left - 6, 0)
+		box.content_margin_left = left + PadGlyphs.width(button, Pad.style, 26.0) + 12
 	hint_label.add_theme_stylebox_override("normal", box)
 	hint_glyph.size = Vector2(60, 40)
 	hint_glyph.queue_redraw()

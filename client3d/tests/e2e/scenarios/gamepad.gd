@@ -1,8 +1,8 @@
 ## A gamepad only (synthetic joypad events, no keys or clicks): the hint
 ## shows the pad's button, A puts the laptop on the desk and sits down, the
 ## d-pad walks the focus ring to the HR app and A opens it, B stands up, Y
-## opens the action menu (B closes it), Back opens the chat and the pad
-## keyboard types and sends a phrase, the stick walks, the right stick
+## opens the action menu (B closes it), Back opens the chat with the pad
+## keyboard, which types and sends a phrase, the stick walks, the right stick
 ## turns the camera, a key press switches the hints back.
 ## Server: --start-employed (a laptop in hands, next to the desk).
 extends "res://tests/e2e/scenario.gd"
@@ -121,9 +121,7 @@ func run() -> void:
 	await push(JOY_BUTTON_BACK)
 	if not await until(func(): return g.chat_box.visible, 2.0, "chat opened with Back"):
 		return
-	await wait(0.2)
-	await push(JOY_BUTTON_A)
-	if not await until(func(): return pad.keyboard.visible, 2.0, "pad keyboard over the chat"):
+	if not await until(func(): return pad.keyboard.visible, 2.0, "pad keyboard over the chat at once"):
 		return
 	var phrase: Control = null
 	for b in pad.keyboard._phrases.get_children():

@@ -274,6 +274,12 @@ func _process(delta: float) -> void:
 	_toast.visible = _toast_t > 0.0
 	var ctx := context()
 	if ctx != _ctx:
+		# The chat opened from the world: its keyboard at once.
+		if _ctx == "game" and ctx == "ui" and active:
+			var chat = main.game.get("chat_box")
+			if chat and ui_root() == chat:
+				keyboard.open_for(chat._input)
+				ctx = "keyboard"
 		_ctx = ctx
 		if ctx != "game":
 			for k in [KEY_W, KEY_A, KEY_S, KEY_D, KEY_B, KEY_V, KEY_E, KEY_F]:
