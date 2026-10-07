@@ -572,7 +572,7 @@ func _show_update(version: String, url: String, required: bool) -> void:
 		var get_it := Kit.button("Pobierz", true)
 		get_it.pressed.connect(func(): OS.shell_open(url))
 		row.add_child(get_it)
-	else:  # iOS: apps come only from TestFlight / the App Store, no .dmg
+	else:  # iOS: apps come only from TestFlight / the App Store
 		label.text += "\nZaktualizuj grę w TestFlight."
 	var later := Kit.button("Zamknij" if required else "Później")
 	later.pressed.connect(func(): panel.queue_free())

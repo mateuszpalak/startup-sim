@@ -19,10 +19,11 @@ static func is_mobile() -> bool:
 	return OS.has_feature("mobile") or OS.has_feature("ios") or OS.has_feature("android")
 
 
-## Can the game offer a file to download and install (a .dmg)? Not on iOS
-## (only the App Store / TestFlight install apps there).
+## Can the game offer a file to download and install (a .dmg, zip or
+## Android apk)? Not on iOS (only the App Store / TestFlight install apps
+## there).
 static func can_self_update() -> bool:
-	return not is_mobile()
+	return not is_ios()
 
 
 static func profile() -> String:
