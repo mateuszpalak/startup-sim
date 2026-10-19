@@ -76,7 +76,7 @@ jobs:
           for z in dist/*.zip; do
             unzip -l "$z" | grep -q "StartupSim.exe" || { echo "brak exe w $z"; exit 1; }
           done
-      - uses: actions/upload-artifact@v5
+      - uses: actions/upload-artifact@v7
         with:
           name: startupsim-windows-${{ matrix.client }}
           path: dist/*.zip

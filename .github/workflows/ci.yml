@@ -136,7 +136,7 @@ jobs:
         run: GODOT=$HOME/godot/godot python3 tests/e2e/run.py --client ${{ matrix.dir }} --shard ${{ matrix.shard }}/3 --logs /tmp/e2e-logs
       - name: Logi scenariuszy
         if: failure()
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: e2e-logs-${{ matrix.dir }}-${{ matrix.shard }}
           path: /tmp/e2e-logs
