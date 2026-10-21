@@ -23,7 +23,7 @@ pub use golden::{golden_samples, to_hex};
 pub use snapshot::{snapshot_fragments, SelfState};
 
 pub const MAGIC: u16 = 0x5354; // "ST"
-pub const VERSION: u8 = 47;
+pub const VERSION: u8 = 48;
 pub const HEADER_LEN: usize = 4;
 /// Hard upper bound for any datagram we send.
 /// A game packet at most (sealed, it grows by up to 48 B to `MAX_DATAGRAM`).
@@ -38,6 +38,9 @@ pub const MAX_SAY_BYTES: usize = MAX_TEXT_BYTES;
 pub const MAX_MAIL_BYTES: usize = 600;
 /// Max answer options of a recruitment question.
 pub const MAX_OPTIONS: usize = 4;
+/// A duty's title, and one answer of its choice minigame.
+pub const MAX_DUTY_TITLE_BYTES: usize = 60;
+pub const MAX_DUTY_OPTION_BYTES: usize = 120;
 /// Max answers in a `Dialog` window (keys 1-9): the TV's channels + off,
 /// the R menu, the first-aid cabinet...
 pub const MAX_DIALOG_OPTIONS: usize = 9;
@@ -119,6 +122,9 @@ pub mod ty {
     pub const OWN_PROFILE: u8 = 62;
     pub const COFFEE_MACHINE: u8 = 63;
     pub const COFFEE_ACTION: u8 = 64;
+    pub const DUTIES: u8 = 65;
+    pub const DUTY_START: u8 = 66;
+    pub const DUTY_RESULT: u8 = 67;
 }
 
 /// `ItemAction::action`.
@@ -365,6 +371,38 @@ pub struct DepartmentInfo {
     pub short: String,
     pub name: String,
 }
+
+/// One of today's duties in `Duties`: where (tile), how it went
+/// (`duty_state`), what it pays (grosze).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DutyInfo {
+    pub title: String,
+    pub floor: u8,
+    pub x: u8,
+    pub y: u8,
+    pub state: u8,
+    pub reward: u32,
+}
+
+/// Most duties in one `Duties` packet.
+pub const MAX_DUTIES: usize = 8;
+
+/// `DutyInfo::state`.
+pub mod duty_state {
+    pub const TODO: u8 = 0;
+    pub const DONE: u8 = 1;
+    pub const BOTCHED: u8 = 2;
+}
+
+/// `DutyStart::kind`: hold E for `seconds`, or pick one of `options`.
+pub mod duty_kind {
+    pub const HOLD: u8 = 1;
+    pub const CHOICE: u8 = 2;
+}
+
+/// `DutyResult::value`: not now (Esc); E at that place does its usual thing
+/// for a while.
+pub const DUTY_LATER: u8 = 255;
 
 /// Most departments in one `Departments` packet.
 pub const MAX_DEPARTMENTS: usize = 32;
@@ -1129,6 +1167,30 @@ pub enum Packet {
     /// `Welcome` and every 5 s.
     Departments {
         list: Vec<DepartmentInfo>,
+    },
+    /// Today's duties and the week's progress: when they change and every
+    /// few seconds while at work. Empty list = none (not employed).
+    Duties {
+        week_done: u8,
+        week_goal: u8,
+        week_bonus: u32,
+        day_bonus: u32,
+        duties: Vec<DutyInfo>,
+    },
+    /// E at a duty's place: its minigame (`duty_kind`). `session` 0 = close it.
+    DutyStart {
+        session: u8,
+        kind: u8,
+        seconds: u8,
+        title: String,
+        text: String,
+        options: Vec<String>,
+    },
+    /// The minigame finished: held to the end (`value` 0) or the option picked.
+    DutyResult {
+        token: u32,
+        session: u8,
+        value: u8,
     },
 }
 

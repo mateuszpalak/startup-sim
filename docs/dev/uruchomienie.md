@@ -39,6 +39,7 @@ Pełna lista: `cargo run --release -- --help`.
 | `--list-accounts` | administrator: lista kont i wyjście |
 | `--reset-password <nick>` | administrator: nowe jednorazowe hasło i wyjście |
 | `--recruitment <plik>` | oferty i pytania, domyślnie `data/recruitment.json` |
+| `--duties <plik>` | obowiązki dnia, domyślnie wbudowane `data/duties.json` |
 
 Do testów i nagrań:
 

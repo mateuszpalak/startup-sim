@@ -130,6 +130,7 @@ impl Server {
         let Some(p) = self.players.get_mut(&pid) else { return };
         p.rest = None;
         p.riding = None;
+        p.duty_game = None;
         let minutes = (p.worked_ds / clock::DS_PER_MIN as u64) as u32;
         let pay = minutes as i64 * p.pay_rate / 60;
         p.money += pay;

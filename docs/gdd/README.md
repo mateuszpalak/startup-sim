@@ -65,6 +65,7 @@ Portal, rozmowa, wdrożenie, umowy i widełki, wakaty, panel założyciela.
 - **10.28** Panel założyciela (bez płatności)
 - **10.37** Poprawki: pulpit, zatrzymanie, eskorta
 - **10.49** Widełki, umowa w HR, recepcja i pani Maria
+- **10.57** Obowiązki dnia
 
 ## [Komputer i komunikacja](komputer.md)
 

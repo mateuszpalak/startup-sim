@@ -403,6 +403,35 @@ impl Packet {
                 Packet::OwnProfile { profile: Profile { gender, age, city, email, appearance } }
             }
             ty::ROLL => Packet::Roll { token: r.u32()?, quality: r.u8()? },
+            ty::DUTIES => {
+                let (week_done, week_goal, week_bonus, day_bonus) = (r.u8()?, r.u8()?, r.u32()?, r.u32()?);
+                let n = r.u8()? as usize;
+                if n > MAX_DUTIES {
+                    return Err(DecodeError::Invalid("too many duties"));
+                }
+                let mut duties = Vec::with_capacity(n);
+                for _ in 0..n {
+                    let title = r.str16(MAX_DUTY_TITLE_BYTES)?;
+                    let (floor, x, y, state, reward) = (r.u8()?, r.u8()?, r.u8()?, r.u8()?, r.u32()?);
+                    duties.push(DutyInfo { title, floor, x, y, state, reward });
+                }
+                Packet::Duties { week_done, week_goal, week_bonus, day_bonus, duties }
+            }
+            ty::DUTY_START => {
+                let (session, kind, seconds) = (r.u8()?, r.u8()?, r.u8()?);
+                let title = r.str16(MAX_DUTY_TITLE_BYTES)?;
+                let text = r.str16(MAX_TEXT_BYTES)?;
+                let n = r.u8()? as usize;
+                if n > MAX_OPTIONS {
+                    return Err(DecodeError::Invalid("too many options"));
+                }
+                let mut options = Vec::with_capacity(n);
+                for _ in 0..n {
+                    options.push(r.str16(MAX_DUTY_OPTION_BYTES)?);
+                }
+                Packet::DutyStart { session, kind, seconds, title, text, options }
+            }
+            ty::DUTY_RESULT => Packet::DutyResult { token: r.u32()?, session: r.u8()?, value: r.u8()? },
             ty::COFFEE_MACHINE => Packet::CoffeeMachine { machine: r.u8()?, water: r.u8()?, grounds: r.u8()?, max: r.u8()?, busy: r.u8()? },
             ty::COFFEE_ACTION => Packet::CoffeeAction { token: r.u32()?, machine: r.u8()?, action: r.u8()? },
             ty::MEDIA => {

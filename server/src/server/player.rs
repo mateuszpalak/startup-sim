@@ -201,6 +201,15 @@ pub(super) struct Player {
     /// In a lift cabin, choosing the floor.
     pub(super) lift_panel: Option<LiftPanel>,
     pub(super) next_dialog_id: u8,
+    /// Today's duties and the week's progress (saved).
+    pub(super) duties: crate::duties::Ledger,
+    /// The duty minigame open: which duty, its session id.
+    pub(super) duty_game: Option<super::duties::DutyGame>,
+    pub(super) next_duty_session: u8,
+    /// A duty put off (Esc): its index, until this tick.
+    pub(super) duty_snooze: Option<(usize, u32)>,
+    /// Send `Duties` this tick.
+    pub(super) duties_dirty: bool,
     /// Sofa / toilet / smoke break, and where it started (moving ends it).
     pub(super) rest: Option<(Rest, u8, Pos)>,
     /// Messenger spam guard / retry dedupe.
@@ -295,6 +304,11 @@ impl Player {
             hr_desk: None,
             lift_panel: None,
             next_dialog_id: 0,
+            duties: Default::default(),
+            duty_game: None,
+            next_duty_session: 0,
+            duty_snooze: None,
+            duties_dirty: true,
             rest: None,
             last_chat_tick: None,
             last_chat_nonce: 0,

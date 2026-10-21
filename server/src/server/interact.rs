@@ -26,6 +26,9 @@ impl Server {
 
     /// One E press: the first thing in reach, in priority order.
     fn interact(&mut self, pid: u16, body: &Body, events: &mut Vec<npc::Event>) {
+        if self.use_duty(pid, body) {
+            return;
+        }
         let Some(p) = self.players.get(&pid) else { return };
         let hands_free = p.inventory.hands_free();
         let holds_laptop = p.inventory.held_kind() == item_kind::LAPTOP;

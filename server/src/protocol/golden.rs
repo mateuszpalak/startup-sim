@@ -335,6 +335,31 @@ pub fn golden_samples() -> Vec<(&'static str, Packet)> {
         ("action", Packet::Action { token: 0x01020304, action: 2 }),
         ("hr_action", Packet::HrAction { token: 0x01020304, action: 2, arg: 9 }),
         ("roll", Packet::Roll { token: 0x01020304, quality: 87 }),
+        (
+            "duties",
+            Packet::Duties {
+                week_done: 7,
+                week_goal: 15,
+                week_bonus: 15_000,
+                day_bonus: 2_000,
+                duties: vec![
+                    DutyInfo { title: "Podlej kwiatki".into(), floor: 4, x: 28, y: 22, state: duty_state::DONE, reward: 800 },
+                    DutyInfo { title: "Zrób code review".into(), floor: 4, x: 40, y: 9, state: duty_state::TODO, reward: 2_000 },
+                ],
+            },
+        ),
+        (
+            "duty_start",
+            Packet::DutyStart {
+                session: 3,
+                kind: duty_kind::CHOICE,
+                seconds: 0,
+                title: "Zrób code review".into(),
+                text: "PR „Small fix”, +2 −0".into(),
+                options: vec!["LGTM, shipujemy".into(), "Request changes".into()],
+            },
+        ),
+        ("duty_result", Packet::DutyResult { token: 0x01020304, session: 3, value: 1 }),
         ("chat_say", Packet::ChatSay { token: 0x01020304, text: "/s Idziemy na kawę?".into() }),
         ("notice", Packet::Notice { icon: 2, text: "Nowa poczta: Witamy!".into() }),
         (

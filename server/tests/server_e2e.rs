@@ -91,6 +91,7 @@ fn start_server_at(
             r.invite_delay_secs = 0; // replies arrive on the next tick in tests
             r
         },
+        duties: game::duties::Duties::builtin(),
         skip_recruitment,
         start_employed,
         needs_speed: 1,

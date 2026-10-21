@@ -21,6 +21,7 @@ pub mod computer;
 pub mod crash;
 pub mod crypto;
 pub mod drunk;
+pub mod duties;
 pub mod elevator;
 pub mod fire;
 pub mod hr;

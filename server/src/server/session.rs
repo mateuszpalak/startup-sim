@@ -145,6 +145,7 @@ impl Server {
             }
             Packet::CompanyAction { action, target, value, text, .. } => self.handle_company_action(id, action, target, value, &text),
             Packet::CommuteChoice { mode, .. } => self.handle_commute_choice(id, mode),
+            Packet::DutyResult { session, value, .. } => self.handle_duty_result(id, session, value),
             _ => {}
         }
     }
@@ -451,7 +452,8 @@ fn session_token(packet: &Packet) -> Option<u32> {
         | Packet::Voice { token, .. }
         | Packet::TaskAction { token, .. }
         | Packet::MailAction { token, .. }
-        | Packet::CompanyAction { token, .. } => Some(*token),
+        | Packet::CompanyAction { token, .. }
+        | Packet::DutyResult { token, .. } => Some(*token),
         _ => None,
     }
 }

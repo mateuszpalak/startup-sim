@@ -48,6 +48,10 @@ SCENARIOS = {
         {"server": ["--save", "{tmp}/world.db"],
          "clients": [["resign", ["--login=Wybredna:haslo-wybrednej-1", "--register", "--autocreate", "--auto-recruit=1"]]]},
     ],
+    "duties": [
+        {"server": EMPLOYED + ["--start-time", "9:00"],
+         "clients": [["duties", ["--nick=Ola", "--autoconnect"]]]},
+    ],
     "drinking": [
         {"server": EMPLOYED + ["--start-time", "10:00"],
          "clients": [["drinking", ["--nick=Kuba", "--autoconnect"]]]},
@@ -122,7 +126,7 @@ SCENARIOS = {
 
 # Rough run times (s), to split the scenarios evenly into shards.
 DURATION = {"resign": 90, "onboarding": 60, "workday": 41, "together": 33, "fight": 33, "drinking": 31,
-            "persistence": 23, "chat": 23, "storeroom": 29, "chill": 18, "founder_back": 35, "founder": 15, "portal_back": 12, "skidmark": 40, "office_apps": 6, "touch": 15, "gamepad": 20}
+            "persistence": 23, "chat": 23, "storeroom": 29, "chill": 18, "founder_back": 35, "founder": 15, "portal_back": 12, "skidmark": 40, "office_apps": 6, "duties": 30, "touch": 15, "gamepad": 20}
 
 
 def shard(names, k, n):

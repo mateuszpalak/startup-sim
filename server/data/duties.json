@@ -1,0 +1,724 @@
+{
+  "version": 1,
+  "per_day": [
+    3,
+    4
+  ],
+  "day_bonus": 2000,
+  "week": {
+    "days": 5,
+    "goal": 15,
+    "bonus": 15000
+  },
+  "duties": [
+    {
+      "id": "plants",
+      "title": "Podlej kwiatki",
+      "station": {
+        "tile": "plant"
+      },
+      "game": {
+        "kind": "hold",
+        "seconds": 3,
+        "text": "Trzymaj E i lej powoli. Fikus pamięta zeszły tydzień."
+      },
+      "reward": 800,
+      "done": "Fikus wygląda na mniej obrażonego."
+    },
+    {
+      "id": "dishwasher",
+      "title": "Rozładuj zmywarkę",
+      "station": {
+        "tile": "dishwasher"
+      },
+      "game": {
+        "kind": "hold",
+        "seconds": 4,
+        "text": "Kubek „World's Best Developer” znowu ma zaciek. Trzymaj E."
+      },
+      "reward": 1000,
+      "done": "Zmywarka pusta. Nikt nie podziękuje, ale ty wiesz."
+    },
+    {
+      "id": "descale",
+      "title": "Odkamień ekspres",
+      "station": {
+        "tile": "coffee_machine"
+      },
+      "game": {
+        "kind": "hold",
+        "seconds": 5,
+        "text": "Ekspres mruga na czerwono od marca. Trzymaj E."
+      },
+      "reward": 1200,
+      "done": "Ekspres przestał mrugać. Na razie."
+    },
+    {
+      "id": "fridge",
+      "title": "Wyrzuć przeterminowane z lodówki",
+      "station": {
+        "tile": "fridge"
+      },
+      "game": {
+        "kind": "hold",
+        "seconds": 4,
+        "text": "Jogurt „Kuba — NIE RUSZAĆ” ma datę z zeszłego kwartału. Trzymaj E."
+      },
+      "reward": 1000,
+      "done": "Lodówka pachnie już tylko lekko podejrzanie."
+    },
+    {
+      "id": "trash",
+      "title": "Wynieś śmieci",
+      "station": {
+        "tile": "trash_bin"
+      },
+      "game": {
+        "kind": "hold",
+        "seconds": 3,
+        "text": "Ktoś wyrzucił tu cały monitor. Trzymaj E."
+      },
+      "reward": 700,
+      "done": "Śmieci wyniesione. Monitor też."
+    },
+    {
+      "id": "tv_check",
+      "title": "Sprawdź, czy telewizor działa",
+      "station": {
+        "tile": "tv"
+      },
+      "game": {
+        "kind": "hold",
+        "seconds": 6,
+        "text": "Trzeba obejrzeć całą akcję, żeby mieć pewność. Trzymaj E."
+      },
+      "reward": 600,
+      "done": "Działa. Gol też był. Służbowo."
+    },
+    {
+      "id": "code_review",
+      "title": "Zrób code review",
+      "departments": [
+        1,
+        4,
+        5,
+        6
+      ],
+      "station": {
+        "tile": "table",
+        "room_kind": "meeting"
+      },
+      "game": {
+        "kind": "choice",
+        "pool": "code_review"
+      },
+      "reward": 2000,
+      "reward_bad": 300
+    },
+    {
+      "id": "vibe",
+      "title": "Vibecoduj feature",
+      "departments": [
+        1,
+        4,
+        5,
+        6
+      ],
+      "station": {
+        "tile": "desk",
+        "own_department": true
+      },
+      "game": {
+        "kind": "choice",
+        "pool": "vibe"
+      },
+      "reward": 2500,
+      "reward_bad": 0
+    },
+    {
+      "id": "client_call",
+      "title": "Zadzwoń do klienta",
+      "departments": [
+        2,
+        7,
+        8,
+        9,
+        10
+      ],
+      "station": {
+        "tile": "table",
+        "room_kind": "meeting"
+      },
+      "game": {
+        "kind": "choice",
+        "pool": "client_call"
+      },
+      "reward": 2000,
+      "reward_bad": 300
+    },
+    {
+      "id": "standup",
+      "title": "Weź udział w stand-upie",
+      "station": {
+        "tile": "table",
+        "room_kind": "meeting"
+      },
+      "game": {
+        "kind": "choice",
+        "pool": "standup"
+      },
+      "reward": 900,
+      "reward_bad": 200
+    },
+    {
+      "id": "ai_prompt",
+      "title": "Popraw prompt na produkcji",
+      "departments": [
+        6,
+        1
+      ],
+      "station": {
+        "tile": "desk",
+        "own_department": true
+      },
+      "game": {
+        "kind": "choice",
+        "pool": "ai"
+      },
+      "reward": 2200,
+      "reward_bad": 200
+    },
+    {
+      "id": "ai_demo",
+      "title": "Pokaż zarządowi demo AI",
+      "departments": [
+        6
+      ],
+      "station": {
+        "tile": "table",
+        "room_kind": "meeting"
+      },
+      "game": {
+        "kind": "choice",
+        "pool": "ai_demo"
+      },
+      "reward": 2500,
+      "reward_bad": 0
+    },
+    {
+      "id": "pipeline",
+      "title": "Napraw czerwony pipeline",
+      "departments": [
+        5,
+        1
+      ],
+      "station": {
+        "tile": "desk",
+        "own_department": true
+      },
+      "game": {
+        "kind": "choice",
+        "pool": "devops"
+      },
+      "reward": 2200,
+      "reward_bad": 200
+    },
+    {
+      "id": "oncall",
+      "title": "Przejrzyj alerty z nocy",
+      "departments": [
+        5
+      ],
+      "station": {
+        "tile": "desk",
+        "own_department": true
+      },
+      "game": {
+        "kind": "hold",
+        "seconds": 5,
+        "text": "347 alertów „disk 81% full”. Trzymaj E i scrolluj."
+      },
+      "reward": 1500,
+      "done": "Wyciszone. Dysk nadal 81%."
+    },
+    {
+      "id": "app_store",
+      "title": "Wyślij apkę do App Store",
+      "departments": [
+        4
+      ],
+      "station": {
+        "tile": "desk",
+        "own_department": true
+      },
+      "game": {
+        "kind": "choice",
+        "pool": "mobile"
+      },
+      "reward": 2500,
+      "reward_bad": 300
+    },
+    {
+      "id": "invoices",
+      "title": "Rozlicz faktury",
+      "departments": [
+        7
+      ],
+      "station": {
+        "tile": "desk",
+        "own_department": true
+      },
+      "game": {
+        "kind": "hold",
+        "seconds": 5,
+        "text": "Excel zawiesza się co trzecią komórkę. Trzymaj E."
+      },
+      "reward": 1800,
+      "done": "Bilans się zgadza. Prawie."
+    },
+    {
+      "id": "campaign",
+      "title": "Wymyśl kampanię",
+      "departments": [
+        9,
+        8
+      ],
+      "station": {
+        "tile": "table",
+        "room_kind": "meeting"
+      },
+      "game": {
+        "kind": "choice",
+        "pool": "marketing"
+      },
+      "reward": 2000,
+      "reward_bad": 300
+    },
+    {
+      "id": "ticket",
+      "title": "Odpowiedz na zgłoszenie klienta",
+      "departments": [
+        10,
+        8,
+        2
+      ],
+      "station": {
+        "tile": "desk",
+        "own_department": true
+      },
+      "game": {
+        "kind": "choice",
+        "pool": "support"
+      },
+      "reward": 1800,
+      "reward_bad": 200
+    }
+  ],
+  "pools": {
+    "code_review": [
+      {
+        "text": "PR „Small fix”, +2 −0:\n\n+ if (user.isAdmin || true) {",
+        "options": [
+          {
+            "text": "LGTM, shipujemy",
+            "good": false,
+            "reply": "Od jutra każdy jest adminem. Nawet kurier."
+          },
+          {
+            "text": "Request changes: „|| true”?",
+            "good": true,
+            "reply": "Autor: „a, to zostało z debugowania”."
+          }
+        ]
+      },
+      {
+        "text": "PR „Refactor”, +4012 −3988, 212 plików, opis: „drobne zmiany”.",
+        "options": [
+          {
+            "text": "Approve, przecież to refactor",
+            "good": false,
+            "reply": "Wpadł przy okazji upgrade Reacta. I nowy ORM."
+          },
+          {
+            "text": "Poproś o podział na mniejsze PR-y",
+            "good": true,
+            "reply": "Autor wzdycha, ale dzieli. Dziesięć PR-ów, każdy czytelny."
+          },
+          {
+            "text": "Zostaw komentarz „nit: spacja”",
+            "good": false,
+            "reply": "Spacja poprawiona. Reszta nadal nieprzeczytana."
+          }
+        ]
+      },
+      {
+        "text": "PR „Add config”:\n\n+ const API_KEY = \"sk-live-7f3a...\";",
+        "options": [
+          {
+            "text": "Request changes: sekret w kodzie!",
+            "good": true,
+            "reply": "Klucz unieważniony, zanim ktoś go znalazł na GitHubie."
+          },
+          {
+            "text": "LGTM, repo i tak jest prywatne",
+            "good": false,
+            "reply": "Repo stało się publiczne w piątek o 17:00."
+          }
+        ]
+      },
+      {
+        "text": "PR „Fix typo”, +1 −1:\n\n- recieve\n+ receive",
+        "options": [
+          {
+            "text": "Approve",
+            "good": true,
+            "reply": "Najlepszy PR tygodnia."
+          },
+          {
+            "text": "Request changes: dodaj testy",
+            "good": false,
+            "reply": "Autor pisze test na literówkę. Trwa to dwa dni."
+          }
+        ]
+      },
+      {
+        "text": "PR „Performance”:\n\n  for (const u of users) {\n+   await db.query(...)\n  }",
+        "options": [
+          {
+            "text": "Zaproponuj jedno zapytanie zamiast pętli",
+            "good": true,
+            "reply": "Endpoint przyspieszył z 12 s do 80 ms."
+          },
+          {
+            "text": "LGTM, działa u mnie",
+            "good": false,
+            "reply": "Działa. Dla trzech użytkowników."
+          }
+        ]
+      }
+    ],
+    "vibe": [
+      {
+        "text": "Pusty plik, kursor mruga. Co wpisujesz do AI?",
+        "options": [
+          {
+            "text": "„zrób mi aplikację jak Uber, ale lepszą”",
+            "good": false,
+            "reply": "AI wygenerowało 4000 linii i plik README po chińsku."
+          },
+          {
+            "text": "„dodaj walidację e-maila do formularza rejestracji, z testami”",
+            "good": true,
+            "reply": "Działa za pierwszym razem. Podejrzane, ale bierzesz."
+          },
+          {
+            "text": "„napraw wszystkie bugi”",
+            "good": false,
+            "reply": "AI usunęło testy. Bugi zostały, ale CI jest zielone."
+          }
+        ]
+      },
+      {
+        "text": "AI proponuje zmianę w 38 plikach. Co robisz?",
+        "options": [
+          {
+            "text": "Accept all i push na main",
+            "good": false,
+            "reply": "Produkcja leży. Na #general ktoś wrzuca gif z płonącym psem."
+          },
+          {
+            "text": "Czytasz diff i bierzesz tylko to, co rozumiesz",
+            "good": true,
+            "reply": "Wyszło 5 plików. Ale wszystkie działają."
+          }
+        ]
+      },
+      {
+        "text": "AI pyta: „Czy mam też zaktualizować zależności?”",
+        "options": [
+          {
+            "text": "„tak, wszystkie, do najnowszych”",
+            "good": false,
+            "reply": "Nic się nie kompiluje. Lockfile ma teraz 40 MB."
+          },
+          {
+            "text": "„nie, trzymaj się zadania”",
+            "good": true,
+            "reply": "AI grzecznie robi tylko to, o co chodziło. Rzadki widok."
+          }
+        ]
+      }
+    ],
+    "client_call": [
+      {
+        "text": "Klient: „Potrzebujemy tego na wczoraj. I za darmo.”",
+        "options": [
+          {
+            "text": "„Oczywiście, nie ma problemu!”",
+            "good": false,
+            "reply": "Dział IT dowiaduje się o tym z maila klienta."
+          },
+          {
+            "text": "„Ustalmy, co jest najważniejsze na pierwszy etap.”",
+            "good": true,
+            "reply": "Klient zgadza się na MVP. I nawet zapłaci."
+          }
+        ]
+      },
+      {
+        "text": "Klient: „Czemu przycisk jest niebieski? Mówiliśmy, że ma być bardziej niebieski.”",
+        "options": [
+          {
+            "text": "„Przekażę zespołowi, zrobimy trzy warianty.”",
+            "good": true,
+            "reply": "Klient wybiera pierwszy. Ten, który już był."
+          },
+          {
+            "text": "„To jest najbardziej niebieski możliwy niebieski.”",
+            "good": false,
+            "reply": "Klient prosi o rozmowę z przełożonym."
+          }
+        ]
+      }
+    ],
+    "standup": [
+      {
+        "text": "Twoja kolej. Co wczoraj zrobione?",
+        "options": [
+          {
+            "text": "„Pracowałem nad tym, co mówiłem wczoraj.”",
+            "good": false,
+            "reply": "Wszyscy kiwają głowami. Nikt nie słuchał."
+          },
+          {
+            "text": "„Skończyłem jedno zadanie, dziś biorę następne, blokerów brak.”",
+            "good": true,
+            "reply": "Stand-up trwał 30 sekund. Ktoś bije brawo."
+          },
+          {
+            "text": "„Mam blokera, ale opowiem o nim przez 20 minut.”",
+            "good": false,
+            "reply": "Stand-up kończy się o 11:40."
+          }
+        ]
+      },
+      {
+        "text": "Scrum master pyta, czy sprint się uda.",
+        "options": [
+          {
+            "text": "„Na pewno, mamy jeszcze dwa dni!”",
+            "good": false,
+            "reply": "Do końca sprintu zostało 14 zadań."
+          },
+          {
+            "text": "„Raczej nie wszystko, proponuję przenieść dwa zadania.”",
+            "good": true,
+            "reply": "Scrum master notuje. Szczerość doceniona."
+          }
+        ]
+      }
+    ],
+    "ai": [
+      {
+        "text": "Chatbot firmy poleca klientom produkty konkurencji. Co robisz?",
+        "options": [
+          {
+            "text": "Dopisujesz do promptu „NIGDY nie polecaj konkurencji!!!”",
+            "good": false,
+            "reply": "Teraz poleca konkurencję, ale z wykrzyknikami."
+          },
+          {
+            "text": "Dodajesz testy na przykładowych rozmowach i poprawiasz instrukcję",
+            "good": true,
+            "reply": "Bot przestał. Testy zostają na przyszłość."
+          }
+        ]
+      },
+      {
+        "text": "Model odpowiada wolno i drogo. Pomysł?",
+        "options": [
+          {
+            "text": "Weźmy największy model, będzie mądrzej",
+            "good": false,
+            "reply": "Faktura za API przyszła większa niż pensje."
+          },
+          {
+            "text": "Mniejszy model do prostych pytań, duży tylko do trudnych",
+            "good": true,
+            "reply": "Szybciej i taniej. Finanse przysyłają serduszko."
+          },
+          {
+            "text": "Dodaj „odpowiadaj szybciej” do promptu",
+            "good": false,
+            "reply": "Odpowiada tak samo wolno, ale mówi, że się spieszy."
+          }
+        ]
+      }
+    ],
+    "ai_demo": [
+      {
+        "text": "Prezes pyta: „Czy AI zastąpi cały dział sprzedaży?”",
+        "options": [
+          {
+            "text": "„Tak, od poniedziałku.”",
+            "good": false,
+            "reply": "Dział sprzedaży słyszał. Obiad jesz dziś sam."
+          },
+          {
+            "text": "„Pomoże im w mailach i notatkach, sprzedawać dalej będą ludzie.”",
+            "good": true,
+            "reply": "Zarząd kiwa głowami. Sprzedaż też."
+          }
+        ]
+      },
+      {
+        "text": "W trakcie demo model wymyśla nieistniejącego klienta.",
+        "options": [
+          {
+            "text": "„To feature, nazywamy to kreatywnością.”",
+            "good": false,
+            "reply": "Zarząd chce podpisać umowę z tym klientem."
+          },
+          {
+            "text": "„To halucynacja, dlatego dodajemy weryfikację źródeł.”",
+            "good": true,
+            "reply": "Szczerość robi lepsze wrażenie niż demo."
+          }
+        ]
+      }
+    ],
+    "devops": [
+      {
+        "text": "Pipeline czerwony od trzech dni. Test „flaky_payment_test” pada co drugi raz.",
+        "options": [
+          {
+            "text": "Retry w CI aż do skutku",
+            "good": false,
+            "reply": "Zielone! Płatności na produkcji też padają co drugi raz."
+          },
+          {
+            "text": "Szukasz przyczyny: test zależy od godziny",
+            "good": true,
+            "reply": "Poprawione. Test przechodzi też po północy."
+          },
+          {
+            "text": "Usuwasz test",
+            "good": false,
+            "reply": "CI zielone. Nikt już nie wie, czy płatności działają."
+          }
+        ]
+      },
+      {
+        "text": "Deploy trwa 40 minut. Co robisz?",
+        "options": [
+          {
+            "text": "Cache zależności i równoległe joby",
+            "good": true,
+            "reply": "8 minut. Zespół ma czas na drugą kawę."
+          },
+          {
+            "text": "Kupujesz mocniejszy serwer CI",
+            "good": false,
+            "reply": "38 minut i nowa faktura."
+          }
+        ]
+      }
+    ],
+    "mobile": [
+      {
+        "text": "Apple odrzuca build: „aplikacja nie ma wystarczającej wartości”. To kalkulator napiwków.",
+        "options": [
+          {
+            "text": "Dodajesz tryb ciemny i odwołanie",
+            "good": false,
+            "reply": "Odrzucona znowu. Tym razem w trybie ciemnym."
+          },
+          {
+            "text": "Czytasz wytyczne i dopisujesz to, czego brakuje",
+            "good": true,
+            "reply": "Przyjęta po dwóch dniach. Rekord działu."
+          }
+        ]
+      },
+      {
+        "text": "Na Androidzie przycisk „Kup” jest poza ekranem na małych telefonach.",
+        "options": [
+          {
+            "text": "„U mnie na Pixelu działa”",
+            "good": false,
+            "reply": "Sprzedaż na małych telefonach: zero."
+          },
+          {
+            "text": "Poprawiasz układ i sprawdzasz na kilku rozmiarach",
+            "good": true,
+            "reply": "Przycisk wrócił. Sprzedaż też."
+          }
+        ]
+      }
+    ],
+    "marketing": [
+      {
+        "text": "Burza mózgów: hasło nowej kampanii.",
+        "options": [
+          {
+            "text": "„Synergia. Disruption. AI.”",
+            "good": false,
+            "reply": "Nikt nie wie, co sprzedajemy. Łącznie z nami."
+          },
+          {
+            "text": "Jedno zdanie o tym, jaki problem klienta rozwiązujemy",
+            "good": true,
+            "reply": "Klikalność w górę o 40%."
+          }
+        ]
+      },
+      {
+        "text": "Szef chce, żeby post „stał się viralem”. Budżet: 0 zł.",
+        "options": [
+          {
+            "text": "Mem z kotem i logo firmy",
+            "good": true,
+            "reply": "Kot ma więcej fanów niż produkt. Ale ruch jest."
+          },
+          {
+            "text": "Kupujesz 10 000 obserwujących za 30 zł",
+            "good": false,
+            "reply": "Wszyscy obserwujący nazywają się „user8812”."
+          }
+        ]
+      }
+    ],
+    "support": [
+      {
+        "text": "Klient pisze CAPSEM: „NIC NIE DZIAŁA!!!”",
+        "options": [
+          {
+            "text": "„Proszę zrestartować komputer.”",
+            "good": false,
+            "reply": "Klient zrestartował. Dalej pisze CAPSEM."
+          },
+          {
+            "text": "„Przepraszam za kłopot. Co dokładnie Pan/Pani robi, gdy pojawia się błąd?”",
+            "good": true,
+            "reply": "Okazało się, że Caps Lock. I jeden prawdziwy bug."
+          }
+        ]
+      },
+      {
+        "text": "Zgłoszenie: „Gdzie jest przycisk wylogowania?”",
+        "options": [
+          {
+            "text": "Odsyłasz link do FAQ sprzed trzech wersji",
+            "good": false,
+            "reply": "FAQ pokazuje przycisk, którego już nie ma."
+          },
+          {
+            "text": "Odpowiadasz i zgłaszasz zespołowi, że przycisk trudno znaleźć",
+            "good": true,
+            "reply": "Produkt przesuwa przycisk. Zgłoszeń o połowę mniej."
+          }
+        ]
+      }
+    ]
+  }
+}

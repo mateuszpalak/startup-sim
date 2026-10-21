@@ -142,6 +142,9 @@ pub struct Character {
     /// Annexes, leave days and requests (the HR app).
     #[serde(default)]
     pub hr: crate::hr::HrFile,
+    /// Today's duties and the week's progress.
+    #[serde(default)]
+    pub duties: crate::duties::Ledger,
 }
 
 /// A laptop standing on a desk.
@@ -413,6 +416,7 @@ mod tests {
             employment: 0,
             terms: None,
             hr: Default::default(),
+            duties: Default::default(),
         }
     }
 

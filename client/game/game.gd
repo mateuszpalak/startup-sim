@@ -18,6 +18,8 @@ const TvView = preload("res://game/tv_view.gd")
 const Audio = preload("res://audio/audio.gd")
 const RollGame = preload("res://ui/roll_game.gd")
 const BrushGame = preload("res://ui/brush_game.gd")
+const DutyList = preload("res://ui/duty_list.gd")
+const DutyGame = preload("res://ui/duty_game.gd")
 const DoorPlaque = preload("res://ui/door_plaque.gd")
 const BloodSplash = preload("res://game/blood_splash.gd")
 const ActionMenu = preload("res://ui/action_menu.gd")
@@ -137,6 +139,8 @@ var dialog := DialogWindow.new()
 var gadget := GadgetView.new()  # the TV remote / the boombox
 var roll_game := RollGame.new()  # rolling a cigarette (F with tobacco)
 var brush_game := BrushGame.new()  # scrubbing a skid mark off a toilet
+var duty_list := DutyList.new()  # today's duties (under the clock)
+var duty_game := DutyGame.new()  # a duty's minigame
 var stain_here := false  # a skid mark on the toilet next to us: E = the brush
 ## A vote (or 0: close) - for the home screen, which covers the game.
 signal vote_dialog(p: Dictionary)
@@ -352,6 +356,16 @@ func setup(p_net, p_building, welcome: Dictionary, p_nick: String, args: Diction
 	cp.add_child(clock_label)
 	status_layer.add_child(cp)
 	clock_panel = cp
+	duty_list.below = cp
+	duty_list.floor_name = func(f: int) -> String: return building.floor_name(f)
+	duty_list.room_of = func(f: int, x: int, y: int) -> String:
+		var m = building.get_floor(f)
+		for off in [Vector2i.ZERO, Vector2i(0, 1), Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, -1)]:
+			var rid: int = m.room_at_tile(x + off.x, y + off.y) if m else 0
+			if rid != 0:
+				return m.room_name(rid)
+		return ""
+	status_layer.add_child(duty_list)
 	add_child(daylight)
 	mood_layer.layer = 4  # over the world, under the weather and the HUD
 	add_child(mood_layer)
@@ -430,6 +444,11 @@ func setup(p_net, p_building, welcome: Dictionary, p_nick: String, args: Diction
 	status_layer.add_child(roll_game)
 	status_layer.add_child(brush_game)
 	brush_game.scrubbed.connect(_send_action.bind(Protocol.ACTION_SCRUB))
+	status_layer.add_child(duty_game)
+	duty_game.put_off.connect(func(): duty_list.snooze_near(pred.floor, pred.pos))
+	duty_game.finished.connect(func(session: int, value: int):
+		if net.is_playing():
+			net.send(Protocol.encode_duty_result(net.token, session, value)))
 	status_layer.add_child(door_plaque)
 	status_layer.add_child(action_menu)
 	status_layer.add_child(notices)
@@ -558,7 +577,7 @@ func _sample_input(delta: float) -> int:
 	if not goto_legs.is_empty() or not _goto_path.is_empty():
 		var g := _goto_input(delta)  # dev script also drives the computer screen / dialogs
 		return 0 if screen.visible or dialog.visible else g
-	if dialog.visible or roll_game.visible or brush_game.visible or chat_box.typing():
+	if dialog.visible or roll_game.visible or brush_game.visible or duty_game.visible or chat_box.typing():
 		return 0
 	if screen.visible:
 		return 0
@@ -875,6 +894,10 @@ func _on_packet(p: Dictionary) -> void:
 		Protocol.T_SHELF:
 			shelf_window.show_shelf(p)
 			_shelf_at = Movement.to_px(pred.pos)
+		Protocol.T_DUTIES:
+			duty_list.on_duties(p)
+		Protocol.T_DUTY_START:
+			duty_game.on_start(p)
 		Protocol.T_COFFEE_MACHINE:
 			if coffee.visible or Time.get_ticks_msec() - _coffee_closed_ms >= 800:
 				if not coffee.visible:
@@ -1155,7 +1178,7 @@ func _reconcile(server_body: Dictionary, ack: int) -> void:
 ## Something in the game takes Esc itself (a window is open).
 func window_open() -> bool:
 	return screen.visible or coffee.visible or gadget.visible or shelf_window.visible or container.visible or dialog.visible \
-		or roll_game.visible or brush_game.visible \
+		or roll_game.visible or brush_game.visible or duty_game.visible \
 		or chat_box.visible or log_history.visible or action_menu.visible or door_plaque.visible
 
 
@@ -1427,7 +1450,11 @@ func _update_hint() -> void:
 	var map = building.get_floor(pred.floor)
 	var t := Movement.tile_of_pos(pred.pos)
 	var link: Dictionary = map.link_at(t.x, t.y) if map else {}
-	if not link.is_empty() and link.kind == "elevator":
+	duty_list.set_floor(pred.floor)
+	var duty_hint := duty_list.hint_at(pred.floor, pred.pos) if me.held == 0 else ""  # hands free, as on the server
+	if duty_hint != "":
+		text = duty_hint  # the server checks duties first too
+	elif not link.is_empty() and link.kind == "elevator":
 		# In the cabin: the car stands here -> the panel of floor buttons; else riding.
 		var l := _lift(building.lift_ids.find(link.id))
 		var standing: bool = not l.moving and l.floor == pred.floor
@@ -1621,7 +1648,7 @@ func _pad_hud() -> void:
 func pad_modal() -> Control:
 	if screen.visible:
 		return screen
-	for w in [gadget, chat_box, log_history, action_menu, door_plaque, brush_game, roll_game, dialog, coffee, container, shelf_window]:
+	for w in [gadget, chat_box, log_history, action_menu, door_plaque, brush_game, roll_game, duty_game, dialog, coffee, container, shelf_window]:
 		if w.visible:
 			return w
 	return null

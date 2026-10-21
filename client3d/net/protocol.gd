@@ -3,7 +3,7 @@
 extends RefCounted
 
 const MAGIC := 0x5354
-const VERSION := 47
+const VERSION := 48
 const MAX_PACKET := 1152  # a game packet; sealed it grows to at most MAX_DATAGRAM
 const MAX_DATAGRAM := 1200
 const MAX_NICK_BYTES := 16
@@ -77,6 +77,19 @@ const T_NOTICE := 61
 const T_OWN_PROFILE := 62  # our own character, as the server keeps it (after logging back in)
 const T_COFFEE_MACHINE := 63  # the coffee machine's panel
 const T_COFFEE_ACTION := 64
+const T_DUTIES := 65  # today's duties and the week's progress
+const T_DUTY_START := 66  # a duty's minigame (session 0 = close it)
+const T_DUTY_RESULT := 67
+
+const DUTY_HOLD := 1
+const DUTY_CHOICE := 2
+const DUTY_TODO := 0
+const DUTY_DONE := 1
+const DUTY_BOTCHED := 2
+const DUTY_LATER := 255  # DutyResult: not now (Esc)
+const MAX_DUTIES := 8
+const MAX_DUTY_TITLE_BYTES := 60
+const MAX_DUTY_OPTION_BYTES := 120
 # CoffeeAction.action (server/src/protocol, mod coffee_action)
 const COFFEE_CLOSE := 0
 const COFFEE_BREW := 1
@@ -504,6 +517,14 @@ static func encode_chat_say(token: int, text: String) -> PackedByteArray:
 
 
 ## The rolling minigame's result: quality 0..100.
+static func encode_duty_result(token: int, session: int, value: int) -> PackedByteArray:
+	var b := _writer(T_DUTY_RESULT)
+	b.put_u32(token)
+	b.put_u8(session)
+	b.put_u8(value)
+	return b.data_array
+
+
 static func encode_roll(token: int, quality: int) -> PackedByteArray:
 	var b := _writer(T_ROLL)
 	b.put_u32(token)
@@ -751,6 +772,37 @@ static func decode(bytes: PackedByteArray) -> Dictionary:
 		T_NOTICE:
 			p.icon = r.u8()
 			p.text = r.str16(MAX_TEXT_BYTES)
+		T_DUTIES:
+			p.week_done = r.u8()
+			p.week_goal = r.u8()
+			p.week_bonus = r.u32()
+			p.day_bonus = r.u32()
+			var n := r.u8()
+			if n > MAX_DUTIES:
+				return {}
+			var duties := []
+			for i in n:
+				var d := {"title": r.str16(MAX_DUTY_TITLE_BYTES)}
+				d.floor = r.u8()
+				d.x = r.u8()
+				d.y = r.u8()
+				d.state = r.u8()
+				d.reward = r.u32()
+				duties.append(d)
+			p.duties = duties
+		T_DUTY_START:
+			p.session = r.u8()
+			p.kind = r.u8()
+			p.seconds = r.u8()
+			p.title = r.str16(MAX_DUTY_TITLE_BYTES)
+			p.text = r.str16(MAX_TEXT_BYTES)
+			var n := r.u8()
+			if n > MAX_OPTIONS:
+				return {}
+			var opts := []
+			for i in n:
+				opts.append(r.str16(MAX_DUTY_OPTION_BYTES))
+			p.options = opts
 		T_COFFEE_MACHINE:
 			p.machine = r.u8()
 			p.water = r.u8()

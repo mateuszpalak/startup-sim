@@ -39,6 +39,7 @@ OPTIONS:
   --start-cigarettes    with --start-employed: a pack of cigarettes in the pocket (dev)
   --needs-speed <n>     needs (hunger, energy...) change n times faster (dev)
   --recruitment <path>  recruitment JSON  [default: data/recruitment.json]
+  --duties <path>       daily duties JSON  [default: data/duties.json, built in]
   --save <path>         save file (SQLite): characters, company, desks, boards, mail,
                         clock; a daily backup in <dir>/backups   [default: saves/world.db]
   --no-save             don't load or save anything (dev / tests; everyone plays as a guest)
@@ -134,6 +135,12 @@ fn start(args: &Args) -> Result<Server, StartError> {
     let building = Building::load(&map_path).map_err(|e| StartError::Fatal(format!("failed to load map: {e}")))?;
     let rec_path = args.str("recruitment").map_or_else(default_recruitment_path, PathBuf::from);
     let recruitment = Recruitment::load(&rec_path).map_err(|e| StartError::Fatal(format!("failed to load recruitment: {e}")))?;
+    let duties = match args.str("duties") {
+        Some(p) => {
+            game::duties::Duties::load(std::path::Path::new(p)).map_err(|e| StartError::Fatal(format!("failed to load duties: {e}")))?
+        }
+        None => game::duties::Duties::builtin(),
+    };
     let link = LinkConditions {
         lag: Duration::from_millis(args.try_get("lag-ms", 0)?),
         jitter: Duration::from_millis(args.try_get("jitter-ms", 0)?),
@@ -173,6 +180,7 @@ fn start(args: &Args) -> Result<Server, StartError> {
         client_timeout: DEFAULT_CLIENT_TIMEOUT,
         start_access: if args.flag("start-with-card") { game::map::access::CARD } else { 0 },
         recruitment,
+        duties,
         skip_recruitment: args.flag("skip-recruitment") || args.flag("start-employed"),
         start_employed: args.flag("start-employed"),
         start_cigarettes: args.flag("start-cigarettes"),

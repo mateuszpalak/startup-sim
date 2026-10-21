@@ -171,3 +171,42 @@ Zastępuje prosty portal z 10.8. Po połączeniu gracz widzi pulpit komputera
   wnuczek, działka) albo z miasta (ceny na rynku, tramwaje, dzik w parku).
   Poza obchodem jej nie widać (siedzi w strefie zamkniętej). Paulina dalej
   tylko siedzi w fotelu w holu, przy wiatrołapie.
+
+## 10.57 Obowiązki dnia (2026-10-21)
+
+Małe zadania „jak w Among Us”, które dają pracy w biurze rozgrywkę. Wszystko
+działa w pojedynkę: nic nie wymaga drugiego gracza, inni tylko ożywiają biuro.
+
+- **Przydział**: każdy zatrudniony (umowa podpisana) rano dostaje 3–4
+  obowiązki — losowe, różne, co najmniej połowa z własnego działu, jeśli ma
+  swoje (IT: code review, vibecoding, prompt na produkcji, pipeline; AI: demo
+  dla zarządu; DevOps: alerty z nocy; Mobile: App Store; Finanse: faktury;
+  Marketing / Sales: kampania; obsługa klienta: zgłoszenia), reszta wspólna
+  (kwiatki, zmywarka, ekspres, lodówka, śmieci, telewizor, stand-up). Miejsce wykonania to konkretny kafel w budynku (kwiatek,
+  zmywarka, ekspres, lodówka, kosz, telewizor, stół w sali spotkań, wolne
+  biurko własnego działu), w miarę możliwości na piętrze działu.
+- **Lista** w lewym górnym rogu pod zegarem: tytuły, odhaczone ✓ / nieudane
+  ✗, piętro, jeśli inne niż bieżące, i postęp celu tygodnia; klik zwija ją.
+  Przy miejscu obowiązku podpowiedź `[E] <tytuł>` — E przy nim ma
+  pierwszeństwo przed wszystkim innym, gdy ręce są wolne (z kubkiem przy
+  ekspresie robi się kawę, z laptopem przy biurku odkłada laptop; biurko z
+  czyimś laptopem zawsze otwiera laptop);
+  Esc w mini-grze to „później” — przez 10 s E przy tym miejscu robi to, co
+  zwykle (kawa z ekspresu, lodówka).
+- **Mini-gry** (na razie dwie, parametryzowane danymi):
+  - *przytrzymaj* — trzymaj E / spację / palec, aż pasek się zapełni (puszczony
+    powoli opada); serwer sprawdza, że od otwarcia minęło tyle sekund;
+  - *wybór* — scenariusz z puli (code review, vibecoding, stand-up, telefon
+    do klienta) i 2–4 odpowiedzi w losowej kolejności; dobra płaci całość,
+    zła mniej albo nic; po wyborze krótka puenta w powiadomieniu.
+- **Nagrody** od razu do portfela: stawka obowiązku, premia za komplet dnia,
+  premia za cel tygodnia (15 obowiązków w 5 dniach pracy postaci).
+  Odejście od miejsca zamyka mini-grę.
+- **Dane**: `server/data/duties.json` (obowiązki, miejsca, pule scenariuszy,
+  premie); nowy obowiązek to nowy wpis, nie kod. Lista dnia i postęp
+  tygodnia zapisują się z postacią.
+- **Dalej** (poza tym etapem): kolejne mini-gry (wpisywanie, trafienie w
+  okno czasowe, przenoszenie przedmiotu), incydenty dotykające wszystkich
+  (padnięty prod po „push w piątek”, zepsuty ekspres) i sabotaże do
+  odwalenia — też do naprawienia solo; code review PR-ów od innych graczy;
+  obowiązki w kliencie 3D.

@@ -38,6 +38,7 @@ mod containers;
 mod contract;
 mod day;
 mod doors;
+mod duties;
 mod fight;
 mod greetings;
 mod hr;
@@ -131,6 +132,8 @@ pub struct Config {
     pub start_access: u8,
     /// Job portal offers and quizzes.
     pub recruitment: Recruitment,
+    /// Daily duties: what, where, the pay.
+    pub duties: crate::duties::Duties,
     /// Spawn straight into the world (dev / tests), no job portal.
     pub skip_recruitment: bool,
     /// Also already hired (contract, card, laptop) and spawned at a desk of
@@ -173,6 +176,7 @@ impl Config {
             client_timeout: DEFAULT_CLIENT_TIMEOUT,
             start_access: 0,
             recruitment,
+            duties: crate::duties::Duties::builtin(),
             skip_recruitment: false,
             start_employed: false,
             needs_speed: 1,
@@ -321,6 +325,8 @@ pub struct Server {
     says: Vec<Say>,
     /// Sounds this tick: (kind, floor, position), sent with the updates.
     sounds: Vec<(u8, u8, Pos)>,
+    /// Where duties can be done.
+    stations: Vec<crate::duties::Station>,
     /// Task boards (per department) and work mail.
     boards: crate::tasks::Boards,
     post: crate::workmail::PostOffice,
@@ -421,6 +427,7 @@ impl Server {
             next_drop_handle: DROP_HANDLE_BASE,
             says: Vec::new(),
             sounds: Vec::new(),
+            stations: crate::duties::find_stations(&building, &cfg.duties),
             boards: Default::default(),
             post: Default::default(),
             store: None,
@@ -550,6 +557,7 @@ impl Server {
         self.tick_coffee_panels();
         self.tick_meetings();
         self.tick_lunch();
+        self.tick_duties();
         self.tick_company();
         events.extend(self.tick_npcs());
         self.apply_npc_events(events);

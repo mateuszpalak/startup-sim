@@ -58,6 +58,9 @@ impl Packet {
             Packet::OwnProfile { .. } => ty::OWN_PROFILE,
             Packet::CoffeeMachine { .. } => ty::COFFEE_MACHINE,
             Packet::CoffeeAction { .. } => ty::COFFEE_ACTION,
+            Packet::Duties { .. } => ty::DUTIES,
+            Packet::DutyStart { .. } => ty::DUTY_START,
+            Packet::DutyResult { .. } => ty::DUTY_RESULT,
             Packet::Sound { .. } => ty::SOUND,
             Packet::TaskAction { .. } => ty::TASK_ACTION,
             Packet::TaskBoard { .. } => ty::TASK_BOARD,
@@ -508,6 +511,37 @@ impl Packet {
             Packet::Roll { token, quality } => {
                 w.u32(*token);
                 w.u8(*quality);
+            }
+            Packet::Duties { week_done, week_goal, week_bonus, day_bonus, duties } => {
+                w.u8(*week_done);
+                w.u8(*week_goal);
+                w.u32(*week_bonus);
+                w.u32(*day_bonus);
+                w.u8(duties.len().min(MAX_DUTIES) as u8);
+                for d in duties.iter().take(MAX_DUTIES) {
+                    w.str16(&d.title, MAX_DUTY_TITLE_BYTES);
+                    w.u8(d.floor);
+                    w.u8(d.x);
+                    w.u8(d.y);
+                    w.u8(d.state);
+                    w.u32(d.reward);
+                }
+            }
+            Packet::DutyStart { session, kind, seconds, title, text, options } => {
+                w.u8(*session);
+                w.u8(*kind);
+                w.u8(*seconds);
+                w.str16(title, MAX_DUTY_TITLE_BYTES);
+                w.str16(text, MAX_TEXT_BYTES);
+                w.u8(options.len().min(MAX_OPTIONS) as u8);
+                for o in options.iter().take(MAX_OPTIONS) {
+                    w.str16(o, MAX_DUTY_OPTION_BYTES);
+                }
+            }
+            Packet::DutyResult { token, session, value } => {
+                w.u32(*token);
+                w.u8(*session);
+                w.u8(*value);
             }
             Packet::Media { screens, music } => {
                 w.u8(screens.len().min(MAX_MEDIA) as u8);

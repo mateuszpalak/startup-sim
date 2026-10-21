@@ -506,6 +506,27 @@ najbliższa osoba w 2 kaflach („(szeptem) …”), „/k tekst” — całe pi
 rogu ekranu. Przedmioty: 52 mały kluczyk (barek), 53 whisky, 54 koniak, 55
 wódka; barek to `Dialog` 255.
 
+### 65 `Duties` (S→C), 66 `DutyStart` (S→C), 67 `DutyResult` (C→S)
+
+Obowiązki dnia (GDD 10.57). `Duties` — po każdej zmianie i co 5 s
+zatrudnionemu: `week_done u8`, `week_goal u8` (postęp celu tygodnia),
+`week_bonus u32`, `day_bonus u32` (premie, grosze), n u8 (≤ 8) × {`title`
+str16 (≤ 60 B), `floor u8`, `x u8`, `y u8` (kafel miejsca), `state u8` (0 do
+zrobienia, 1 zrobione, 2 nieudane), `reward u32` (grosze)}. Pusta lista = brak
+obowiązków (bez umowy).
+
+`DutyStart` — E przy miejscu obowiązku: `session u8` (0 = zamknij okno;
+serwer zamyka je też, gdy gracz odejdzie), `kind u8` (1 przytrzymaj, 2
+wybór), `seconds u8` (ile trzymać), `title` str16, `text` str16, n u8 (≤ 4) ×
+`option` str16 (≤ 120 B; kolejność losowa). Ponowne E przy otwartej mini-grze
+odsyła ten sam pakiet.
+
+`DutyResult`: token u32, `session u8`, `value u8` (0 przy przytrzymaniu;
+numer wybranej odpowiedzi; 255 = „później” (Esc) — przez 10 s E w tym
+miejscu robi to co zwykle, np. otwiera ekspres). Serwer odrzuca cudzą / starą sesję, wynik z
+daleka od miejsca i przytrzymanie krótsze niż `seconds` (minus 0,5 s), płaci
+i odsyła `Duties` oraz `Notice`.
+
 ### 62 `OwnProfile` (S→C)
 
 Własna postać z zapisu, tylko dla jej gracza, zaraz po ponownym zalogowaniu

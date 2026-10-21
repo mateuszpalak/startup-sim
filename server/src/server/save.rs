@@ -156,6 +156,7 @@ impl Server {
             inventory,
             seen_questions: p.seen_questions.clone(),
             reprimands: p.reprimands,
+            duties: p.duties.clone(),
         }
     }
 
@@ -277,6 +278,7 @@ impl Server {
         p.attempts = c.attempts;
         p.seen_questions = c.seen_questions.clone();
         p.reprimands = c.reprimands;
+        p.duties = c.duties.clone();
         // Went to the office already (a contract, or the trial day under
         // way): straight back in, with what they had on them.
         let at_work = c.contract || (trial.is_some() && c.department != 0);

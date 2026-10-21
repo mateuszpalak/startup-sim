@@ -1294,3 +1294,153 @@ fn at_the_till_e_pays_the_cashier_even_with_the_guard_closer() {
         "E at the till goes to the cashier, not the guard: {events:?}"
     );
 }
+
+fn employed(s: &mut Server, id: u16) {
+    add_player(s, id);
+    s.employ(id);
+    s.tick_duties();
+}
+
+/// Player `id` stands at their duty `i` and opens it.
+fn open_duty(s: &mut Server, id: u16, i: usize) -> super::duties::DutyGame {
+    let a = s.players[&id].duties.list[i].clone();
+    stand_next_to(s, id, a.floor, crate::map::Tile { x: i32::from(a.x), y: i32::from(a.y) });
+    s.players.get_mut(&id).unwrap().inventory.take_hands();
+    let body = s.players[&id].body;
+    assert!(s.use_duty(id, &body), "E at {}", a.duty);
+    s.players[&id].duty_game.clone().unwrap()
+}
+
+/// The answer to the open choice minigame that is `good` (or not).
+fn choice_answer(s: &Server, id: u16, good: bool) -> Option<u8> {
+    let p = &s.players[&id];
+    let g = p.duty_game.as_ref()?;
+    let crate::duties::Game::Choice { pool } = &s.cfg.duties.duty(&p.duties.list[g.index].duty)?.game else { return None };
+    let options = &s.cfg.duties.pools[pool][g.scenario].options;
+    g.order.iter().position(|&o| options[o].good == good).and_then(|i| u8::try_from(i).ok())
+}
+
+#[test]
+fn every_duty_has_a_place_in_the_building() {
+    let s = server();
+    for d in &s.cfg.duties.duties {
+        let departments: Vec<u8> = if d.departments.is_empty() { (1..=10).collect() } else { d.departments.clone() };
+        assert!(
+            departments.iter().any(|&dep| s.stations.iter().any(|st| st.fits(&d.station, dep))),
+            "duty {} has nowhere to be done",
+            d.id
+        );
+    }
+}
+
+#[test]
+fn employees_get_duties_and_nobody_else() {
+    let mut s = server();
+    add_player(&mut s, 2);
+    employed(&mut s, 1);
+    let d = &s.cfg.duties;
+    let list = &s.players[&1].duties.list;
+    assert!((d.per_day[0]..=d.per_day[1]).contains(&list.len()), "{} duties", list.len());
+    assert!(s.players[&2].duties.list.is_empty(), "no contract, no duties");
+    let again = list.clone();
+    s.tick_duties();
+    assert_eq!(s.players[&1].duties.list, again, "one list a day");
+}
+
+#[test]
+fn a_duty_pays_once_when_done_properly() {
+    let mut s = server();
+    employed(&mut s, 1);
+    let i = 0;
+    let g = open_duty(&mut s, 1, i);
+    let money = s.players[&1].money;
+    let def = s.cfg.duties.duty(&s.players[&1].duties.list[i].duty).unwrap().clone();
+    let value = match def.game {
+        crate::duties::Game::Hold { seconds, .. } => {
+            s.handle_duty_result(1, g.session, 0);
+            assert_eq!(s.players[&1].money, money, "held too briefly");
+            s.tick += u32::from(seconds) * super::TICK_HZ;
+            0
+        }
+        crate::duties::Game::Choice { .. } => choice_answer(&s, 1, true).unwrap(),
+    };
+    s.handle_duty_result(1, g.session.wrapping_add(1), value);
+    assert_eq!(s.players[&1].money, money, "a stale session");
+    s.handle_duty_result(1, g.session, value);
+    let paid = s.players[&1].money - money;
+    assert!(paid >= def.reward, "paid {paid}");
+    assert_eq!(s.players[&1].duties.list[i].state, crate::duties::state::DONE);
+    assert!(s.players[&1].duty_game.is_none());
+    s.handle_duty_result(1, g.session, value);
+    assert_eq!(s.players[&1].money - money, paid, "paid once");
+    let body = s.players[&1].body;
+    assert!(!s.use_duty(1, &body) || s.players[&1].duty_game.as_ref().is_some_and(|g| g.index != i), "done, not again");
+}
+
+#[test]
+fn a_bad_answer_pays_less_and_finishing_all_pays_the_day_bonus() {
+    let mut s = server();
+    employed(&mut s, 1);
+    let d = crate::duties::Duties::builtin();
+    let review = d.duty("standup").unwrap();
+    let a = s.stations.iter().find(|st| st.fits(&review.station, 1)).unwrap().clone();
+    let list = vec![crate::duties::Assigned { duty: "standup".into(), floor: a.floor, x: a.x, y: a.y, state: crate::duties::state::TODO }];
+    let p = s.players.get_mut(&1).unwrap();
+    let day = p.day;
+    p.duties.start_day(day, list, d.week_of(day));
+    let money = p.money;
+    let g = open_duty(&mut s, 1, 0);
+    let bad = choice_answer(&s, 1, false).unwrap();
+    s.handle_duty_result(1, g.session, bad);
+    assert_eq!(s.players[&1].money - money, review.reward_bad + d.day_bonus);
+    assert_eq!(s.players[&1].duties.list[0].state, crate::duties::state::BOTCHED);
+}
+
+#[test]
+fn later_lets_e_do_its_usual_thing_for_a_while() {
+    let mut s = server();
+    employed(&mut s, 1);
+    let g = open_duty(&mut s, 1, 0);
+    s.handle_duty_result(1, g.session, crate::protocol::DUTY_LATER);
+    let p = &s.players[&1];
+    assert!(p.duty_game.is_none());
+    assert_eq!(p.duties.list[0].state, crate::duties::state::TODO);
+    let body = p.body;
+    let reopened = s.use_duty(1, &body);
+    assert!(!reopened || s.players[&1].duty_game.as_ref().is_some_and(|g| g.index != 0), "put off");
+    s.players.get_mut(&1).unwrap().duty_game = None;
+    s.tick += 11 * super::TICK_HZ;
+    assert!(s.use_duty(1, &body));
+}
+
+#[test]
+fn something_in_hands_leaves_e_to_the_place() {
+    let mut s = server();
+    employed(&mut s, 1);
+    let a = s.players[&1].duties.list[0].clone();
+    stand_next_to(&mut s, 1, a.floor, crate::map::Tile { x: i32::from(a.x), y: i32::from(a.y) });
+    assert!(!s.players[&1].inventory.hands_free(), "the laptop from HR");
+    let body = s.players[&1].body;
+    assert!(!s.use_duty(1, &body));
+}
+
+#[test]
+fn walking_away_closes_the_minigame() {
+    let mut s = server();
+    employed(&mut s, 1);
+    open_duty(&mut s, 1, 0);
+    let p = s.players.get_mut(&1).unwrap();
+    p.body.pos.x += crate::sim::TILE_UNITS * 6;
+    s.tick_duties();
+    assert!(s.players[&1].duty_game.is_none());
+}
+
+#[test]
+fn a_new_day_brings_a_new_list() {
+    let mut s = server();
+    employed(&mut s, 1);
+    let first = s.players[&1].duties.day;
+    s.players.get_mut(&1).unwrap().day += 1;
+    s.tick_duties();
+    assert_eq!(s.players[&1].duties.day, first + 1);
+}

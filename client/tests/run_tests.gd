@@ -74,6 +74,7 @@ func test_protocol(path: String) -> void:
 		"action": Protocol.encode_action(0x01020304, Protocol.ACTION_ATTACK),
 		"hr_action": Protocol.encode_hr_action(0x01020304, Protocol.HR_REQUEST, 9),
 		"roll": Protocol.encode_roll(0x01020304, 87),
+		"duty_result": Protocol.encode_duty_result(0x01020304, 3, 1),
 		"chat_say": Protocol.encode_chat_say(0x01020304, "/s Idziemy na kawę?"),
 		"task_action": Protocol.encode_task_action(0x01020304, 7, Protocol.TA_CREATE, 0, 2, "Naprawić logowanie\nPo zmianie hasła."),
 		"voice": Protocol.encode_voice(0x01020304, 9, true, PackedByteArray([0x10, 0x00, 0x05, 0x7f, 0x80])),
@@ -134,6 +135,15 @@ func test_protocol(path: String) -> void:
 		and hr.salary == 10200 and hr.pay_rate == 6071 and hr.start_day == 2 and hr.today == 7 and hr.reprimands == 1
 		and hr.leave_days == 2 and hr.worked == 3 and hr.annexes.size() == 2 and hr.annexes[1].text == "Aneks nr 1"
 		and hr.requests == [{"id": 1, "day": 9, "status": 1}, {"id": 2, "day": 8, "status": 3}], "decode hr_info %s" % hr)
+	var du := Protocol.decode(golden["duties"].hex_decode())
+	expect(du.get("type") == Protocol.T_DUTIES and du.week_done == 7 and du.week_goal == 15 and du.week_bonus == 15000
+		and du.day_bonus == 2000 and du.duties.size() == 2 and du.duties[0].title == "Podlej kwiatki"
+		and du.duties[0].floor == 4 and du.duties[0].x == 28 and du.duties[0].y == 22 and du.duties[0].state == Protocol.DUTY_DONE
+		and du.duties[1].reward == 2000 and du.duties[1].state == Protocol.DUTY_TODO, "decode duties %s" % du)
+	var ds := Protocol.decode(golden["duty_start"].hex_decode())
+	expect(ds.get("type") == Protocol.T_DUTY_START and ds.session == 3 and ds.kind == Protocol.DUTY_CHOICE and ds.seconds == 0
+		and ds.title == "Zrób code review" and ds.text == "PR „Small fix”, +2 −0"
+		and ds.options == ["LGTM, shipujemy", "Request changes"], "decode duty_start %s" % ds)
 	var cm := Protocol.decode(golden["coffee_machine"].hex_decode())
 	expect(cm.get("type") == Protocol.T_COFFEE_MACHINE and cm.machine == 1 and cm.water == 5 and cm.grounds == 3
 		and cm.max == 8 and cm.busy == 2, "decode coffee machine %s" % cm)
