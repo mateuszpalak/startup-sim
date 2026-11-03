@@ -210,3 +210,19 @@ rysowanym w kodzie, bez obrazków i cudzych licencji; kamera zostaje z góry.
   (z gruba rzęsą i dwoma błyskami), rumieńce, miękka grzywka i pasma przy
   twarzy, połysk na włosach; uszy schowane pod włosami. Własną postać znaczy
   pierścień wokół stóp (zamiast jasnego konturu).
+
+## 10.58 Drzewa, meble i interfejs w nowym stylu (2026-11-03)
+
+- **Drzewa** na trawnikach (`map/tree_view.gd`): tam, gdzie wokół jest sama
+  trawa, w luźnej siatce (te same na każdym kliencie; serwer o nich nie wie i
+  nie blokują przejścia). Zielone, kwitnące (różowe) i jesienne; korona z
+  kilku kęp, każda z własnym światłocieniem i listkami. Korona jest nad
+  postaciami i lekko kołysze się na wietrze; nad własną postacią robi się
+  półprzezroczysta. Pod nią pień z korzeniami i cień, przez który przebijają
+  ruchome plamy słońca (`map/dapple.gdshader`).
+- **Żywopłot** z gęstych krzaków, ciemniejsza, mszysta trawa.
+- **Meble**: sofy w kolorze terakoty z poduszkami, rośliny w doniczkach z
+  bujnymi liśćmi (czasem kwitną), samochody z połyskiem i niebem w szybach.
+- **Interfejs**: panele HUD granatowo-morskie, półprzezroczyste, z jasnym
+  cienkim obrysem i zaokrąglonymi rogami (bez postrzępionych brzegów); okna
+  na pergaminie z łagodniejszym obrysem; przyciski terakotowe.

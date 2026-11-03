@@ -288,15 +288,14 @@ func _floor(x: int, y: int, t: String) -> void:
 				draw_line(o + Vector2(0, ry), o + Vector2(TP, ry), Color("#c9cdd0"), 1.0)
 				draw_line(o + Vector2(0, ry + 0.8), o + Vector2(TP, ry + 0.8), Color("#6f757a"), 0.5)
 		"grass":  # lush: clumps, blades, flowers and the odd pebble
-			var g := _rf(x / 2, y / 2, 25)
-			draw_rect(r, Color("#5f9a3a").lerp(Color("#79b043"), g))
+			draw_rect(r, Color("#56833a"))
 			for i in 3:
 				var p := o + Vector2(_rf(x, y, i + 40) * TP, _rf(y, x, i + 50) * TP)
-				draw_circle(p, 2.2 + _rf(x, y, i + 60) * 1.6, Color("#4c8530", 0.55))
-				draw_circle(p + Vector2(-0.6, -0.8), 1.3, Color("#8cc154", 0.45))
+				draw_circle(p, 2.2 + _rf(x, y, i + 60) * 1.6, Color("#4a7631", 0.5))
+				draw_circle(p + Vector2(-0.6, -0.8), 1.3, Color("#86ad4e", 0.4))
 			for i in 9:
 				var p := o + Vector2(_rf(x, y, i + 20) * TP, 2.0 + _rf(y, x, i + 30) * (TP - 2.0))
-				var col := Color("#3f7428") if i % 3 else Color("#a3d265")
+				var col := Color("#3d6627") if i % 3 else Color("#9cc45c")
 				draw_line(p, p + Vector2(-0.6, -2.0), col, 0.5)
 				draw_line(p, p + Vector2(0.7, -1.7), col, 0.5)
 			var f := _h(x, y, 8) % 7
@@ -684,11 +683,9 @@ func _tile_object(x: int, y: int) -> void:
 			_box(Rect2(o + Vector2(2, 6.5), Vector2(12, 3)), Color("#b0382c"), true, 0.3, 0.45)
 			_box(Rect2(o + Vector2(6, 9.5), Vector2(4, 3.5)), Color("#d4b870"), true, 0.3, 0.45)
 			draw_arc(o + Vector2(8, 9.5), 1.6, PI, TAU, 8, INK, 0.7)
-		"fence":
-			for i in 3:
-				var c := o + Vector2(3 + i * 5.0, 8 + (i % 2) * 2.0)
-				_disc(c, 4.2, Color("#3f5a2c").lerp(Color("#4d6a33"), _rf(x, y, i)), true, 0.5)
-				draw_circle(c + Vector2(-1.2, -1.4), 1.4, Color("#5f7f3e"))
+		"fence":  # a thick hedge: overlapping leafy bushes
+			for i in 2:
+				_shrub(o + Vector2(4.5 + i * 7.0, 8 + (i + x + y) % 2 * 1.5), 6.0 + _rf(x, y, i) * 1.2)
 		"railing":
 			var horiz := _type(x - 1, y) == "railing" or _type(x + 1, y) == "railing"
 			var vert := _type(x, y - 1) == "railing" or _type(x, y + 1) == "railing"
@@ -871,14 +868,22 @@ func _shelf(r: Rect2, index: int) -> void:
 		x += 3.0
 
 
+## A soft sofa from above: the back and arms a shade darker, plump seat
+## cushions with a highlight, and a couple of throw pillows.
 func _sofa(r: Rect2) -> void:
-	var c := Color("#6a7fa8")
+	var c := Color("#c0704f")
 	_shadow(r)
-	_box(Rect2(r.position + Vector2(0, 1), r.size - Vector2(0, 2)), c.darkened(0.25), true, 2.0)
-	_box(Rect2(r.position + Vector2(3, 6), r.size - Vector2(6, 9)), c, true, 1.5)
-	var n := int(r.size.x / TP)
-	for i in range(1, n):
-		draw_line(Vector2(r.position.x + i * TP, r.position.y + 7), Vector2(r.position.x + i * TP, r.end.y - 4), c.darkened(0.2), 0.5)
+	_box(Rect2(r.position + Vector2(0, 1), r.size - Vector2(0, 2)), c.darkened(0.28), true, 2.0)
+	var n := maxi(1, int(r.size.x / TP))
+	var seat := Rect2(r.position + Vector2(3, 6), r.size - Vector2(6, 9))
+	var w := seat.size.x / n
+	for i in n:
+		var cu := Rect2(seat.position + Vector2(i * w + 0.3, 0), Vector2(w - 0.6, seat.size.y))
+		_box(cu, c, true, 1.6)
+		draw_line(cu.position + Vector2(1.5, 1.2), cu.position + Vector2(cu.size.x - 2.5, 1.2), c.lightened(0.25), 0.8)
+	var pillows := [Color("#e8c766"), Color("#6f9fb3"), Color("#e9e2d0")]
+	_box(Rect2(r.position + Vector2(3.5, 3), Vector2(5, 4)), pillows[int(r.position.x) % 3], true, 1.2, 0.4)
+	_box(Rect2(Vector2(r.end.x - 8.5, r.position.y + 3), Vector2(5, 4)), pillows[(int(r.position.x) + 1) % 3], true, 1.2, 0.4)
 
 
 ## A deep old armchair (Paulina's): a high back, two armrests, a cushion.
@@ -944,18 +949,29 @@ func _table(tr: Rect2i, r: Rect2) -> void:
 	_box(Rect2(top.get_center() - Vector2(2, 1.5), Vector2(4, 3)), Color("#ece4d2"), true, 0.3, 0.35)
 
 
+## A potted plant: a terracotta pot with a rim, soil, and a full head of
+## leaves (dark at the back, bright in front), sometimes with flowers.
 func _plant(r: Rect2, index: int) -> void:
-	var c := r.position + Vector2(8, 13)
-	draw_rect(Rect2(c + Vector2(-4, 0.5), Vector2(9, 1.8)), Color(0, 0, 0, 0.2))
-	_poly(PackedVector2Array([c + Vector2(-3.5, -5), c + Vector2(3.5, -5), c + Vector2(2.6, 0.5), c + Vector2(-2.6, 0.5)]), Color("#b0643c"))
+	var c := r.position + Vector2(8, 12)
+	draw_circle(c + Vector2(1.0, 2.0), 4.6, Color(0.05, 0.06, 0.12, 0.2))
+	_poly(PackedVector2Array([c + Vector2(-3.8, -2), c + Vector2(3.8, -2), c + Vector2(2.8, 3), c + Vector2(-2.8, 3)]), Color("#c46a3e"))
+	_box(Rect2(c + Vector2(-4.3, -3.2), Vector2(8.6, 1.8)), Color("#d98250"), true, 0.4, 0.4)
+	draw_line(c + Vector2(-2.6, -0.5), c + Vector2(-2.0, 2.2), Color(1, 1, 1, 0.2), 0.6)
 	var rr := RandomNumberGenerator.new()
 	rr.seed = 91 + index
-	for i in 7:
-		var a := -PI / 2 + (i - 3) * 0.45
-		var tip := c + Vector2(0, -5) + Vector2(cos(a), sin(a)) * (6.0 + rr.randf() * 2.0)
-		var mid := (c + Vector2(0, -5) + tip) / 2.0 + Vector2(cos(a + PI / 2), sin(a + PI / 2)) * 1.4
-		_poly(PackedVector2Array([c + Vector2(0, -5), mid, tip, (c + Vector2(0, -5) + tip) / 2.0 - Vector2(cos(a + PI / 2), sin(a + PI / 2)) * 1.4]),
-			[Color("#4f7a3a"), Color("#638f45"), Color("#3f6530")][i % 3], true, 0.4)
+	var top := c + Vector2(0, -6)
+	var greens := [Color("#2f5f31"), Color("#3f7a38"), Color("#5b9a45"), Color("#86c05a")]
+	for layer in 4:
+		for i in 5:
+			var a := -PI / 2 + (i - 2) * 0.62 + rr.randf() * 0.3
+			var leaf := 6.5 - layer * 1.2 + rr.randf() * 1.2
+			var tip := top + Vector2(cos(a), sin(a) * 0.8) * leaf + Vector2(0, layer * 0.6)
+			var mid := (top + tip) / 2.0
+			var side := Vector2(cos(a + PI / 2), sin(a + PI / 2)) * (1.9 - layer * 0.2)
+			_poly(PackedVector2Array([top + Vector2(0, 2.5), mid + side, tip, mid - side]), greens[layer], layer == 0, 0.35)
+	if index % 3 == 0:
+		for i in 3:
+			draw_circle(top + Vector2(-3 + i * 3, -2.5 + (i % 2) * 1.5), 0.9, Color("#f3d34a") if index % 2 else Color("#e88aa8"))
 
 
 func _racks(r: Rect2, index: int) -> void:
@@ -1028,10 +1044,14 @@ func _car(r: Rect2, index: int) -> void:
 		_box(Rect2(wx, b.position.y - 2, 6, 3), Color("#1e1b19"), true, 0.8, 0.4)
 		_box(Rect2(wx, b.end.y - 1, 6, 3), Color("#1e1b19"), true, 0.8, 0.4)
 	_box(b, body, true, 3.0)
+	draw_line(b.position + Vector2(4, 1.4), Vector2(b.end.x - 4, b.position.y + 1.4), body.lightened(0.35), 0.9)  # gloss
+	draw_line(Vector2(b.position.x + 4, b.end.y - 1.2), Vector2(b.end.x - 4, b.end.y - 1.2), body.darkened(0.3), 0.8)
 	var roof := Rect2(b.position + Vector2(12, 3), b.size - Vector2(22, 6))
 	_box(roof, body.darkened(0.12), true, 2.0, 0.45)
-	_box(Rect2(roof.end.x, roof.position.y, 5, roof.size.y), Color("#3e5266"), true, 1.0, 0.45)
-	_box(Rect2(roof.position.x - 4, roof.position.y, 4, roof.size.y), Color("#3e5266"), true, 1.0, 0.45)
+	draw_line(roof.position + Vector2(1.5, 1.2), Vector2(roof.end.x - 1.5, roof.position.y + 1.2), body.lightened(0.2), 0.6)
+	for g in [Rect2(roof.end.x, roof.position.y, 5, roof.size.y), Rect2(roof.position.x - 4, roof.position.y, 4, roof.size.y)]:
+		_box(g, Color("#4a6a86"), true, 1.0, 0.45)
+		draw_line(g.position + Vector2(1, 1.5), g.position + Vector2(g.size.x - 1, 3.5), Color(1, 1, 1, 0.45), 0.6)  # sky in the glass
 	draw_circle(Vector2(b.end.x - 1.2, b.position.y + 3.5), 0.9, Color("#f2e3a0"))
 	draw_circle(Vector2(b.end.x - 1.2, b.end.y - 3.5), 0.9, Color("#f2e3a0"))
 	draw_circle(Vector2(b.position.x + 1.2, b.position.y + 3.5), 0.9, Color("#c94a3a"))

@@ -254,6 +254,11 @@ func setup(p_net, p_building, welcome: Dictionary, p_nick: String, args: Diction
 	add_child(puddle_layer)
 	add_child(ride_mask)  # between the map and the people
 	add_child(world)
+	for f in views:  # tree crowns over the people, under the light
+		var crowns: Node2D = views[f].trees.canopy
+		views[f].trees.remove_child(crowns)
+		crowns.visible = false
+		add_child(crowns)
 	boombox.bus = "Music"
 	boombox.max_distance = 320.0
 	boombox.attenuation = 1.6
@@ -294,6 +299,8 @@ func setup(p_net, p_building, welcome: Dictionary, p_nick: String, args: Diction
 
 	me.setup(net.player_id, nick, ZOOM)
 	me.highlight = true
+	for f in views:
+		views[f].trees.focus = me
 	me.visible = false
 	world.add_child(me)
 	camera.zoom = Vector2(ZOOM, ZOOM)
@@ -470,6 +477,7 @@ func _show_floor(f: int) -> void:
 	for k in views:
 		views[k].visible = (k == f)
 		views[k].labels.visible = (k == f)
+		views[k].trees.canopy.visible = (k == f)
 	for k in stall_doors:
 		for dv in stall_doors[k]:
 			dv.visible = (k == f)

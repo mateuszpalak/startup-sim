@@ -1,7 +1,7 @@
-## The game's UI kit in a hand-drawn "paper and ink" style (inspired by
-## Don't Starve): a handwritten font (Patrick Hand, OFL - fonts/), parchment
-## and dark-wood panels with wobbly ink outlines and torn edges, drawn in code
-## as 9-slice textures, ink buttons, inputs, round badges and bars.
+## The game's UI kit in a storybook style: a handwritten font (Patrick Hand,
+## OFL - fonts/), deep blue-green see-through panels and warm parchment
+## windows with soft rounded outlines, drawn in code as 9-slice textures,
+## buttons, inputs, round badges and bars.
 ## Everything UI goes through here, so the HUD, the computer, the job portal
 ## and the dialogs share one look.
 extends RefCounted
@@ -9,19 +9,19 @@ extends RefCounted
 ## Ink line width (screen pixels).
 const LINE := 2
 
-# Palette: parchment, ink, dark wood, burgundy, muted gold / green.
-const INK := Color("#2a2118")
-const DARK := Color("#3a2e24")          # HUD panels (dark wood / leather)
-const DARK_HI := Color("#5a4636")
-const DARK_LO := Color("#231b14")
+# Palette: parchment, ink, deep blue-green, terracotta, warm gold / green.
+const INK := Color("#22262b")
+const DARK := Color("#24343c")          # HUD panels (deep blue-green, like dusk)
+const DARK_HI := Color("#3a5260")
+const DARK_LO := Color("#162127")
 const PAPER := Color("#e9dcbc")         # windows
 const PAPER_HI := Color("#f4ead0")
 const PAPER_LO := Color("#cdb98f")
 const CARD := Color("#f2e7cb")
 const CARD_LO := Color("#d9c7a0")
-const ACCENT := Color("#8c3a2b")        # primary buttons, title bands
-const ACCENT_HI := Color("#b0523e")
-const ACCENT_LO := Color("#5e241a")
+const ACCENT := Color("#a8503a")        # primary buttons, title bands
+const ACCENT_HI := Color("#cc6b4c")
+const ACCENT_LO := Color("#6e2f22")
 const GOLD := Color("#d4a94a")
 const RED := Color("#a8402f")
 const GREEN := Color("#6f8f3e")
@@ -144,9 +144,9 @@ static func button_box(state: String, primary: bool, danger := false) -> StyleBo
 static func _spec(kind: String) -> Dictionary:
 	match kind:
 		"hud":
-			return {"fill": Color(DARK, 0.94), "grain": 0.06, "outline": INK, "width": 3.0, "torn": true, "shadow": true, "pad": 16, "pad_v": 12, "corner": 10}
+			return {"fill": Color(DARK, 0.86), "grain": 0.03, "outline": Color("#a9c3c8", 0.55), "width": 2.0, "torn": false, "shadow": true, "pad": 16, "pad_v": 12, "corner": 14}
 		"paper":
-			return {"fill": PAPER, "grain": 0.07, "outline": INK, "width": 3.0, "torn": true, "shadow": true, "pad": 18, "pad_v": 14, "corner": 8}
+			return {"fill": PAPER, "grain": 0.05, "outline": Color(INK, 0.7), "width": 2.5, "torn": false, "shadow": true, "pad": 18, "pad_v": 14, "corner": 12}
 		"card":
 			return {"fill": CARD, "grain": 0.05, "outline": Color(INK, 0.55), "width": 2.0, "torn": false, "shadow": false, "pad": 14, "pad_v": 12, "corner": 6}
 		"card_hover":
@@ -164,11 +164,11 @@ static func _spec(kind: String) -> Dictionary:
 		"grabber":
 			return {"fill": DARK_HI, "grain": 0.05, "outline": INK, "width": 2.0, "torn": false, "shadow": false, "pad": 4, "pad_v": 4, "corner": 4}
 		"slot":
-			return {"fill": Color("#2b221a"), "grain": 0.08, "outline": INK, "width": 3.0, "torn": false, "shadow": false, "pad": 4, "pad_v": 4, "corner": 10}
+			return {"fill": Color(DARK_LO, 0.9), "grain": 0.04, "outline": Color("#a9c3c8", 0.35), "width": 2.0, "torn": false, "shadow": false, "pad": 4, "pad_v": 4, "corner": 10}
 		"slot_active":
-			return {"fill": Color("#3d3024"), "grain": 0.08, "outline": GOLD, "width": 3.0, "torn": false, "shadow": false, "pad": 4, "pad_v": 4, "corner": 10}
+			return {"fill": Color(DARK_HI, 0.9), "grain": 0.04, "outline": GOLD, "width": 3.0, "torn": false, "shadow": false, "pad": 4, "pad_v": 4, "corner": 10}
 		"bubble":
-			return {"fill": PAPER_HI, "grain": 0.04, "outline": INK, "width": 2.5, "torn": false, "shadow": true, "pad": 10, "pad_v": 6, "corner": 10}
+			return {"fill": PAPER_HI, "grain": 0.03, "outline": Color(INK, 0.6), "width": 2.0, "torn": false, "shadow": true, "pad": 10, "pad_v": 6, "corner": 12}
 		"mine":
 			return {"fill": Color("#efe0b0"), "grain": 0.04, "outline": Color(INK, 0.6), "width": 2.0, "torn": false, "shadow": false, "pad": 10, "pad_v": 6, "corner": 8}
 	return _spec("paper")
