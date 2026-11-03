@@ -98,7 +98,7 @@ func _lamp_pools(rect: Rect2, px: float) -> void:
 	for i in nx:
 		for j in ny:
 			var c := rect.position + Vector2((i + 0.5) * rect.size.x / nx, (j + 0.5) * rect.size.y / ny)
-			draw_texture_rect(_glow, Rect2(c - Vector2(rad, rad), Vector2(rad, rad) * 2.0), false, Color(1.0, 0.8, 0.45, 0.16))
+			draw_texture_rect(_glow, Rect2(c - Vector2(rad, rad), Vector2(rad, rad) * 2.0), false, Color(1.0, 0.82, 0.5, 0.34))
 
 
 ## Daylight 0..1 at a minute of the day.
@@ -174,6 +174,8 @@ func _draw() -> void:
 			if dark > 0.01:
 				draw_rect(rect, col)
 			if warm:
+				if dusk:  # after dark: dimmer between the lamps, so the pools show
+					draw_rect(rect, Color(night, 0.45))
 				draw_rect(rect, Color(1.0, 0.82, 0.5, 0.04))
 				_lamp_pools(rect, px)
 	# Walls follow the sky (so the building sinks into the night too).

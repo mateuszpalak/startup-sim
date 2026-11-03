@@ -1,5 +1,5 @@
-## Hand-drawn item icons (ink outlines, like the rest of the game), drawn
-## with vector calls on any CanvasItem in a 16x16 box.
+## Hand-drawn item icons (soft warm outlines and glossy highlights, like the
+## rest of the game), drawn with vector calls on any CanvasItem in a 16x16 box.
 ## Kinds match server/src/inventory.rs.
 extends RefCounted
 
@@ -79,12 +79,17 @@ static func item_name(kind: int) -> String:
 	return NAMES.get(kind, "")
 
 
-const INK := Color("#2a2118")
+const INK := Color("#3a2a22")
 
 
 ## Draw `kind` into a 16x16 box at `o` (top-left), scale `s`.
 static func draw(c: CanvasItem, kind: int, o: Vector2, s: float) -> void:
-	var w := maxf(0.9 * s, 0.35)  # ink width
+	var w := maxf(0.75 * s, 0.3)  # outline width
+	if s >= 2.0:  # big (slots, shelves): a soft shadow under the item
+		c.draw_set_transform(o + Vector2(8.5, 15.0) * s, 0.0, Vector2(1.0, 0.3))
+		for k in [6.5, 5.0]:
+			c.draw_circle(Vector2.ZERO, k * s, Color(0.02, 0.04, 0.08, 0.16))
+		c.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 	# Helpers in box units (0..16).
 	var pt := func(x: float, y: float) -> Vector2: return o + Vector2(x, y) * s
 	var poly := func(pts: Array, fill: Color) -> void:
@@ -99,8 +104,10 @@ static func draw(c: CanvasItem, kind: int, o: Vector2, s: float) -> void:
 		poly.call([Vector2(x + k, y), Vector2(x + bw - k, y), Vector2(x + bw, y + k), Vector2(x + bw, y + bh - k),
 			Vector2(x + bw - k, y + bh), Vector2(x + k, y + bh), Vector2(x, y + bh - k), Vector2(x, y + k)], fill)
 	var circ := func(x: float, y: float, r: float, fill: Color) -> void:
-		c.draw_circle(o + Vector2(x, y) * s, (r + 0.45) * s, INK)
+		c.draw_circle(o + Vector2(x, y) * s, (r + 0.4) * s, INK)
 		c.draw_circle(o + Vector2(x, y) * s, r * s, fill)
+		if r >= 1.2:
+			c.draw_circle(o + Vector2(x - r * 0.35, y - r * 0.4) * s, r * 0.3 * s, Color(1, 1, 1, 0.35))
 	var dot := func(x: float, y: float, r: float, col: Color) -> void:
 		c.draw_circle(o + Vector2(x, y) * s, r * s, col)
 	var ln := func(x0: float, y0: float, x1: float, y1: float, col: Color, lw := 0.8) -> void:

@@ -105,6 +105,10 @@ func _box(r: Rect2, fill: Color, ink := true, c := 0.8, w := OL) -> void:
 	_poly(PackedVector2Array([
 		Vector2(p.x + c, p.y), Vector2(e.x - c, p.y), Vector2(e.x, p.y + c), Vector2(e.x, e.y - c),
 		Vector2(e.x - c, e.y), Vector2(p.x + c, e.y), Vector2(p.x, e.y - c), Vector2(p.x, p.y + c)]), fill, ink, w, amt)
+	if ink and small >= 3.0:
+		# A bevel: light along the top edge, shade along the bottom.
+		draw_line(Vector2(p.x + c + 0.4, p.y + 0.6), Vector2(e.x - c - 0.4, p.y + 0.6), Color(1, 1, 0.95, 0.22), 0.5)
+		draw_line(Vector2(p.x + c + 0.4, e.y - 0.6), Vector2(e.x - c - 0.4, e.y - 0.6), Color(0.05, 0.05, 0.12, 0.16), 0.5)
 
 
 func _disc(c: Vector2, r: float, fill: Color, ink := true, w := OL) -> void:
@@ -854,7 +858,9 @@ func _counter(r: Rect2) -> void:
 func _shelf(r: Rect2, index: int) -> void:
 	var body := Rect2(r.position + Vector2(0, 1), r.size - Vector2(0, 2))
 	_shadow(body)
-	_box(body, Color("#6e6a63"), true, 0.8)
+	_box(body, Color("#8f6a47"), true, 0.8)
+	for row in 2:
+		draw_rect(Rect2(body.position.x + 0.8, body.position.y + 6.4 + row * 6, body.size.x - 1.6, 0.8), Color("#6a4b30"))
 	var goods := [Color("#c9553f"), Color("#d9b650"), Color("#5a8fc2"), Color("#6fa35a"), Color("#d98a3e"), Color("#8e6aa8"), Color("#ece6d6")]
 	var n := 0
 	var x := body.position.x + 1.5
@@ -983,7 +989,9 @@ func _racks(r: Rect2, index: int) -> void:
 		while tx < r.end.x:
 			for row in range(3, 14, 3):
 				draw_line(Vector2(tx + 2.5, ty + row), Vector2(tx + 11, ty + row), Color("#3a3a42"), 0.8)
-				draw_circle(Vector2(tx + 12.8, ty + row), 0.55, Color("#6fd06b") if _h(int(tx), int(ty) + row, index) % 3 else Color("#7fb3cf"))
+				var led := Color("#7ef08a") if _h(int(tx), int(ty) + row, index) % 3 else Color("#7fd0ff")
+				draw_circle(Vector2(tx + 12.8, ty + row), 1.4, Color(led, 0.25))
+				draw_circle(Vector2(tx + 12.8, ty + row), 0.55, led)
 			tx += TP
 		ty += TP
 
@@ -1072,8 +1080,8 @@ func _coffee_machine(r: Rect2) -> void:
 func _kitchen_counter(r: Rect2) -> void:
 	var top := Rect2(r.position + Vector2(0, 1), r.size - Vector2(0, 4))
 	_shadow(top)
-	_box(Rect2(top.position.x, top.end.y - 1, top.size.x, 3.2), Color("#8b8272"), true, 0.4)
-	_box(top, Color("#d6cfbf"), true, 0.8)
+	_box(Rect2(top.position.x, top.end.y - 1, top.size.x, 3.2), Color("#a27a52"), true, 0.4)
+	_box(top, Color("#eadfc6"), true, 0.8)
 	for i in 3:
 		var mug: Color = [Color("#f1ece2"), Color("#4f7fb0"), Color("#d98a3e")][i]
 		_disc(top.position + Vector2(4.5 + i * 4, 5.5), 1.5, mug, true, 0.4)
@@ -1084,8 +1092,8 @@ func _kitchen_counter(r: Rect2) -> void:
 func _fruit_bowl(r: Rect2) -> void:
 	var top := Rect2(r.position + Vector2(0, 1), r.size - Vector2(0, 4))
 	_shadow(top)
-	_box(Rect2(top.position.x, top.end.y - 1, top.size.x, 3.2), Color("#8b8272"), true, 0.4)
-	_box(top, Color("#d6cfbf"), true, 0.8)
+	_box(Rect2(top.position.x, top.end.y - 1, top.size.x, 3.2), Color("#a27a52"), true, 0.4)
+	_box(top, Color("#eadfc6"), true, 0.8)
 	var c := r.position + Vector2(8, 7)
 	for f in [[-3, -1, "#c9553f"], [0, -2, "#d9b650"], [3, -1, "#6fa35a"], [-1.5, 1, "#d98a3e"], [1.5, 1, "#b4412f"]]:
 		_disc(c + Vector2(f[0], f[1]), 1.6, Color(f[2]), true, 0.35)
@@ -1145,7 +1153,7 @@ func _dishwasher(r: Rect2) -> void:
 
 
 func _kitchen_sink(r: Rect2) -> void:
-	var top := _worktop(r, Color("#d6cfbf"))
+	var top := _worktop(r, Color("#eadfc6"))
 	_box(Rect2(top.position + Vector2(2.5, 2.5), Vector2(top.size.x - 5, 7)), Color("#b8c6cc"), true, 1.6)
 	draw_circle(top.position + Vector2(top.size.x / 2, 6), 0.7, Color("#6f757a"))
 	_stroke(top.position + Vector2(top.size.x / 2, 1), top.position + Vector2(top.size.x / 2, 3.2), Color("#8f959b"), 1.0)
@@ -1154,8 +1162,8 @@ func _kitchen_sink(r: Rect2) -> void:
 func _fridge(r: Rect2) -> void:
 	var body := Rect2(r.position + Vector2(0.5, -1), r.size - Vector2(1, 1.5))
 	_shadow(body)
-	_box(body, Color("#ecebe4"), true, 1.2)
-	draw_line(body.position + Vector2(1.5, 5), Vector2(body.end.x - 1.5, body.position.y + 5), Color("#b9b8b0"), 0.6)
+	_box(body, Color("#bfe3d4"), true, 1.2)
+	draw_line(body.position + Vector2(1.5, 5), Vector2(body.end.x - 1.5, body.position.y + 5), Color("#8fbfac"), 0.6)
 	_box(Rect2(body.end.x - 3.2, body.position.y + 6.5, 1.2, 5), Color("#9aa3a8"), true, 0.3, 0.35)  # handle
 	_disc(body.position + Vector2(4, 9), 1.2, Color("#d98a3e"), true, 0.35)  # a magnet
 

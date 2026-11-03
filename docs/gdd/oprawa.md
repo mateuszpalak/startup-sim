@@ -226,3 +226,15 @@ rysowanym w kodzie, bez obrazków i cudzych licencji; kamera zostaje z góry.
 - **Interfejs**: panele HUD granatowo-morskie, półprzezroczyste, z jasnym
   cienkim obrysem i zaokrąglonymi rogami (bez postrzępionych brzegów); okna
   na pergaminie z łagodniejszym obrysem; przyciski terakotowe.
+
+## 10.59 Reszta mebli, tarcze, przedmioty, wieczorne światło (2026-11-03)
+
+- **Meble**: każdy prostokątny mebel ma fazę (jasna krawędź u góry, cień u
+  dołu); regały w sklepie z drewna z półkami; kremowe blaty w kuchni;
+  lodówka w kolorze miętowym; diody szaf serwerowych z poświatą.
+- **Tarcze statystyk**: morskie szkło, kremowa porcelanowa obwódka,
+  żywsze kolory płynu, refleks i błysk.
+- **Przedmioty**: łagodniejszy, ciepły kontur, połysk na okrągłych
+  kształtach, w slotach i na półkach miękki cień pod przedmiotem.
+- **Wieczorem** pokoje oświetlone lampą są przygaszone między lampami, a pod
+  lampami jaśniej i cieplej — kręgi światła widać też na jasnych podłogach.
