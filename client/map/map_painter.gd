@@ -1,13 +1,16 @@
-## Hand-drawn floor art (Don't Starve-ish, matching the characters and the
-## UI): muted colours, ink outlines, slightly wobbly edges. Drawn with vector
+## Painted floor art (shady countryside storybook look, matching the
+## characters): rich colours, soft outlines a shade darker than the fill,
+## deep soft shadows under walls and furniture. Drawn with vector
 ## calls in world pixels (16 per tile) inside a SubViewport rendered once at
 ## a higher resolution (see map_view.gd), so it costs nothing per frame.
 ## Deterministic: same map -> same picture.
 extends Node2D
 
 const TP := 16.0
-const INK := Color("#2a2118")
-const OL := 0.6
+## Outlines: a soft, see-through dark brown (the painted.gdshader texture and
+## the shadows do the rest).
+const INK := Color(0.16, 0.11, 0.08, 0.55)
+const OL := 0.45
 
 var map
 
@@ -24,6 +27,7 @@ func _draw() -> void:
 		for x in map.width:
 			_ground(x, y)
 	_wall_shadows()
+	_window_light()
 	for y in map.height:
 		for x in map.width:
 			if _ch(x, y) == "#":
@@ -75,12 +79,12 @@ func _rf(x: float, y: float, salt := 0) -> float:
 	return float(_h(int(x * 7.0), int(y * 7.0), salt) % 1000) / 1000.0
 
 
-func _wob(p: Vector2, amt := 0.35) -> Vector2:
+func _wob(p: Vector2, amt := 0.12) -> Vector2:
 	return p + Vector2(_rf(p.x, p.y, 1) - 0.5, _rf(p.x, p.y, 2) - 0.5) * amt * 2.0
 
 
 ## A filled polygon with a wobbly ink outline.
-func _poly(pts: PackedVector2Array, fill: Color, ink := true, w := OL, amt := 0.35) -> void:
+func _poly(pts: PackedVector2Array, fill: Color, ink := true, w := OL, amt := 0.12) -> void:
 	var wp := PackedVector2Array()
 	for p in pts:
 		wp.append(_wob(p, amt))
@@ -97,7 +101,7 @@ func _box(r: Rect2, fill: Color, ink := true, c := 0.8, w := OL) -> void:
 	var e := r.end
 	var small := minf(r.size.x, r.size.y)
 	c = clampf(c, 0.05, small * 0.4)
-	var amt := minf(0.35, minf(c * 0.3, small / 10.0))  # small shapes stay simple polygons
+	var amt := minf(0.12, minf(c * 0.3, small / 10.0))  # small shapes stay simple polygons
 	_poly(PackedVector2Array([
 		Vector2(p.x + c, p.y), Vector2(e.x - c, p.y), Vector2(e.x, p.y + c), Vector2(e.x, e.y - c),
 		Vector2(e.x - c, e.y), Vector2(p.x + c, e.y), Vector2(p.x, e.y - c), Vector2(p.x, p.y + c)]), fill, ink, w, amt)
@@ -171,41 +175,84 @@ func _ground(x: int, y: int) -> void:
 	_floor(x, y, t)
 
 
+## Deterministic tint for a piece (a plank, a slab): -1..1.
+func _tint(x: int, y: int, salt: int) -> float:
+	return _rf(x, y, salt) * 2.0 - 1.0
+
+
+## A round shrub from above: a soft shadow, layers of leaves lighter towards
+## the top left, and a few highlights (sometimes berries or blossom).
+func _shrub(c: Vector2, rad: float) -> void:
+	draw_circle(c + Vector2(1.5, 2.0), rad, Color(0.05, 0.08, 0.1, 0.25))
+	var cols := [Color("#2f5e2a"), Color("#3f7a33"), Color("#559a3f"), Color("#78bb52")]
+	for i in cols.size():
+		var k := i / float(cols.size())
+		var cc := c + Vector2(-1.0, -1.2) * k * rad * 0.35
+		var rr := rad * (1.0 - k * 0.45)
+		for j in 6:
+			var a := j * TAU / 6.0 + i * 0.5
+			draw_circle(cc + Vector2.from_angle(a) * rr * 0.45, rr * 0.6, cols[i])
+	var bloom := _h(int(c.x), int(c.y), 5) % 3
+	for j in 5:
+		var p := c + Vector2.from_angle(j * 1.9 + c.x) * rad * 0.55
+		if bloom == 0:
+			draw_circle(p, 0.7, Color("#f3c6d6"))
+		elif bloom == 1:
+			draw_circle(p, 0.55, Color("#d64545"))
+		else:
+			draw_circle(p, 0.6, Color("#a6d86e"))
+
+
+## Little dots of colour scattered over a tile (pebbles, fibres, crumbs).
+func _speckle(x: int, y: int, n: int, cols: Array, rad: float, salt := 0) -> void:
+	var o := Vector2(x, y) * TP
+	for i in n:
+		var p := o + Vector2(_rf(x, y, salt + i * 2) * TP, _rf(y, x, salt + i * 2 + 1) * TP)
+		draw_circle(p, rad * (0.6 + _rf(x + i, y, salt + 77) * 0.8), cols[i % cols.size()])
+
+
 func _floor(x: int, y: int, t: String) -> void:
 	var r := _tile_rect(x, y)
 	var v := _h(x, y) % 4
 	var o := r.position
 	match t:
-		"floor":  # warm wooden planks
-			var base := Color("#b39b78").darkened(v * 0.008)
-			draw_rect(r, base)
+		"floor":  # honey-coloured planks, each its own shade, with grain
 			for i in 4:
 				var py := o.y + i * 4.0
-				draw_line(Vector2(o.x, py), Vector2(o.x + TP, py), Color("#8f7658"), 0.35)
-				var j := o.x + float((_h(x, y * 4 + i) % 12) + 2)
-				draw_line(Vector2(j, py), Vector2(j, py + 4.0), Color("#8f7658"), 0.35)
-			if v == 2:
-				draw_line(o + Vector2(3, 6.5), o + Vector2(9, 6.8), Color("#a08868"), 0.4)
-		"carpet":
-			draw_rect(r, Color("#667a9b"))
-			for i in 6:
-				var p := o + Vector2(_rf(x, y, i) * TP, _rf(y, x, i + 9) * TP)
-				draw_circle(p, 0.35, Color("#556889") if i % 2 else Color("#7a8db0"))
-		"tiles":
-			draw_rect(r, Color("#dcdcd4"))
+				var j := float((_h(x, y * 4 + i) % 12) + 2)
+				for seg in [[0.0, j, 0], [j, TP - j, 1]]:
+					var k := _tint(x * 2 + seg[2], y * 4 + i, 3)
+					var col := Color("#b98f63").lerp(Color("#9c7250") if k < 0 else Color("#cba57a"), absf(k) * 0.55)
+					draw_rect(Rect2(o.x + seg[0], py, seg[1], 4.0), col)
+					draw_line(Vector2(o.x + seg[0], py + 0.5), Vector2(o.x + seg[0] + seg[1], py + 0.5), Color(1, 0.95, 0.8, 0.16), 0.5)
+					if _h(x * 2 + seg[2], y * 4 + i, 9) % 3 == 0:
+						var gx: float = o.x + seg[0] + 1.0 + _rf(x, y + i, seg[2]) * maxf(seg[1] - 4.0, 0.5)
+						draw_line(Vector2(gx, py + 2.0), Vector2(gx + 2.5, py + 2.2), col.darkened(0.18), 0.35)
+				draw_line(Vector2(o.x, py), Vector2(o.x + TP, py), Color("#7a5a3c"), 0.4)
+				draw_line(Vector2(o.x + j, py), Vector2(o.x + j, py + 4.0), Color("#7a5a3c"), 0.4)
+		"carpet":  # deep blue-teal office carpet, soft fibres
+			draw_rect(r, Color("#6a8a86"))
+			_speckle(x, y, 12, [Color("#5c7b78"), Color("#7c9c96"), Color("#617f7c"), Color("#748f88")], 0.35, 11)
+		"tiles":  # glazed tiles, bluish grout, a shine on each
+			for k in [Vector2(0, 0), Vector2(8, 0), Vector2(0, 8), Vector2(8, 8)]:
+				var tk := _tint(x * 2 + int(k.x / 8), y * 2 + int(k.y / 8), 4)
+				draw_rect(Rect2(o + k, Vector2(8, 8)), Color("#dfe3dc").lerp(Color("#cdd8d8"), absf(tk) * 0.7))
+				draw_line(o + k + Vector2(1.5, 1.5), o + k + Vector2(4.5, 1.5), Color(1, 1, 1, 0.7), 0.6)
 			for k in [0.0, 8.0]:
-				draw_line(o + Vector2(0, k), o + Vector2(TP, k), Color("#b6b8ae"), 0.35)
-				draw_line(o + Vector2(k, 0), o + Vector2(k, TP), Color("#b6b8ae"), 0.35)
-		"lobby":
-			draw_rect(r, Color("#cdbd98").darkened(v * 0.008))
-			draw_line(o, o + Vector2(TP, 0), Color("#ad9d78"), 0.45)
-			draw_line(o, o + Vector2(0, TP), Color("#ad9d78"), 0.45)
+				draw_line(o + Vector2(0, k), o + Vector2(TP, k), Color("#a9bcc2"), 0.45)
+				draw_line(o + Vector2(k, 0), o + Vector2(k, TP), Color("#a9bcc2"), 0.45)
+		"lobby":  # warm stone slabs, each a little different
+			var tk := _tint(x, y, 6)
+			draw_rect(r, Color("#d3c3a2").lerp(Color("#bea886") if tk < 0 else Color("#dfd0b2"), absf(tk) * 0.6))
+			_speckle(x, y, 4, [Color("#bfa57a"), Color("#efe2c4")], 0.4, 13)
+			draw_line(o, o + Vector2(TP, 0), Color("#a88d62"), 0.5)
+			draw_line(o, o + Vector2(0, TP), Color("#a88d62"), 0.5)
+			draw_line(o + Vector2(0.6, 0.8), o + Vector2(TP - 0.6, 0.8), Color(1, 1, 1, 0.22), 0.5)
 			if v == 1:
-				draw_line(o + Vector2(4, 11), o + Vector2(9, 6), Color(1, 1, 1, 0.25), 0.8)
+				draw_line(o + Vector2(4, 11), o + Vector2(9, 6), Color(1, 1, 1, 0.3), 0.9)
 		"parking":
-			draw_rect(r, Color("#5b5954"))
-			for i in 5:
-				draw_circle(o + Vector2(_rf(x, y, i) * TP, _rf(y, x, i) * TP), 0.4, Color("#66645e") if i % 2 else Color("#4f4d49"))
+			draw_rect(r, Color("#5c5e62"))
+			_speckle(x, y, 9, [Color("#6c6e72"), Color("#4c4e52"), Color("#76736c")], 0.45, 17)
 		"ramp":  # down to the shutter: darker and darker, arrows on the asphalt
 			var down := Vector2i(0, -1)  # towards the shutter
 			var to_shutter := 6
@@ -221,62 +268,87 @@ func _floor(x: int, y: int, t: String) -> void:
 			var mid := (x == 6 or x == 7) if down.y != 0 else (y == 53 or y == 54)
 			if mid:
 				var c := o + Vector2(8, 8)
-				var ink := Color("#e8e2c8", 0.8 - 0.5 * depth)
+				var ink := Color("#f0e6c0", 0.85 - 0.5 * depth)
 				var side := Vector2(down.y, down.x) * 2.5
 				draw_line(c - Vector2(down) * 2.5 + side, c + Vector2(down) * 2.0, ink, 1.0)
 				draw_line(c - Vector2(down) * 2.5 - side, c + Vector2(down) * 2.0, ink, 1.0)
 		"street":
-			draw_rect(r, Color("#4c4a46"))
-			draw_line(o + Vector2(0, 0.4), o + Vector2(TP, 0.4), Color("#7c7870"), 0.8)
-			draw_line(o + Vector2(0, TP - 0.4), o + Vector2(TP, TP - 0.4), Color("#7c7870"), 0.8)
+			draw_rect(r, Color("#4b4d52"))
+			_speckle(x, y, 7, [Color("#5a5c61"), Color("#3f4146")], 0.45, 19)
+			draw_line(o + Vector2(0, 0.4), o + Vector2(TP, 0.4), Color("#8a867c"), 0.8)
+			draw_line(o + Vector2(0, TP - 0.4), o + Vector2(TP, TP - 0.4), Color("#8a867c"), 0.8)
 			if x % 2 == 0:
-				_box(Rect2(o + Vector2(3, 7.2), Vector2(9, 1.6)), Color("#e3dcc0"), false, 0.4)
+				_box(Rect2(o + Vector2(3, 7.2), Vector2(9, 1.6)), Color("#f2e9c8"), false, 0.4)
 		"tram_track":
-			draw_rect(r, Color("#6b6259"))
+			draw_rect(r, Color("#7a6a58"))
+			_speckle(x, y, 8, [Color("#8e7e6a"), Color("#655645")], 0.5, 23)
 			for sx in [2.0, 7.0, 12.0]:
-				_box(Rect2(o + Vector2(sx, 2), Vector2(2, 12)), Color("#4a3b2b"), false, 0.3)
+				_box(Rect2(o + Vector2(sx, 2), Vector2(2, 12)), Color("#5a4330"), false, 0.3)
 			for ry in [4.5, 11.5]:
-				draw_line(o + Vector2(0, ry), o + Vector2(TP, ry), Color("#b8bcbf"), 1.0)
+				draw_line(o + Vector2(0, ry), o + Vector2(TP, ry), Color("#c9cdd0"), 1.0)
 				draw_line(o + Vector2(0, ry + 0.8), o + Vector2(TP, ry + 0.8), Color("#6f757a"), 0.5)
-		"grass":
-			draw_rect(r, Color("#718640"))
-			for i in 7:
+		"grass":  # lush: clumps, blades, flowers and the odd pebble
+			var g := _rf(x / 2, y / 2, 25)
+			draw_rect(r, Color("#5f9a3a").lerp(Color("#79b043"), g))
+			for i in 3:
+				var p := o + Vector2(_rf(x, y, i + 40) * TP, _rf(y, x, i + 50) * TP)
+				draw_circle(p, 2.2 + _rf(x, y, i + 60) * 1.6, Color("#4c8530", 0.55))
+				draw_circle(p + Vector2(-0.6, -0.8), 1.3, Color("#8cc154", 0.45))
+			for i in 9:
 				var p := o + Vector2(_rf(x, y, i + 20) * TP, 2.0 + _rf(y, x, i + 30) * (TP - 2.0))
-				var col := Color("#58692f") if i % 3 else Color("#8a9d52")
-				draw_line(p, p + Vector2(-0.5, -1.8), col, 0.45)
-				draw_line(p, p + Vector2(0.6, -1.5), col, 0.45)
-			if v == 3:
-				draw_circle(o + Vector2(5, 6), 0.7, Color("#e8d36a"))
-		"sidewalk":
-			draw_rect(r, Color("#a19b8e"))
+				var col := Color("#3f7428") if i % 3 else Color("#a3d265")
+				draw_line(p, p + Vector2(-0.6, -2.0), col, 0.5)
+				draw_line(p, p + Vector2(0.7, -1.7), col, 0.5)
+			var f := _h(x, y, 8) % 7
+			if f < 3:
+				var fc: Color = [Color("#f4d24a"), Color("#f2f0ea"), Color("#e889b0"), Color("#b58ce0")][_h(x, y, 9) % 4]
+				var fp := o + Vector2(3 + _rf(x, y, 70) * 10, 3 + _rf(y, x, 71) * 10)
+				for k in 5:
+					draw_circle(fp + Vector2.from_angle(k * TAU / 5.0) * 0.9, 0.7, fc)
+				draw_circle(fp, 0.5, Color("#e8a23a"))
+			elif f == 3:
+				_disc(o + Vector2(10, 11), 1.1, Color("#b0aa9c"), false)
+			elif f == 4 and _h(x, y, 33) % 3 == 0:
+				_shrub(o + Vector2(8, 9), 5.0 + _rf(x, y, 34) * 1.5)
+		"sidewalk":  # pavers, each its own shade, moss in some joints
 			var off := 4.0 if y % 2 else 0.0
-			draw_line(o + Vector2(0, 8), o + Vector2(TP, 8), Color("#86806f"), 0.4)
+			for row in 2:
+				for k in [0.0, 8.0]:
+					var px := fmod(k + off + row * 4.0, TP)
+					var tk := _tint(x * 2 + int(k / 8), y * 2 + row, 7)
+					var col := Color("#bdb5a4").lerp(Color("#a89f8c") if tk < 0 else Color("#cfc8b8"), absf(tk) * 0.6)
+					draw_rect(Rect2(o.x + px, o.y + row * 8.0, 8, 8), col)
+					if px > 8.0:
+						draw_rect(Rect2(o.x, o.y + row * 8.0, px - 8.0, 8), col)
+			draw_line(o + Vector2(0, 8), o + Vector2(TP, 8), Color("#8f8774"), 0.45)
 			for k in [0.0, 8.0]:
-				draw_line(o + Vector2(fmod(k + off, TP), 0), o + Vector2(fmod(k + off, TP), 8), Color("#86806f"), 0.4)
-				draw_line(o + Vector2(fmod(k + off + 4.0, TP), 8), o + Vector2(fmod(k + off + 4.0, TP), TP), Color("#86806f"), 0.4)
-		"smoking_area":
-			draw_rect(r, Color("#8a7f6b"))
-			for i in 8:
-				draw_circle(o + Vector2(_rf(x, y, i) * TP, _rf(y, x, i) * TP), 0.55, [Color("#9c917b"), Color("#726857"), Color("#a69c86")][i % 3])
+				draw_line(o + Vector2(fmod(k + off, TP), 0), o + Vector2(fmod(k + off, TP), 8), Color("#8f8774"), 0.45)
+				draw_line(o + Vector2(fmod(k + off + 4.0, TP), 8), o + Vector2(fmod(k + off + 4.0, TP), TP), Color("#8f8774"), 0.45)
+			if _h(x, y, 31) % 5 == 0:
+				draw_line(o + Vector2(1, 8), o + Vector2(6, 8), Color("#6f9a3e"), 0.8)
+		"smoking_area":  # warm gravel
+			draw_rect(r, Color("#9a8c74"))
+			_speckle(x, y, 14, [Color("#b3a68e"), Color("#7c6f5b"), Color("#c4b9a2"), Color("#8a7d66")], 0.6, 29)
 		"elevator":
-			draw_rect(r, Color("#9aa3a8"))
+			draw_rect(r, Color("#a2abb0"))
 			for py in range(2, 16, 4):
 				for px in range(2 + (py / 4 % 2) * 2, 16, 4):
-					draw_line(o + Vector2(px, py), o + Vector2(px + 1.5, py + 1.0), Color("#c4cbcf"), 0.5)
+					draw_line(o + Vector2(px, py), o + Vector2(px + 1.5, py + 1.0), Color("#d0d7db"), 0.5)
 		"stairs", "steps":
 			var bands := 4 if t == "stairs" else 3
 			for i in bands:
 				var h := TP / bands
 				var br := Rect2(o + Vector2(0, i * h), Vector2(TP, h))
-				draw_rect(br, Color("#a88b68").lightened(i * 0.04))
-				draw_line(br.position, br.position + Vector2(TP, 0), Color("#6d5438"), 0.6)
-				draw_line(br.position + Vector2(0, 0.8), br.position + Vector2(TP, 0.8), Color("#c9ae88"), 0.4)
-		"balcony":
-			draw_rect(r, Color("#8a6a4a"))
+				draw_rect(br, Color("#b38e62").lightened(i * 0.05))
+				draw_rect(Rect2(br.position, Vector2(TP, 1.2)), Color(0, 0, 0, 0.22))
+				draw_line(br.position + Vector2(0, 1.4), br.position + Vector2(TP, 1.4), Color("#dcbf92"), 0.5)
+		"balcony":  # a weathered wooden deck
 			for i in 4:
-				draw_line(o + Vector2(0, i * 4.0), o + Vector2(TP, i * 4.0), Color("#5e4630"), 0.5)
+				var k := _tint(x, y * 4 + i, 12)
+				draw_rect(Rect2(o + Vector2(0, i * 4.0), Vector2(TP, 4)), Color("#9c7148").lerp(Color("#b88a5c"), (k + 1.0) * 0.35))
+				draw_line(o + Vector2(0, i * 4.0), o + Vector2(TP, i * 4.0), Color("#5e4028"), 0.5)
 		_:
-			draw_rect(r, Color(map.legend[_ch(x, y)]["color"]) if map.legend.has(_ch(x, y)) else Color("#b39b78"))
+			draw_rect(r, Color(map.legend[_ch(x, y)]["color"]) if map.legend.has(_ch(x, y)) else Color("#c99a62"))
 
 
 # ------------------------------------------------------------------- walls
@@ -317,41 +389,57 @@ func _window_dir(x: int, y: int) -> Vector2i:
 	return Vector2i.ZERO
 
 
-## 3/4 view walls: a dark top cap; where a room is below, a plaster face
-## with a skirting board; windows in outside walls of rooms that have them.
+## 3/4 view walls: a dark top cap; where a room is below, a warm plaster
+## face over wooden wainscoting; windows in outside walls of rooms that
+## have them.
 func _wall(x: int, y: int) -> void:
 	var r := _tile_rect(x, y)
 	var o := r.position
 	var face := _is_floorish(x, y + 1) and not _outside(x, y + 1)
-	draw_rect(r, Color("#3b332d"))
-	if _h(x, y, 3) % 4 == 0:
-		draw_line(o + Vector2(4, 5), o + Vector2(7, 5.4), Color("#4a413a"), 0.5)
+	draw_rect(r, Color("#3d3530").lerp(Color("#4a3f37"), _rf(x / 2, y / 2, 3)))
+	if _h(x, y, 3) % 3 == 0:
+		draw_line(o + Vector2(3, 4 + _scuff_y(x, y)), o + Vector2(8, 4.4 + _scuff_y(x, y)), Color("#57493f"), 0.5)
 	if face:
-		var fy := o.y + 7.0
-		draw_rect(Rect2(o.x, fy, TP, 9), Color("#b7a88c"))
-		draw_rect(Rect2(o.x, o.y + TP - 2.2, TP, 2.2), Color("#6e5b44"))
-		draw_line(Vector2(o.x, fy), Vector2(o.x + TP, fy), INK, OL)
-		draw_line(Vector2(o.x, o.y + TP - 2.2), Vector2(o.x + TP, o.y + TP - 2.2), Color(INK, 0.6), 0.4)
+		var fy := o.y + 6.5
+		# Plaster, lighter at the top where the light falls.
+		for i in 6:
+			var band := Rect2(o.x, fy + i * 1.0, TP, 1.0)
+			draw_rect(band, Color("#eadcbf").darkened(i * 0.02))
+		# Wainscoting: wooden panels, darker towards the floor.
+		var wy := fy + 6.0
+		draw_rect(Rect2(o.x, wy, TP, TP - 6.5 - 6.0), Color("#9a6c45"))
+		draw_rect(Rect2(o.x, wy, TP, 0.8), Color("#c8955f"))
+		draw_line(Vector2(o.x + (8.0 if x % 2 else 0.5), wy + 1.2), Vector2(o.x + (8.0 if x % 2 else 0.5), o.y + TP - 0.4), Color("#7a5232"), 0.45)
+		draw_rect(Rect2(o.x, o.y + TP - 1.2, TP, 1.2), Color("#5e3f27"))
+		draw_line(Vector2(o.x, fy), Vector2(o.x + TP, fy), Color("#2a211b", 0.8), 0.5)
 		if _h(x, y, 7) % 9 == 0 and _window_dir(x, y) == Vector2i.ZERO:  # a picture / notice
-			_box(Rect2(o + Vector2(4, 8.5), Vector2(8, 4.5)), Color("#6d5236"), true, 0.4, 0.45)
-			draw_rect(Rect2(o + Vector2(5, 9.5), Vector2(6, 2.5)), [Color("#8fb1c7"), Color("#d9bf6f"), Color("#9fbf86")][_h(x, y) % 3])
+			_box(Rect2(o + Vector2(4, 7.2), Vector2(8, 4.6)), Color("#7a5a3a"), true, 0.4, 0.45)
+			draw_rect(Rect2(o + Vector2(5, 8.2), Vector2(6, 2.6)), [Color("#8fc0dc"), Color("#f0c968"), Color("#9fd08a"), Color("#e897a8")][_h(x, y) % 4])
 	var wd := _window_dir(x, y)
 	if wd != Vector2i.ZERO:
-		var glass := Color("#9fc0cf")
-		var shine := Color(1, 1, 1, 0.45)
+		var sky := Color("#a9dcef")
+		var deep := Color("#6fa9c8")
+		var shine := Color(1, 1, 1, 0.55)
 		if wd.y != 0:  # wall runs left-right
-			var gy := o.y + (7.0 if wd.y > 0 and face else 5.0)
-			var g := Rect2(o.x, gy, TP, 5.0 if face else 6.0)
-			draw_rect(g, glass)
-			draw_line(g.position + Vector2(2, 1.2), g.position + Vector2(6, 1.2), shine, 0.7)
-			draw_rect(g, INK, false, OL)
-			draw_line(Vector2(o.x + TP / 2, g.position.y), Vector2(o.x + TP / 2, g.end.y), INK, 0.5)
+			var gy := o.y + (6.5 if wd.y > 0 and face else 5.0)
+			var g := Rect2(o.x, gy, TP, 5.5 if face else 6.0)
+			for i in 3:
+				draw_rect(Rect2(g.position.x, g.position.y + i * g.size.y / 3.0, TP, g.size.y / 3.0), deep.lerp(sky, i / 2.0))
+			draw_line(g.position + Vector2(2, 1.4), g.position + Vector2(6, 1.4), shine, 0.8)
+			draw_line(g.position + Vector2(9, 3.4), g.position + Vector2(11, 2.0), Color(1, 1, 1, 0.3), 0.6)
+			draw_rect(g, Color("#efe6d2"), false, 0.7)
+			draw_line(Vector2(o.x + TP / 2, g.position.y), Vector2(o.x + TP / 2, g.end.y), Color("#efe6d2"), 0.6)
 		else:  # wall runs up-down
 			var g := Rect2(o.x + 5.0, o.y, 6.0, TP)
-			draw_rect(g, glass)
-			draw_line(g.position + Vector2(1.2, 2), g.position + Vector2(1.2, 6), shine, 0.7)
-			draw_rect(g, INK, false, OL)
-			draw_line(Vector2(g.position.x, o.y + TP / 2), Vector2(g.end.x, o.y + TP / 2), INK, 0.5)
+			for i in 3:
+				draw_rect(Rect2(g.position.x + i * 2.0, g.position.y, 2.0, TP), deep.lerp(sky, i / 2.0))
+			draw_line(g.position + Vector2(1.2, 2), g.position + Vector2(1.2, 6), shine, 0.8)
+			draw_rect(g, Color("#efe6d2"), false, 0.7)
+			draw_line(Vector2(g.position.x, o.y + TP / 2), Vector2(g.end.x, o.y + TP / 2), Color("#efe6d2"), 0.6)
+
+
+func _scuff_y(x: int, y: int) -> float:
+	return float(_h(x, y, 4) % 7)
 
 
 ## Ink where walls meet anything else.
@@ -371,17 +459,52 @@ func _wall_edges() -> void:
 				draw_line(_wob(o + Vector2(TP, 0)), _wob(o + Vector2(TP, TP)), INK, OL * 1.4, true)
 
 
+## Ambient shade: deep and soft right under the walls, fading into the room.
 func _wall_shadows() -> void:
 	for y in map.height:
 		for x in map.width:
 			if _is_wall(x, y) or _type(x, y) in ["void", "fence"]:
 				continue
 			var o := Vector2(x, y) * TP
+			var out: bool = map.room_outdoor.has(map.room_at_tile(x, y))
+			var k := 0.6 if out else 1.0
 			if _is_wall(x, y - 1):
-				draw_rect(Rect2(o, Vector2(TP, 2.5)), Color(0, 0, 0, 0.2))
-				draw_rect(Rect2(o + Vector2(0, 2.5), Vector2(TP, 2.0)), Color(0, 0, 0, 0.08))
+				for i in 8:
+					draw_rect(Rect2(o + Vector2(0, i * 1.0), Vector2(TP, 1.0)), Color(0.05, 0.06, 0.12, 0.3 * k * pow(1.0 - i / 8.0, 1.6)))
 			if _is_wall(x - 1, y):
-				draw_rect(Rect2(o, Vector2(2.0, TP)), Color(0, 0, 0, 0.12))
+				for i in 5:
+					draw_rect(Rect2(o + Vector2(i * 1.0, 0), Vector2(1.0, TP)), Color(0.05, 0.06, 0.12, 0.2 * k * pow(1.0 - i / 5.0, 1.6)))
+			if _is_wall(x + 1, y):
+				for i in 4:
+					draw_rect(Rect2(o + Vector2(TP - (i + 1) * 1.0, 0), Vector2(1.0, TP)), Color(0.05, 0.06, 0.12, 0.14 * k * pow(1.0 - i / 4.0, 1.6)))
+			if _is_wall(x, y + 1):
+				for i in 3:
+					draw_rect(Rect2(o + Vector2(0, TP - (i + 1) * 1.0), Vector2(TP, 1.0)), Color(0.05, 0.06, 0.12, 0.12 * k * pow(1.0 - i / 3.0, 1.6)))
+
+
+## Sunlight through the windows: soft warm patches on the floor, slanting a
+## little (the sun is up and to the left). Darkness at night is the light
+## layer's job.
+func _window_light() -> void:
+	for y in map.height:
+		for x in map.width:
+			if not _is_wall(x, y):
+				continue
+			var wd := _window_dir(x, y)
+			if wd == Vector2i.ZERO or not _is_floorish(x + wd.x, y + wd.y):
+				continue
+			var o := (Vector2(x, y) + Vector2(0.5, 0.5)) * TP + Vector2(wd) * TP * 0.5
+			var along := Vector2(absf(wd.y), absf(wd.x))
+			var inward := Vector2(wd)
+			var slant := Vector2(-1.5, 0) if wd.y != 0 else Vector2(0, 1.5)
+			for i in 5:
+				var d0 := i * 7.0
+				var d1 := d0 + 7.0
+				var a := 0.2 * pow(1.0 - i / 5.0, 1.3)
+				draw_colored_polygon(PackedVector2Array([
+					o - along * 7.0 + inward * d0 + slant * d0 / 7.0, o + along * 7.0 + inward * d0 + slant * d0 / 7.0,
+					o + along * 7.0 + inward * d1 + slant * d1 / 7.0, o - along * 7.0 + inward * d1 + slant * d1 / 7.0]),
+					Color(1.0, 0.92, 0.68, a))
 
 
 ## A small plaque on the wall by each door, on the side it's read from (the
@@ -611,8 +734,12 @@ func _props() -> void:
 			index += 1
 
 
+## A soft shadow, falling down and to the right.
 func _shadow(r: Rect2) -> void:
-	draw_rect(Rect2(r.position + Vector2(1.2, 1.6), r.size), Color(0, 0, 0, 0.2))
+	var s := Rect2(r.position + Vector2(1.4, 2.2), r.size)
+	for g in [2.4, 1.4, 0.6]:
+		draw_rect(s.grow(g), Color(0.05, 0.06, 0.12, 0.07))
+	draw_rect(s, Color(0.05, 0.06, 0.12, 0.16))
 
 
 const KITCHEN := ["coffee_machine", "kitchen_counter", "cupboard", "dishwasher", "kitchen_sink", "fridge"]
@@ -679,24 +806,33 @@ func _turn_from_wall(tr: Rect2i) -> float:
 	return 0.0
 
 
+## An office chair from above: a soft shadow, the round seat with a cushion
+## highlight, and the backrest.
 func _chair(c: Vector2, facing_up: bool) -> void:
-	_disc(c + Vector2(0, 0.5), 3.4, Color("#3b3a42"))
-	_box(Rect2(c + Vector2(-3.6, (-4.6 if not facing_up else 2.4)), Vector2(7.2, 2.4)), Color("#2c2b31"), true, 0.8)
+	var fabric := Color("#3f6f7a")
+	_disc(c + Vector2(0.8, 1.6), 3.6, Color(0.05, 0.06, 0.12, 0.18), false)
+	_disc(c + Vector2(0, 0.5), 3.4, fabric.darkened(0.25))
+	draw_circle(c + Vector2(-0.4, 0.1), 2.6, fabric)
+	draw_circle(c + Vector2(-1.0, -0.5), 1.1, fabric.lightened(0.2))
+	_box(Rect2(c + Vector2(-3.6, (-4.6 if not facing_up else 2.4)), Vector2(7.2, 2.4)), fabric.darkened(0.35), true, 0.8)
 
 
 func _desks(tr: Rect2i, r: Rect2, index: int) -> void:
 	var top := Rect2(r.position + Vector2(0.8, 2), Vector2(r.size.x - 1.6, r.size.y - 5))
 	_shadow(top)
-	_box(Rect2(top.position.x, top.end.y - 1, top.size.x, 3), Color("#6e4f33"), true, 0.4)
-	_box(top, Color("#a8804f"), true, 1.0)
-	draw_line(top.position + Vector2(1.5, 1.2), Vector2(top.end.x - 1.5, top.position.y + 1.2), Color("#c29a68"), 0.6)
+	_box(Rect2(top.position.x, top.end.y - 1, top.size.x, 3), Color("#7a5434"), true, 0.4)
+	_box(top, Color("#c39563"), true, 1.0)
+	draw_line(top.position + Vector2(1.5, 1.2), Vector2(top.end.x - 1.5, top.position.y + 1.2), Color("#e2b884"), 0.7)
+	draw_line(top.position + Vector2(1.5, top.size.y - 1.4), Vector2(top.end.x - 1.5, top.end.y - 1.4), Color("#a87a4c"), 0.5)
 	var screens := [Color("#7fb3cf"), Color("#8fc493"), Color("#d9bf6f"), Color("#b39ac9")]
 	for i in tr.size.x:
 		var tx := tr.position.x + i
 		var px := tx * TP
 		var py := r.position.y
 		if _room_type(tx, tr.position.y) == "department":
-			_box(Rect2(px + 3, py + 4, 10, 6.5), Color("#8b6a47"), true, 0.8, 0.4)  # desk mat
+			_box(Rect2(px + 3, py + 4, 10, 6.5), Color("#4f6f5a"), true, 0.8, 0.4)  # desk mat
+			if _h(tx, tr.position.y, 6) % 3 == 0:  # a mug
+				_disc(Vector2(px + 13.2, py + 5.5), 1.2, [Color("#f2efe6"), Color("#e8a23a"), Color("#d9554a")][_h(tx, 1, 2) % 3], true, 0.35)
 		else:
 			_box(Rect2(px + 3, py + 2.5, 10, 6), Color("#2b2a30"), true, 0.6)
 			draw_rect(Rect2(px + 4.2, py + 3.6, 7.6, 3.8), screens[_h(tx, tr.position.y, index) % screens.size()])

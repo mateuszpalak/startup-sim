@@ -179,3 +179,34 @@ pełnym ekranie — zastąpiona stylem inspirowanym Don't Starve:
   starcie; dojazd zmienia je jak dotąd). Wcześniej potrzeby w domu stały w
   miejscu — kto wyszedł zmęczony i głodny, wracał rano taki sam.
 
+
+## 10.57 Wygląd „wioska w cieniu” (2026-11-03)
+
+Styl „papier i tusz” zastąpiony cieplejszym, kolorowym wyglądem w duchu
+ilustrowanych gier o życiu na wsi (inspiracja: Village in the Shade) — dalej
+rysowanym w kodzie, bez obrazków i cudzych licencji; kamera zostaje z góry.
+
+- **Efekt na cały obraz** (`game/mood.gdshader`): bez konturów tuszu;
+  żywsze kolory, chłodne cienie i ciepłe światło, miękka poświata wokół
+  jasnych miejsc, lekkie rozmycie przy górnej i dolnej krawędzi (jak makieta)
+  i głęboka, chłodna winieta.
+- **Malowana faktura mapy** (`map/painted.gdshader`): plamy jaśniejszego i
+  ciemniejszego, cieplejszego i chłodniejszego koloru przez całą mapę (bez
+  szwów między kaflami) i drobne pociągnięcia pędzla, przypięte do świata.
+- **Podłogi**: każda deska, płytka i kostka we własnym odcieniu; szałwiowa
+  wykładzina; bujna trawa z kępami, kwiatkami, kamykami i krzaczkami (z
+  kwiatami albo owocami); mech w spoinach chodnika; ciepły żwir.
+- **Ściany**: ciemny wierzch, ciepły tynk nad drewnianą boazerią, okna z
+  odbiciem nieba; pod ścianami szeroki, miękki cień, a przez okna padają na
+  podłogę skośne plamy słońca.
+- **Meble**: miękkie cienie zamiast twardych; krzesła tapicerowane, jaśniejsze
+  biurka z połyskiem, kubki na niektórych.
+- **Kontury** wszędzie cienkie, w ciemnym odcieniu koloru wypełnienia, a nie
+  czarne.
+- **Światło**: zapalona lampa to ciepłe kręgi światła (co kilka kafli), a nie
+  płaski filtr; wieczorem świecą tak też korytarze i hole.
+- **Postacie** w stylu chibi: kontury w odcieniu koloru, światłocień (cień z
+  prawej, światło z lewej), duże błyszczące oczy w jednym z sześciu kolorów
+  (z gruba rzęsą i dwoma błyskami), rumieńce, miękka grzywka i pasma przy
+  twarzy, połysk na włosach; uszy schowane pod włosami. Własną postać znaczy
+  pierścień wokół stóp (zamiast jasnego konturu).

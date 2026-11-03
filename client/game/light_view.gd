@@ -27,11 +27,24 @@ var _tiles := {}     # floor -> {room: Array[Vector2i]}
 var _rects := {}     # floor -> {room: Array[Rect2]} (px, merged tiles)
 var _walls := {}     # floor -> Array[Rect2] (px, merged)
 var _shown := {}     # room -> eased darkness 0..1
+## A soft round pool of light (white in the middle, clear at the edge).
+var _glow: GradientTexture2D = null
 
 
 func setup(b) -> void:
 	building = b
 	z_index = 9
+	var g := Gradient.new()
+	g.set_color(0, Color(1, 1, 1, 1))
+	g.set_color(1, Color(1, 1, 1, 0))
+	g.add_point(0.45, Color(1, 1, 1, 0.45))
+	_glow = GradientTexture2D.new()
+	_glow.gradient = g
+	_glow.fill = GradientTexture2D.FILL_RADIAL
+	_glow.fill_from = Vector2(0.5, 0.5)
+	_glow.fill_to = Vector2(1.0, 0.5)
+	_glow.width = 128
+	_glow.height = 128
 	for f in b.floors.size():
 		var m = b.get_floor(f)
 		if m == null:
@@ -73,6 +86,19 @@ func on_lights(p: Dictionary) -> void:
 	for r in p.rooms:
 		_on[r] = true
 	queue_redraw()
+
+
+## Warm pools of lamplight over a lit room: one every few tiles, so a big
+## open space has a row of lamps and a small room one.
+func _lamp_pools(rect: Rect2, px: float) -> void:
+	var step := px * 6.0
+	var nx := maxi(1, roundi(rect.size.x / step))
+	var ny := maxi(1, roundi(rect.size.y / step))
+	var rad := minf(maxf(rect.size.x / nx, rect.size.y / ny) * 0.85, px * 6.0)
+	for i in nx:
+		for j in ny:
+			var c := rect.position + Vector2((i + 0.5) * rect.size.x / nx, (j + 0.5) * rect.size.y / ny)
+			draw_texture_rect(_glow, Rect2(c - Vector2(rad, rad), Vector2(rad, rad) * 2.0), false, Color(1.0, 0.8, 0.45, 0.16))
 
 
 ## Daylight 0..1 at a minute of the day.
@@ -140,12 +166,16 @@ func _draw() -> void:
 	for r in rooms:
 		var dark: float = _shown.get(r, 0.0)
 		var col := Color(night, dark * 0.9)
-		var warm: bool = lamp_on(m, r) and m.room_light.get(m.room_lit_by.get(r, r), "") == "switch"
+		# Lamps switched on glow; the always-lit ones too once the sky darkens.
+		var kind: String = m.room_light.get(m.room_lit_by.get(r, r), "")
+		var dusk := daylight(minute) * weather_factor(weather) < 0.6
+		var warm: bool = lamp_on(m, r) and (kind == "switch" or dusk) and not m.room_outdoor.has(r)
 		for rect in rooms[r]:
 			if dark > 0.01:
 				draw_rect(rect, col)
 			if warm:
-				draw_rect(rect, Color(1.0, 0.82, 0.5, 0.07))
+				draw_rect(rect, Color(1.0, 0.82, 0.5, 0.04))
+				_lamp_pools(rect, px)
 	# Walls follow the sky (so the building sinks into the night too).
 	var sky_dark := 1.0 - maxf(daylight(minute) * weather_factor(weather), 0.15)
 	if sky_dark > 0.01:

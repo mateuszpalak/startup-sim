@@ -7,6 +7,7 @@ const Ink = preload("res://ui/ink_ui.gd")
 
 
 const MapPainter = preload("res://map/map_painter.gd")
+const PAINTED = preload("res://map/painted.gdshader")
 ## Resolution of the floor picture: pixels per world pixel.
 const ART_SCALE := 3
 
@@ -37,6 +38,10 @@ func build(map, zoom: float, floor_names := {}) -> void:
 	sprite.scale = Vector2.ONE / ART_SCALE
 	sprite.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
 	sprite.centered = false
+	var mat := ShaderMaterial.new()
+	mat.shader = PAINTED
+	mat.set_shader_parameter("world_size", Vector2(map.width * tp, map.height * tp))
+	sprite.material = mat
 	add_child(sprite)
 	# Stairs: where they lead.
 	for link in map.links:
