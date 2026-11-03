@@ -845,15 +845,50 @@ func _desks(tr: Rect2i, r: Rect2, index: int) -> void:
 			_chair(Vector2(px + 8, tr.end.y * TP + 5), false)
 
 
+## A counter (porter, reception, cashier): a panelled wooden front, a
+## polished top with a light edge and grain, and on it a monitor glowing
+## softly, a desk bell, a pen pot and papers (more on a long one). Runs
+## left-right or up-down; the front faces the room either way.
 func _counter(r: Rect2) -> void:
+	var tall := r.size.y > r.size.x
 	var top := Rect2(r.position + Vector2(0.8, 1), r.size - Vector2(1.6, 4))
 	_shadow(top)
-	_box(Rect2(top.position.x, top.end.y - 1, top.size.x, 3.2), Color("#8a6743"), true, 0.4)
-	_box(top, Color("#c7a276"), true, 1.0)
-	_box(Rect2(top.position + Vector2(3, 2), Vector2(7, 5)), Color("#2b2a30"), true, 0.5)
-	draw_rect(Rect2(top.position + Vector2(4, 3), Vector2(5, 3)), Color("#7fb3cf"))
-	_disc(Vector2(top.end.x - 4.5, top.position.y + 5), 1.2, Color("#d4b870"), true, 0.4)
-
+	var wood := Color("#9a6a42")
+	if tall:
+		_box(Rect2(top.end.x - 1, top.position.y, 3.2, top.size.y), wood.darkened(0.2), true, 0.4)
+	else:
+		var front := Rect2(top.position.x, top.end.y - 1, top.size.x, 3.4)
+		_box(front, wood.darkened(0.2), true, 0.4)
+		var px := front.position.x + 3.0
+		while px < front.end.x - 2.0:  # panels
+			draw_line(Vector2(px, front.position.y + 0.8), Vector2(px, front.end.y - 0.6), wood.darkened(0.38), 0.45)
+			px += 5.0
+	_box(top, Color("#cf9f6c"), true, 1.0)
+	draw_rect(Rect2(top.position + Vector2(1, 1), Vector2(top.size.x - 2, 1.2)), Color(1, 0.95, 0.85, 0.22))
+	var long := maxf(top.size.x, top.size.y)
+	var along := Vector2(0, 1) if tall else Vector2(1, 0)
+	for i in int(long / 6.0):  # grain
+		var g := top.position + along * (2.0 + i * 6.0 + _rf(r.position.x, i, 3) * 2.0) + (Vector2(2, 0) if tall else Vector2(0, 2.5))
+		draw_line(g, g + (Vector2(0, 3) if tall else Vector2(3, 0)) + (Vector2(2, 0) if tall else Vector2(0, 2)), Color("#b8885a"), 0.35)
+	# The monitor, its glow on the counter, and the keyboard.
+	var m := top.position + (Vector2(2, 3) if tall else Vector2(3, 1.6))
+	draw_circle(m + Vector2(3.5, 2.5), 5.0, Color(0.6, 0.85, 1.0, 0.12))
+	_box(Rect2(m, Vector2(7, 5)), Color("#2f3238"), true, 0.5)
+	draw_rect(Rect2(m + Vector2(1, 1), Vector2(5, 3)), Color("#9fd4ef"))
+	draw_line(m + Vector2(1.5, 1.5), m + Vector2(3.5, 1.5), Color(1, 1, 1, 0.6), 0.5)
+	# A bell and a pen pot at the far end; papers on a long counter.
+	var far := top.end - Vector2(4.5, 4.5) if tall else Vector2(top.end.x - 4.5, top.position.y + 4.5)
+	_disc(far, 1.5, Color("#e2c060"), true, 0.4)
+	draw_circle(far + Vector2(-0.5, -0.6), 0.5, Color(1, 1, 1, 0.7))
+	_disc(far - along * 5.0, 1.2, Color("#5a7fa8"), true, 0.35)
+	for k in 3:
+		draw_line(far - along * 5.0, far - along * 5.0 + Vector2(-0.8 + k * 0.8, -2.0), [Color("#d9554a"), Color("#3a3a3a"), Color("#3f7fc0")][k], 0.5)
+	if long >= 40.0:
+		var pp := top.position + along * (long * 0.5) + (Vector2(2, 0) if tall else Vector2(0, 1.5))
+		_box(Rect2(pp, Vector2(4.5, 5.5)), Color("#f4efe2"), true, 0.3, 0.35)
+		_box(Rect2(pp + Vector2(1.2, 0.8), Vector2(4.5, 5.5)), Color("#fbf8f0"), true, 0.3, 0.35)
+		for k in 3:
+			draw_line(pp + Vector2(2, 2.2 + k * 1.2), pp + Vector2(5, 2.2 + k * 1.2), Color("#9aa3b0"), 0.35)
 
 func _shelf(r: Rect2, index: int) -> void:
 	var body := Rect2(r.position + Vector2(0, 1), r.size - Vector2(0, 2))
@@ -1012,32 +1047,56 @@ func _ashtray(r: Rect2) -> void:
 	_stroke(c + Vector2(-1, -4.8), c + Vector2(1.2, -4.2), Color("#ece6d6"), 0.7)
 
 
+## A toilet from above: a rounded porcelain tank with a lid and a flush
+## button against the wall, the bowl with its seat, water inside, gloss.
 func _toilet(tr: Rect2i, r: Rect2) -> void:
 	var left_wall := _is_wall(tr.position.x - 1, tr.position.y)
-	var tank_x := r.position.x + (1.0 if left_wall else 11.0)
-	_box(Rect2(tank_x, r.position.y + 3, 4, 10), Color("#e8e8e2"), true, 0.8)
-	var bx := r.position.x + (5.0 if left_wall else 3.0)
+	var porcelain := Color("#f7f6f1")
+	draw_circle(r.position + Vector2(9, 9.5), 5.5, Color(0.05, 0.06, 0.12, 0.16))
+	var tank := Rect2(r.position.x + (1.0 if left_wall else 10.5), r.position.y + 2.5, 4.5, 11)
+	_box(tank, porcelain.darkened(0.06), true, 1.2)
+	_box(tank.grow(-0.8), porcelain, false, 1.0)
+	draw_circle(tank.get_center(), 0.9, Color("#c9d2d8"))
+	draw_circle(tank.get_center() + Vector2(-0.3, -0.3), 0.4, Color(1, 1, 1, 0.9))
+	var bx := r.position.x + (5.5 if left_wall else 2.5)
 	var c := Vector2(bx + 4, r.position.y + 8)
-	draw_set_transform(c, 0.0, Vector2(1.0, 0.8))
-	_disc(Vector2.ZERO, 4.4, Color("#f4f4ee"))
-	draw_circle(Vector2.ZERO, 2.4, Color("#c4d8e0"))
+	draw_set_transform(c, 0.0, Vector2(1.0, 0.82))
+	_disc(Vector2.ZERO, 4.6, porcelain)
+	draw_arc(Vector2.ZERO, 3.5, 0, TAU, 20, Color("#dcdcd4"), 1.4, true)  # the seat
+	draw_circle(Vector2.ZERO, 2.5, Color("#9ccbe0"))
+	draw_circle(Vector2(0.4, 0.4), 1.6, Color("#7fb6d0"))
+	draw_circle(Vector2(-0.9, -0.9), 0.6, Color(1, 1, 1, 0.8))
+	draw_arc(Vector2.ZERO, 4.3, PI * 1.1, PI * 1.5, 8, Color(1, 1, 1, 0.8), 0.6, true)
 	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 
-
+## Washbasins: a marble vanity top, an oval basin with water-blue depth, a
+## chrome tap with a glint, a soap bottle, and a mirror on the wall.
 func _sink(tr: Rect2i, r: Rect2) -> void:
 	var left_wall := _is_wall(tr.position.x - 1, tr.position.y)
 	var ty := r.position.y
 	while ty < r.end.y:
 		var x0 := r.position.x + (1.0 if left_wall else 4.0)
-		_box(Rect2(x0, ty + 3, 11, 10), Color("#eef0ec"), true, 2.0)
-		draw_set_transform(Vector2(x0 + 5.5, ty + 8), 0.0, Vector2(1.0, 0.8))
-		draw_circle(Vector2.ZERO, 3.2, Color("#bcd0da"))
+		var top := Rect2(x0, ty + 2.5, 11, 11)
+		_shadow(top)
+		_box(top, Color("#e9e6de"), true, 1.6)
+		for k in 2:  # marble veins
+			draw_line(top.position + Vector2(1.5, 2 + k * 6), top.position + Vector2(5, 4 + k * 5), Color("#cfc8bb"), 0.35)
+		var bc := Vector2(x0 + 5.5, ty + 8)
+		draw_set_transform(bc, 0.0, Vector2(1.0, 0.8))
+		draw_circle(Vector2.ZERO, 3.6, Color("#cfd6da"))
+		draw_circle(Vector2(0.3, 0.4), 2.9, Color("#a9cfe0"))
+		draw_circle(Vector2(-1.0, -1.0), 0.7, Color(1, 1, 1, 0.7))
+		draw_circle(Vector2(0.3, 0.6), 0.4, Color("#6f7d86"))
 		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
-		_stroke(Vector2(x0 + (1.0 if left_wall else 10.0), ty + 8), Vector2(x0 + (3.0 if left_wall else 8.0), ty + 8), Color("#8f969b"), 0.9)
-		var mx := r.position.x + (0.4 if left_wall else 15.0)
-		_box(Rect2(mx, ty + 2, 0.9, 12), Color("#cfe6ef"), true, 0.2, 0.35)  # mirror
+		var tap_a := Vector2(x0 + (0.8 if left_wall else 10.2), ty + 8)
+		var tap_b := Vector2(x0 + (3.4 if left_wall else 7.6), ty + 8)
+		_stroke(tap_a, tap_b, Color("#7f8a92"), 1.2)
+		_stroke(tap_a, tap_b, Color("#d7dee3"), 0.5)
+		_disc(Vector2(x0 + (2.0 if left_wall else 9.0), ty + 4.2), 1.0, Color("#f2a6c0"), true, 0.35)  # soap
+		var mx := r.position.x + (0.3 if left_wall else 14.6)
+		_box(Rect2(mx, ty + 1.5, 1.1, 13), Color("#cfeaf5"), true, 0.2, 0.35)  # mirror
+		draw_line(Vector2(mx + 0.55, ty + 3), Vector2(mx + 0.55, ty + 6), Color(1, 1, 1, 0.85), 0.4)
 		ty += TP
-
 
 func _car(r: Rect2, index: int) -> void:
 	var colors := [Color("#a8402f"), Color("#3f6a9e"), Color("#e6e0d0"), Color("#34312e"), Color("#8e948f"), Color("#5f8a4a"), Color("#c9913a")]
@@ -1168,19 +1227,28 @@ func _fridge(r: Rect2) -> void:
 	_disc(body.position + Vector2(4, 9), 1.2, Color("#d98a3e"), true, 0.35)  # a magnet
 
 
-## Urinals on the wall: white bowls seen from above, a flush button.
+## Urinals on the wall: glossy porcelain bowls with water at the bottom, a
+## chrome flush button, and a small privacy panel between neighbours.
 func _urinal(tr: Rect2i, r: Rect2) -> void:
 	var up := _is_wall(tr.position.x, tr.position.y - 1)
 	var x := r.position.x
 	while x < r.end.x:
 		var y0 := r.position.y + (1.0 if up else 7.0)
-		_box(Rect2(x + 3, y0, 10, 8), Color("#f4f4ee"), true, 2.2)
-		draw_set_transform(Vector2(x + 8, y0 + 4.5), 0.0, Vector2(1.0, 0.7))
-		draw_circle(Vector2.ZERO, 2.6, Color("#c4d8e0"))
+		var bowl := Rect2(x + 3, y0, 10, 8)
+		_shadow(bowl)
+		_box(bowl, Color("#f7f6f1"), true, 2.6)
+		draw_set_transform(Vector2(x + 8, y0 + 4.6), 0.0, Vector2(1.0, 0.7))
+		draw_circle(Vector2.ZERO, 2.9, Color("#dfe4e4"))
+		draw_circle(Vector2(0.2, 0.4), 2.1, Color("#a9cfe0"))
+		draw_circle(Vector2(-0.8, -0.8), 0.5, Color(1, 1, 1, 0.8))
 		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
-		draw_circle(Vector2(x + 8, y0 + (0.8 if up else 7.2)), 0.7, Color("#8f959b"))
+		draw_line(bowl.position + Vector2(1.6, 1.2), bowl.position + Vector2(1.6, 5.5), Color(1, 1, 1, 0.8), 0.5)
+		var btn := Vector2(x + 8, y0 + (0.8 if up else 7.2))
+		_disc(btn, 0.9, Color("#c5ced4"), true, 0.3)
+		draw_circle(btn + Vector2(-0.3, -0.3), 0.35, Color(1, 1, 1, 0.9))
+		if x + TP < r.end.x:  # a panel between this one and the next
+			_box(Rect2(x + TP - 0.7, y0 - (0.0 if up else 1.0), 1.4, 9), Color("#9fb3bd"), true, 0.3, 0.35)
 		x += TP
-
 
 ## A tall wardrobe: two doors with handles.
 func _wardrobe(r: Rect2) -> void:

@@ -131,8 +131,8 @@ static func button_box(state: String, primary: bool, danger := false) -> StyleBo
 			base = base.darkened(0.12)
 		"disabled":
 			base = base.lerp(Color("#9d9282"), 0.55)
-	var spec := {"fill": base, "grain": 0.05, "outline": INK, "width": 2.5, "torn": false,
-		"shadow": state != "pressed", "pad": 14, "pad_v": 4, "corner": 7}
+	var spec := {"fill": base, "grain": 0.03, "outline": Color(base.darkened(0.55), 0.85), "width": 2.0, "torn": false,
+		"shadow": state != "pressed", "pad": 14, "pad_v": 4, "corner": 9}
 	var sb := _make_box(spec, hash(key))
 	if state == "pressed":
 		sb.content_margin_top += 2
@@ -148,21 +148,21 @@ static func _spec(kind: String) -> Dictionary:
 		"paper":
 			return {"fill": PAPER, "grain": 0.05, "outline": Color(INK, 0.7), "width": 2.5, "torn": false, "shadow": true, "pad": 18, "pad_v": 14, "corner": 12}
 		"card":
-			return {"fill": CARD, "grain": 0.05, "outline": Color(INK, 0.55), "width": 2.0, "torn": false, "shadow": false, "pad": 14, "pad_v": 12, "corner": 6}
+			return {"fill": CARD, "grain": 0.03, "outline": Color(INK, 0.35), "width": 1.6, "torn": false, "shadow": false, "pad": 14, "pad_v": 12, "corner": 9}
 		"card_hover":
-			return {"fill": CARD.lightened(0.15), "grain": 0.05, "outline": Color(INK, 0.55), "width": 2.0, "torn": false, "shadow": false, "pad": 14, "pad_v": 12, "corner": 6}
+			return {"fill": CARD.lightened(0.15), "grain": 0.03, "outline": Color(INK, 0.45), "width": 1.6, "torn": false, "shadow": false, "pad": 14, "pad_v": 12, "corner": 9}
 		"title":
-			return {"fill": ACCENT, "grain": 0.08, "outline": INK, "width": 3.0, "torn": false, "shadow": false, "pad": 14, "pad_v": 6, "corner": 6}
+			return {"fill": ACCENT, "grain": 0.04, "outline": Color(ACCENT_LO, 0.9), "width": 2.0, "torn": false, "shadow": false, "pad": 14, "pad_v": 6, "corner": 8}
 		"input":
-			return {"fill": PAPER_HI, "grain": 0.03, "outline": Color(INK, 0.8), "width": 2.0, "torn": false, "shadow": false, "pad": 10, "pad_v": 4, "corner": 4}
+			return {"fill": PAPER_HI, "grain": 0.02, "outline": Color(INK, 0.45), "width": 1.6, "torn": false, "shadow": false, "pad": 10, "pad_v": 4, "corner": 6}
 		"input_focus":
-			return {"fill": PAPER_HI, "grain": 0.03, "outline": ACCENT, "width": 3.0, "torn": false, "shadow": false, "pad": 10, "pad_v": 4, "corner": 4}
+			return {"fill": PAPER_HI, "grain": 0.02, "outline": ACCENT, "width": 2.4, "torn": false, "shadow": false, "pad": 10, "pad_v": 4, "corner": 6}
 		"screen":
-			return {"fill": Color("#2b2119"), "grain": 0.08, "outline": INK, "width": 4.0, "torn": false, "shadow": true, "pad": 16, "pad_v": 16, "corner": 14}
+			return {"fill": DARK_LO, "grain": 0.04, "outline": Color("#a9c3c8", 0.4), "width": 3.0, "torn": false, "shadow": true, "pad": 16, "pad_v": 16, "corner": 16}
 		"scroll":
-			return {"fill": Color(INK, 0.12), "grain": 0.0, "outline": Color(0, 0, 0, 0), "width": 0.0, "torn": false, "shadow": false, "pad": 4, "pad_v": 4, "corner": 4}
+			return {"fill": Color(INK, 0.1), "grain": 0.0, "outline": Color(0, 0, 0, 0), "width": 0.0, "torn": false, "shadow": false, "pad": 4, "pad_v": 4, "corner": 6}
 		"grabber":
-			return {"fill": DARK_HI, "grain": 0.05, "outline": INK, "width": 2.0, "torn": false, "shadow": false, "pad": 4, "pad_v": 4, "corner": 4}
+			return {"fill": DARK_HI, "grain": 0.02, "outline": Color(DARK_LO, 0.8), "width": 1.6, "torn": false, "shadow": false, "pad": 4, "pad_v": 4, "corner": 6}
 		"slot":
 			return {"fill": Color(DARK_LO, 0.9), "grain": 0.04, "outline": Color("#a9c3c8", 0.35), "width": 2.0, "torn": false, "shadow": false, "pad": 4, "pad_v": 4, "corner": 10}
 		"slot_active":
@@ -174,10 +174,10 @@ static func _spec(kind: String) -> Dictionary:
 	return _spec("paper")
 
 
-## Draw a 64x64 frame: grainy fill, a wobbly ink outline (a bit thicker in
-## places, like a brush), rounded corners, optionally torn edges and a soft
-## drop shadow; then a 9-slice StyleBox with 22 px borders tiled along the
-## edges.
+## Draw a 64x64 frame: a lightly grained fill, a smooth outline, rounded
+## corners, a thin light line inside the top edge, optionally torn (wobbly)
+## edges and a soft drop shadow; then a 9-slice StyleBox with 22 px borders
+## tiled along the edges.
 static func _make_box(s: Dictionary, seed_value: int) -> StyleBoxTexture:
 	var n := 64
 	var m := 22
@@ -185,41 +185,37 @@ static func _make_box(s: Dictionary, seed_value: int) -> StyleBoxTexture:
 	img.fill(Color(0, 0, 0, 0))
 	var rng := RandomNumberGenerator.new()
 	rng.seed = seed_value
-	var inset := 4.0 if s.shadow else 2.0
+	var inset := 5.0 if s.shadow else 2.0
 	var corner: float = s.corner
 	var width: float = s.width
 	# Edge wobble per position along each side (same on opposite sides so
-	# that tiling the border keeps continuity).
+	# that tiling the border keeps continuity); only for torn frames.
 	var wob := []
 	for i in n:
-		wob.append(sin(i * 0.9 + rng.randf() * 0.5) * (0.9 if s.torn else 0.35) + (rng.randf() - 0.5) * (1.2 if s.torn else 0.3))
+		wob.append(sin(i * 0.9 + rng.randf() * 0.5) * 0.9 + (rng.randf() - 0.5) * 1.2 if s.torn else 0.0)
 	for y in n:
 		for x in n:
-			# Distance inside the rounded rect (negative = outside).
 			var ex: float = inset + wob[y] * 0.6
 			var ey: float = inset + wob[x] * 0.6
-			var dx := minf(x + 0.5 - ex, n - ex - (x + 0.5))
-			var dy := minf(y + 0.5 - ey, n - ey - (y + 0.5))
-			var d := minf(dx, dy)
-			if dx < corner and dy < corner:
-				d = corner - Vector2(corner - dx, corner - dy).length()
+			var d := _inside(x + 0.5, y + 0.5, ex, ey, n, corner)
 			if d < 0:
-				# Shadow below / right.
-				if s.shadow:
-					var sd := minf(minf(x + 0.5 - (ex - 2), n - (ex - 3) - (x + 0.5)), minf(y + 0.5 - (ey - 2), n - (ey - 4) - (y + 0.5)))
-					if sd >= 0 and (x > n / 2 or y > n / 2):
-						img.set_pixel(x, y, Color(0, 0, 0, 0.22))
+				if s.shadow:  # soft, a little below
+					var sd := _inside(x + 0.5, y + 0.5 - 2.5, ex - 1.0, ey, n, corner + 1.0)
+					var sa := 0.22 * clampf((sd + 4.0) / 4.0, 0.0, 1.0)
+					if sa > 0.0:
+						img.set_pixel(x, y, Color(0.02, 0.04, 0.08, sa))
 				continue
 			var c: Color = s.fill
 			var g: float = s.grain
 			if g > 0:
 				c = c.darkened(rng.randf() * g) if rng.randf() < 0.5 else c.lightened(rng.randf() * g * 0.6)
-			var w := width + (0.8 if (x + y) % 11 < 3 else 0.0) * (1.0 if width > 0 else 0.0)
-			if d < w:
-				var a := clampf(w - d, 0.0, 1.0)
-				c = c.lerp(s.outline, a * s.outline.a) if s.outline.a > 0 else c
+			if d >= width and d < width + 1.5 and y < n / 2:  # the light line inside the top
+				c = c.lightened(0.14)
+			if d < width:
+				var a := clampf(width - d, 0.0, 1.0)
+				c = c.lerp(Color(s.outline, 1.0), a * s.outline.a) if s.outline.a > 0 else c
 				c.a = maxf(c.a, s.outline.a * a)
-			elif d < 1.0:
+			if d < 1.0:
 				c.a *= d
 			img.set_pixel(x, y, c)
 	var sb := StyleBoxTexture.new()
@@ -236,6 +232,16 @@ static func _make_box(s: Dictionary, seed_value: int) -> StyleBoxTexture:
 	# clear of the ink.
 	sb.expand_margin_left = 0
 	return sb
+
+
+## Distance of a point inside a rounded rect inset by (ex, ey) in an n x n
+## square (negative = outside).
+static func _inside(px: float, py: float, ex: float, ey: float, n: int, corner: float) -> float:
+	var dx := minf(px - ex, n - ex - px)
+	var dy := minf(py - ey, n - ey - py)
+	if dx < corner and dy < corner:
+		return corner - Vector2(corner - dx, corner - dy).length()
+	return minf(dx, dy)
 
 
 # ----------------------------------------------------------------- widgets

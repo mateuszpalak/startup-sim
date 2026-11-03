@@ -238,3 +238,20 @@ rysowanym w kodzie, bez obrazków i cudzych licencji; kamera zostaje z góry.
   kształtach, w slotach i na półkach miękki cień pod przedmiotem.
 - **Wieczorem** pokoje oświetlone lampą są przygaszone między lampami, a pod
   lampami jaśniej i cieplej — kręgi światła widać też na jasnych podłogach.
+
+## 10.60 Łazienki, lady i ekrany interfejsu (2026-11-03)
+
+- **Lady** (portiernia, recepcja, kasa): drewniany front z panelami,
+  polerowany blat ze słojami i jasną krawędzią, monitor z poświatą,
+  dzwonek, kubek z długopisami, na długiej ladzie papiery; pionowa lada też.
+- **Łazienki**: toaleta z zaokrągloną spłuczką i przyciskiem, deską i wodą z
+  połyskiem; umywalki z marmurowym blatem, owalną misą, chromowanym kranem,
+  mydłem i lustrem z refleksem; pisuary z połyskiem, wodą, przyciskiem i
+  przegrodą między sąsiednimi.
+- **Ramki interfejsu**: gładki obrys (bez „drżenia” i kresek), jasna linia u
+  góry wewnątrz, miękki cień pod spodem; obwódka przycisku w ciemnym
+  odcieniu jego koloru; ekran komputera w morskiej ramce. Postrzępione brzegi
+  zostały tylko jako opcja (`torn`).
+- **Tło ekranów logowania i tworzenia postaci** (`ui/backdrop.gdshader`):
+  głęboka zieleń morska u góry, ciepły zmierzch u dołu, rozmyte światełka
+  i winieta.
