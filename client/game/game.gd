@@ -256,7 +256,6 @@ func setup(p_net, p_building, welcome: Dictionary, p_nick: String, args: Diction
 	add_child(world)
 	for f in views:  # tree crowns over the people, under the light
 		var crowns: Node2D = views[f].trees.canopy
-		views[f].trees.remove_child(crowns)
 		crowns.visible = false
 		add_child(crowns)
 	boombox.bus = "Music"
