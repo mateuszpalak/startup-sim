@@ -255,3 +255,27 @@ rysowanym w kodzie, bez obrazków i cudzych licencji; kamera zostaje z góry.
 - **Tło ekranów logowania i tworzenia postaci** (`ui/backdrop.gdshader`):
   głęboka zieleń morska u góry, ciepły zmierzch u dołu, rozmyte światełka
   i winieta.
+
+## 10.61 Reszta świata i ekranów w nowym stylu (2026-11-04)
+
+- **Sale spotkań**: długi polerowany stół ze słojami i połyskiem, przy
+  każdym miejscu notes albo szklanka wody, dzbanek pośrodku; tapicerowane
+  krzesła dookoła.
+- **Drzwi**: progi z jasnym połyskiem, szklane drzwi w mosiężnej ramce z
+  odbiciami nieba, drzwi zaplecza z płycinami i gałką, mosiężna rozeta pod
+  dziurką od klucza w magazynku.
+- **Drobiazgi**: ławki z ciepłych desek na żelaznych nogach, stalowa
+  popielniczka z piaskiem, chromowane stojaki na rowery, zielone ścianki
+  działowe, wiklinowe kosze z papierami, błyszczący zielony kosz w kuchni,
+  szafy z płycinami, czerwony ekspres z manometrem i dyszą do pary.
+- **Pojazdy**: zaokrąglone karoserie, miękki cień, niebo w szybach,
+  reflektory i światła tylne; koguty policji i straży świecą z poświatą.
+- **Drzwi windy** z ciepłym refleksem, **drzwi kabin** w kolorze szałwii z
+  podświetlonym okienkiem „wolne / zajęte”.
+- **Pogoda**: deszcz jako jasne, półprzezroczyste smugi (bez konturu),
+  mgła i burzowe niebo w chłodnych, niebiesko-zielonych tonach.
+- **Ekran tytułowy**: zmierzch — niebo od morskiej zieleni do brzoskwini,
+  różowawe chmury, miasto w granatowo-zielonych sylwetkach z ciepłymi
+  oknami, na pierwszym planie trawa i korony drzew podświetlone słońcem.
+- **Tapeta komputera**: zachód słońca nad pagórkami z drzewami.
+- **README**: nowe zrzuty w galerii (`docs/media/*.jpg`) i nowy GIF ze zwiastuna (`tools/trailer`).

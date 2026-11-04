@@ -175,8 +175,14 @@ func _draw_sky() -> void:
 	var steps := 24
 	for i in steps:
 		var t := float(i) / steps
-		var c := Color("#1f1a2e").lerp(Color("#5a3a4e"), t).lerp(Color("#b8735f"), maxf(0.0, t - 0.55) * 1.6)
+		var c := _sky_at(t)
 		_sky.draw_rect(Rect2(0, h * t, w, h / steps + 1), c)
+
+
+## The sky's colour at a height (0 top .. 1 bottom): deep blue-green above,
+## a warm sunset glow towards the horizon.
+static func _sky_at(t: float) -> Color:
+	return Color("#10232a").lerp(Color("#3a5a62"), t).lerp(Color("#e6a27a"), maxf(0.0, t - 0.5) * 1.6)
 
 
 func _animate() -> void:
@@ -201,8 +207,11 @@ func _draw_stars(group: int) -> void:
 ## One cloud, drawn at x = 0 (moved by _animate).
 func _draw_cloud(k: int) -> void:
 	var cy := size.y * (0.18 + k * 0.07)
+	# Opaque, in the sky's own colour tinted pink: looks see-through, and the
+	# puffs don't show where they overlap.
+	var col := _sky_at(cy / size.y).lerp(Color(0.95, 0.66, 0.6), 0.42)
 	for j in 4:
-		_clouds[k].draw_circle(Vector2(j * 34.0, cy + sin(j) * 6.0), 30.0 + j % 2 * 10.0, Color(0.35, 0.28, 0.38, 0.35))
+		_clouds[k].draw_circle(Vector2(j * 34.0, cy + sin(j) * 6.0), 30.0 + j % 2 * 10.0, col)
 
 
 ## The city, windows lighting up.
@@ -221,16 +230,33 @@ func _draw_city() -> void:
 		var bw := rng.randf_range(50, 120)
 		var bh := rng.randf_range(120, 330)
 		var r := Rect2(x, ground - bh, bw, bh + h)
-		_city.draw_rect(r.grow(2), Ink.INK)
-		_city.draw_rect(r, Color("#1c1622").lightened(rng.randf() * 0.05))
+		_city.draw_rect(r.grow(2), Color("#0e1c22"))
+		_city.draw_rect(r, Color("#1d3138").lightened(rng.randf() * 0.06))
 		var wy := r.position.y + 12
 		while wy < ground - 10:
 			var wx := r.position.x + 8
 			while wx < r.end.x - 12:
 				var seed_on := sin(wx * 12.9898 + wy * 78.233) * 43758.5453
 				if fmod(absf(seed_on), 1.0) < 0.3 + 0.1 * sin(_t * 0.2 + wx):
-					_city.draw_rect(Rect2(wx, wy, 7, 10), Color("#e8b85a", 0.9))
+					_city.draw_circle(Vector2(wx + 3.5, wy + 5), 9.0, Color(1.0, 0.75, 0.4, 0.08))
+					_city.draw_rect(Rect2(wx, wy, 7, 10), Color("#f2c46a", 0.92))
 				wx += 16
 			wy += 20
 		x += bw + rng.randf_range(4, 20)
-	_city.draw_rect(Rect2(0, ground, w, h - ground), Ink.INK)
+	# The ground: dark grass, and trees in front, lit at the rim by the sunset.
+	_city.draw_rect(Rect2(0, ground, w, h - ground), Color("#17291f"))
+	var trng := RandomNumberGenerator.new()
+	trng.seed = 5
+	var tx := -40.0
+	while tx < w + 40.0:
+		var tr := trng.randf_range(40, 80)
+		var ty := ground + trng.randf_range(-10, 30)
+		if trng.randf() < 0.65:
+			var clumps := []
+			for j in 6:
+				clumps.append([Vector2(tx + trng.randf_range(-tr, tr) * 0.7, ty - tr * 0.6 + trng.randf_range(-tr, tr) * 0.4), tr * trng.randf_range(0.45, 0.65)])
+			for c in clumps:  # the sunset's rim light, under all the leaves
+				_city.draw_circle(c[0] + Vector2(-3, -3), c[1], Color("#8a6a4a"))
+			for c in clumps:
+				_city.draw_circle(c[0], c[1], Color("#1d3a26"))
+		tx += tr * trng.randf_range(1.2, 2.2)

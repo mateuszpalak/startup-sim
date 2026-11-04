@@ -35,14 +35,15 @@ static func floor_label(f: int) -> String:
 
 
 func _draw() -> void:
-	var ink := Color("#2a2118")
+	var ink := Color("#4a535a")
 	if closed:
-		# Two brushed-steel panels meeting in the middle, inked.
+		# Two brushed-steel panels meeting in the middle, a warm sheen on them.
 		draw_rect(Rect2(-8.2, -8.2, 16.4, 16.4), ink)
-		draw_rect(Rect2(-7.6, -7.6, 7.2, 15.2), Color("#aeb6ba"))
-		draw_rect(Rect2(0.4, -7.6, 7.2, 15.2), Color("#b8c0c3"))
+		draw_rect(Rect2(-7.6, -7.6, 7.2, 15.2), Color("#b4bec2"))
+		draw_rect(Rect2(0.4, -7.6, 7.2, 15.2), Color("#c2cbce"))
 		for k in 3:
-			draw_line(Vector2(-6.5 + k * 2.2, -6.5), Vector2(-6.5 + k * 2.2, 6.5), Color(1, 1, 1, 0.18), 0.5, true)
+			draw_line(Vector2(-6.5 + k * 2.2, -6.5), Vector2(-6.5 + k * 2.2, 6.5), Color(1, 1, 1, 0.22), 0.5, true)
+		draw_line(Vector2(1.6, -6.5), Vector2(5.5, 6.5), Color(1, 0.95, 0.85, 0.25), 1.2, true)
 		draw_line(Vector2(0, -7.6), Vector2(0, 7.6), ink, 0.8, true)
 	if display:
 		# Floor indicator on the wall left of the doors (hall side; to the
@@ -50,7 +51,7 @@ func _draw() -> void:
 		# glyphs), an arrow while moving.
 		var o := Vector2(-30, 1)
 		draw_set_transform(o)
-		draw_rect(Rect2(-6.5, -16.5, 13, 8), Color("#2a2118"))
+		draw_rect(Rect2(-6.5, -16.5, 13, 8), ink)
 		draw_rect(Rect2(-6, -16, 12, 7), Color("#15171c"))
 		var amber := Color("#ffb347")
 		var rows: Array = GLYPHS.get(floor_label(lift_floor), GLYPHS["?"])

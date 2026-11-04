@@ -616,14 +616,17 @@ func _tile_object(x: int, y: int) -> void:
 		"door", "board_door", "card_door":
 			var across := _is_wall(x - 1, y) or _is_wall(x + 1, y) or _type(x - 1, y) == t or _type(x + 1, y) == t
 			var wood: Color = {"door": Color("#8a5a36"), "board_door": Color("#5e2f22"), "card_door": Color("#6b6f75")}[t]
+			# An open doorway: a threshold strip (a door mat outside a room).
 			if across:
-				_box(Rect2(o + Vector2(0, 6), Vector2(TP, 4)), Color("#a6764c"), true, 0.3, 0.45)
+				_box(Rect2(o + Vector2(0, 6), Vector2(TP, 4)), Color("#b98552"), true, 0.3, 0.45)
+				draw_line(o + Vector2(0.5, 7), o + Vector2(TP - 0.5, 7), Color(1, 0.95, 0.85, 0.3), 0.5)
 				if _is_wall(x - 1, y):
 					_box(Rect2(o, Vector2(2.2, TP)), wood, true, 0.3, 0.45)
 				if _is_wall(x + 1, y):
 					_box(Rect2(o + Vector2(TP - 2.2, 0), Vector2(2.2, TP)), wood, true, 0.3, 0.45)
 			else:
-				_box(Rect2(o + Vector2(6, 0), Vector2(4, TP)), Color("#a6764c"), true, 0.3, 0.45)
+				_box(Rect2(o + Vector2(6, 0), Vector2(4, TP)), Color("#b98552"), true, 0.3, 0.45)
+				draw_line(o + Vector2(7, 0.5), o + Vector2(7, TP - 0.5), Color(1, 0.95, 0.85, 0.3), 0.5)
 				if _is_wall(x, y - 1):
 					_box(Rect2(o, Vector2(TP, 2.2)), wood, true, 0.3, 0.45)
 				if _is_wall(x, y + 1):
@@ -632,12 +635,14 @@ func _tile_object(x: int, y: int) -> void:
 				# The card reader by the door: a little box with a green light.
 				_box(Rect2(o + Vector2(TP - 5, 1), Vector2(4, 5)), Color("#3a3d42"), true, 0.3, 0.45)
 				draw_circle(o + Vector2(TP - 3, 2.6), 0.7, Color("#6fd06b"))
-		"glass_door":
+		"glass_door":  # sky-blue glass in a slim brass frame, with reflections
 			var g := Rect2(o + Vector2(0, 5), Vector2(TP, 6))
-			draw_rect(g, Color("#a9d4e0", 0.85))
-			draw_line(g.position + Vector2(2, 1.2), g.position + Vector2(7, 1.2), Color(1, 1, 1, 0.6), 0.7)
-			draw_rect(g, INK, false, OL)
-			draw_line(Vector2(o.x + TP / 2, g.position.y), Vector2(o.x + TP / 2, g.end.y), INK, 0.5)
+			for i in 3:
+				draw_rect(Rect2(g.position + Vector2(0, i * 2.0), Vector2(TP, 2.0)), Color("#8ec8dc").lerp(Color("#cdeaf3"), i / 2.0))
+			draw_line(g.position + Vector2(2, 1.2), g.position + Vector2(6, 1.2), Color(1, 1, 1, 0.75), 0.7)
+			draw_line(g.position + Vector2(10, 4.6), g.position + Vector2(12.5, 2.4), Color(1, 1, 1, 0.45), 0.5)
+			draw_rect(g, Color("#c9a35a"), false, 0.7)
+			draw_line(Vector2(o.x + TP / 2, g.position.y), Vector2(o.x + TP / 2, g.end.y), Color("#c9a35a"), 0.6)
 		"card_gate":
 			_box(Rect2(o + Vector2(0, 2), Vector2(3, 12)), Color("#6f7278"))
 			_box(Rect2(o + Vector2(TP - 3, 2), Vector2(3, 12)), Color("#6f7278"))
@@ -673,13 +678,16 @@ func _tile_object(x: int, y: int) -> void:
 			for i in 5:
 				draw_rect(Rect2(o + Vector2(i * 3.2, 0), Vector2(3.2, 3)), Color("#d4a94a") if i % 2 == 0 else Color("#2b2522"))
 			draw_rect(Rect2(o, Vector2(TP, 3)), INK, false, 0.45)
-		"service_door":
-			_box(r.grow(-0.3), Color("#6b4128"))
-			_box(Rect2(o + Vector2(4, 4), Vector2(8, 3)), Color("#a8402f"), true, 0.3, 0.45)
-			draw_circle(o + Vector2(11, 9), 0.8, Color("#d4b870"))
+		"service_door":  # a panelled wooden door, a STAFF sign, a brass knob
+			_box(r.grow(-0.3), Color("#7a4a2c"))
+			_box(Rect2(o + Vector2(2.5, 2.5), Vector2(11, 11)), Color("#8a5a36"), true, 0.4, 0.4)
+			_box(Rect2(o + Vector2(4, 4), Vector2(8, 3)), Color("#b5523e"), true, 0.3, 0.45)
+			_disc(o + Vector2(11, 9.5), 0.9, Color("#e2c060"), true, 0.3)
+			draw_circle(o + Vector2(10.7, 9.2), 0.3, Color(1, 1, 1, 0.8))
 		"storeroom_door":  # the storeroom: a door with a keyhole (the key is at the reception)
 			_box(r.grow(-0.3), Color("#7a5a3a"))
-			_box(Rect2(o + Vector2(3, 3), Vector2(10, 10)), Color("#8f6c48"), true, 0.3, 0.45)
+			_box(Rect2(o + Vector2(3, 3), Vector2(10, 10)), Color("#9c7650"), true, 0.3, 0.45)
+			draw_circle(o + Vector2(8, 7.5), 2.2, Color("#e2c060"))
 			draw_circle(o + Vector2(8, 7.5), 1.3, INK)
 			draw_rect(Rect2(o + Vector2(7.5, 7.5), Vector2(1, 2.6)), INK)
 		"locked_door":  # shut for good: dark door, red band, a padlock
@@ -981,13 +989,31 @@ func _table(tr: Rect2i, r: Rect2) -> void:
 			var ty := tr.position.y - 1 if side < 0 else tr.end.y
 			var tc := _ch(tx, ty)
 			if map.legend.has(tc) and not _solid(tc):
-				var cy := ty * TP + (11.0 if side < 0 else 4.0)
-				_box(Rect2(tx * TP + 4, cy - 3, 8, 6), Color("#6f513a"), true, 1.2)
+				# Upholstered chairs, backs away from the table.
+				_chair(Vector2(tx * TP + 8, ty * TP + (9.0 if side < 0 else 7.0)), side > 0)
+	# A long polished table: a darker rim, a top with grain and a sheen, and
+	# on it, per seat, a notepad or a glass of water; a jug in the middle.
 	var top := Rect2(r.position + Vector2(0.8, 1), r.size - Vector2(1.6, 3))
 	_shadow(top)
-	_box(top, Color("#8f6e4c"), true, 1.2)
-	draw_line(top.position + Vector2(2, 1.2), Vector2(top.end.x - 2, top.position.y + 1.2), Color("#a8865f"), 0.6)
-	_box(Rect2(top.get_center() - Vector2(2, 1.5), Vector2(4, 3)), Color("#ece4d2"), true, 0.3, 0.35)
+	_box(top, Color("#7a5232"), true, 2.0)
+	var inner := top.grow(-1.2)
+	_box(inner, Color("#a5734a"), false, 1.6)
+	for i in int(inner.size.y / 3.0):  # grain along the table
+		var gy := inner.position.y + 1.5 + i * 3.0
+		draw_line(Vector2(inner.position.x + 2, gy), Vector2(inner.end.x - 2, gy + 0.3), Color("#956541"), 0.35)
+	draw_line(inner.position + Vector2(2, 1.0), Vector2(inner.end.x - 2, inner.position.y + 1.0), Color(1, 0.92, 0.8, 0.35), 0.8)
+	for i in tr.size.x:
+		var px := (tr.position.x + i) * TP
+		for edge in [inner.position.y + 2.5, inner.end.y - 5.5]:
+			if _h(tr.position.x + i, int(edge), 3) % 2 == 0:
+				_box(Rect2(px + 4.5, edge, 4, 3), Color("#f4efe2"), true, 0.3, 0.35)
+				draw_line(Vector2(px + 5.3, edge + 1.2), Vector2(px + 7.8, edge + 1.2), Color("#9aa3b0"), 0.3)
+			else:
+				_disc(Vector2(px + 8, edge + 1.5), 1.1, Color("#cfe9f2"), true, 0.3)
+				draw_circle(Vector2(px + 7.6, edge + 1.1), 0.35, Color(1, 1, 1, 0.9))
+	var mid := top.get_center()
+	_disc(mid, 1.8, Color("#bfe0ea"), true, 0.4)
+	draw_circle(mid + Vector2(-0.6, -0.6), 0.6, Color(1, 1, 1, 0.8))
 
 
 ## A potted plant: a terracotta pot with a rim, soil, and a full head of
@@ -1031,20 +1057,28 @@ func _racks(r: Rect2, index: int) -> void:
 		ty += TP
 
 
+## A park bench: warm wooden slats (each a shade different, with a light
+## edge) on dark iron legs, and a soft shadow.
 func _bench(r: Rect2) -> void:
 	_shadow(Rect2(r.position + Vector2(0, 4), Vector2(r.size.x, 8)))
 	for i in 3:
-		_box(Rect2(r.position.x, r.position.y + 4 + i * 3, r.size.x, 2.2), Color("#9a7550"), true, 0.5, 0.45)
-	_stroke(r.position + Vector2(3, 12), r.position + Vector2(3, 15), Color("#3d3833"), 1.2)
-	_stroke(Vector2(r.end.x - 3, r.position.y + 12), Vector2(r.end.x - 3, r.position.y + 15), Color("#3d3833"), 1.2)
+		var slat := Rect2(r.position.x, r.position.y + 4 + i * 3, r.size.x, 2.4)
+		_box(slat, Color("#b07a4a").lerp(Color("#c99560"), _rf(r.position.x, i, 7)), true, 0.6, 0.4)
+		draw_line(slat.position + Vector2(1, 0.6), Vector2(slat.end.x - 1, slat.position.y + 0.6), Color(1, 0.95, 0.85, 0.3), 0.4)
+	for lx in [r.position.x + 3, r.end.x - 3]:
+		_stroke(Vector2(lx, r.position.y + 12), Vector2(lx, r.position.y + 15), Color("#33302e"), 1.4)
 
 
+## The outdoor ashtray: a brushed steel post with a sand-filled top, a
+## cigarette end in it, and a gleam down one side.
 func _ashtray(r: Rect2) -> void:
 	var c := r.position + Vector2(8, 8)
-	draw_rect(Rect2(c + Vector2(-3, 5), Vector2(8, 1.8)), Color(0, 0, 0, 0.25))
-	_box(Rect2(c + Vector2(-3, -5), Vector2(6, 11)), Color("#7a7c80"), true, 1.2)
-	_disc(c + Vector2(0, -4.5), 2.4, Color("#c4bca5"), true, 0.45)
-	_stroke(c + Vector2(-1, -4.8), c + Vector2(1.2, -4.2), Color("#ece6d6"), 0.7)
+	draw_circle(c + Vector2(1.5, 5.5), 3.5, Color(0.05, 0.06, 0.12, 0.2))
+	_box(Rect2(c + Vector2(-3, -5), Vector2(6, 11)), Color("#8a9096"), true, 1.6)
+	draw_line(c + Vector2(-1.8, -3.5), c + Vector2(-1.8, 4.5), Color(1, 1, 1, 0.4), 0.6)
+	_disc(c + Vector2(0, -4.5), 2.4, Color("#d8cba6"), true, 0.45)
+	_stroke(c + Vector2(-1, -4.8), c + Vector2(1.2, -4.2), Color("#f4efe2"), 0.7)
+	draw_circle(c + Vector2(1.3, -4.15), 0.35, Color("#e2864a"))
 
 
 ## A toilet from above: a rounded porcelain tank with a lid and a flush
@@ -1125,15 +1159,22 @@ func _car(r: Rect2, index: int) -> void:
 	draw_circle(Vector2(b.position.x + 1.2, b.end.y - 3.5), 0.9, Color("#c94a3a"))
 
 
+## The espresso machine: a glossy red body, a steel front with the group
+## head and a cup under it, a pressure gauge and a steam wand.
 func _coffee_machine(r: Rect2) -> void:
 	var x := r.position.x + 2
 	var y := r.position.y
-	draw_rect(Rect2(x + 2, y + 13, 12, 2), Color(0, 0, 0, 0.25))
-	_box(Rect2(x, y + 1, 12, 13), Color("#2e2b2c"), true, 1.2)
-	_box(Rect2(x + 1, y + 2, 10, 3), Color("#6b4a2e"), true, 0.8, 0.4)
-	_box(Rect2(x + 1, y + 6, 10, 6), Color("#b8bdbf"), true, 0.8, 0.4)
-	_box(Rect2(x + 4, y + 8.5, 4, 3), Color("#f1ece2"), true, 0.4, 0.35)
-	draw_circle(Vector2(x + 10, y + 7.5), 0.6, Color("#d24b3a"))
+	draw_circle(Vector2(x + 7, y + 13), 6.0, Color(0.05, 0.06, 0.12, 0.18))
+	_box(Rect2(x, y + 1, 12, 13), Color("#b84a3a"), true, 1.6)
+	draw_line(Vector2(x + 1.5, y + 2), Vector2(x + 10.5, y + 2), Color(1, 0.9, 0.85, 0.5), 0.6)
+	_box(Rect2(x + 1, y + 5.5, 10, 7), Color("#c9d0d4"), true, 0.8, 0.4)
+	draw_line(Vector2(x + 2, y + 6.5), Vector2(x + 2, y + 11.5), Color(1, 1, 1, 0.55), 0.5)
+	_disc(Vector2(x + 3.2, y + 3.3), 1.2, Color("#f4efe2"), true, 0.3)  # gauge
+	draw_line(Vector2(x + 3.2, y + 3.3), Vector2(x + 3.8, y + 2.7), Color("#c94a3a"), 0.3)
+	_box(Rect2(x + 4, y + 8.5, 4, 3), Color("#f4efe2"), true, 0.4, 0.35)  # the cup
+	draw_circle(Vector2(x + 6, y + 9.2), 1.0, Color("#6b4426"))
+	_stroke(Vector2(x + 10.5, y + 6), Vector2(x + 11.5, y + 11), Color("#9aa3a8"), 0.7)  # steam wand
+	draw_circle(Vector2(x + 9.5, y + 3.3), 0.6, Color("#7ef08a"))
 
 
 func _kitchen_counter(r: Rect2) -> void:
@@ -1159,11 +1200,13 @@ func _fruit_bowl(r: Rect2) -> void:
 	_poly(PackedVector2Array([c + Vector2(-5.5, 0.5), c + Vector2(5.5, 0.5), c + Vector2(3.5, 3.5), c + Vector2(-3.5, 3.5)]), Color("#9c6e3a"), true, 0.45)
 
 
+## An office partition: a felt panel in sage green on a metal foot.
 func _partition(r: Rect2) -> void:
 	var body := Rect2(r.position, r.size - Vector2(0, 3))
 	_shadow(body)
 	_box(Rect2(r.position.x, r.end.y - 3.5, r.size.x, 3.5), Color("#8f959b"), true, 0.3, 0.45)
-	_box(body, Color("#c7ccce"), true, 0.4, 0.5)
+	_box(body, Color("#9fb59a"), true, 0.4, 0.5)
+	draw_rect(Rect2(body.position + Vector2(1, 1), Vector2(body.size.x - 2, 0.8)), Color(1, 1, 1, 0.2))
 
 
 func _sanitizer(r: Rect2) -> void:
@@ -1174,15 +1217,18 @@ func _sanitizer(r: Rect2) -> void:
 	_stroke(p + Vector2(4, 10), p + Vector2(4, 11.5), Color("#9aa3a8"), 1.0)
 
 
+## Bike stands: chrome hoops with a highlight, and a soft shadow.
 func _bike_rack(r: Rect2) -> void:
 	var tx := r.position.x
 	while tx < r.end.x:
 		var y := r.position.y
-		draw_rect(Rect2(tx + 3, y + 12, 11, 2), Color(0, 0, 0, 0.2))
-		draw_arc(Vector2(tx + 8, y + 8), 3.6, PI, TAU, 10, INK, 2.0, true)
-		draw_arc(Vector2(tx + 8, y + 8), 3.6, PI, TAU, 10, Color("#aab0b3"), 1.1, true)
-		_stroke(Vector2(tx + 4.4, y + 8), Vector2(tx + 4.4, y + 13), Color("#aab0b3"), 1.1)
-		_stroke(Vector2(tx + 11.6, y + 8), Vector2(tx + 11.6, y + 13), Color("#aab0b3"), 1.1)
+		draw_circle(Vector2(tx + 9, y + 13), 4.0, Color(0.05, 0.06, 0.12, 0.15))
+		draw_arc(Vector2(tx + 8, y + 8), 3.6, PI, TAU, 12, Color("#59636b"), 2.0, true)
+		draw_arc(Vector2(tx + 8, y + 8), 3.6, PI, TAU, 12, Color("#c3cbd0"), 1.1, true)
+		draw_arc(Vector2(tx + 8, y + 8), 3.6, PI * 1.15, PI * 1.45, 6, Color(1, 1, 1, 0.8), 0.5, true)
+		for px in [4.4, 11.6]:
+			_stroke(Vector2(tx + px, y + 8), Vector2(tx + px, y + 13), Color("#59636b"), 2.0)
+			_stroke(Vector2(tx + px, y + 8), Vector2(tx + px, y + 13), Color("#c3cbd0"), 1.1)
 		tx += TP
 
 
@@ -1250,31 +1296,39 @@ func _urinal(tr: Rect2i, r: Rect2) -> void:
 			_box(Rect2(x + TP - 0.7, y0 - (0.0 if up else 1.0), 1.4, 9), Color("#9fb3bd"), true, 0.3, 0.35)
 		x += TP
 
-## A tall wardrobe: two doors with handles.
+## A tall wardrobe: two panelled wooden doors with brass handles.
 func _wardrobe(r: Rect2) -> void:
 	_shadow(r.grow(-1))
 	var b := r.grow(-1)
-	_box(b, Color("#8a6a4a"), true, 0.6)
+	_box(b, Color("#9a7048"), true, 0.8)
 	var mid := b.position.x + b.size.x / 2
-	draw_line(Vector2(mid, b.position.y + 1), Vector2(mid, b.end.y - 1), INK, 0.6)
-	draw_circle(Vector2(mid - 1.6, b.position.y + b.size.y / 2), 0.6, Color("#d4b870"))
-	draw_circle(Vector2(mid + 1.6, b.position.y + b.size.y / 2), 0.6, Color("#d4b870"))
+	for half in [Rect2(b.position + Vector2(1.2, 1.2), Vector2(b.size.x / 2 - 2.0, b.size.y - 2.4)),
+			Rect2(Vector2(mid + 0.8, b.position.y + 1.2), Vector2(b.size.x / 2 - 2.0, b.size.y - 2.4))]:
+		_box(half, Color("#aa7d52"), true, 0.5, 0.35)
+	draw_line(Vector2(mid, b.position.y + 1), Vector2(mid, b.end.y - 1), Color("#5e4028"), 0.6)
+	for hx in [mid - 1.6, mid + 1.6]:
+		_disc(Vector2(hx, b.position.y + b.size.y / 2), 0.6, Color("#e2c060"), true, 0.25)
 
 
-## A waste bin: a grey drum with a lid.
-## The kitchen bin: a green pedal bin with its lid.
+## The kitchen bin: a green pedal bin, glossy, with its lid and pedal.
 func _trash_bin(r: Rect2) -> void:
 	var c := r.get_center()
-	_disc(c + Vector2(0.8, 1.0), 6.0, Color(0, 0, 0, 0.2), false)
-	_disc(c, 5.8, Color("#4f6b52"))
-	draw_circle(c, 4.2, Color("#62836a"))
-	draw_line(c + Vector2(-2.6, -1.2), c + Vector2(2.6, -1.2), INK, 0.9)
-	draw_rect(Rect2(c + Vector2(-1.2, 5.2), Vector2(2.4, 1.4)), INK)
+	_disc(c + Vector2(1.0, 1.4), 6.0, Color(0.05, 0.06, 0.12, 0.2), false)
+	_disc(c, 5.8, Color("#4f8a62"))
+	draw_circle(c, 4.2, Color("#66a378"))
+	draw_arc(c, 4.8, PI * 1.1, PI * 1.5, 8, Color(1, 1, 1, 0.5), 0.7, true)
+	draw_line(c + Vector2(-2.6, -1.2), c + Vector2(2.6, -1.2), Color("#2f5a3c"), 0.9)
+	draw_rect(Rect2(c + Vector2(-1.2, 5.2), Vector2(2.4, 1.4)), Color("#59636b"))
 
 
+## A waste bin: a wicker basket with a few crumpled papers in it.
 func _bin(r: Rect2) -> void:
 	var c := r.get_center()
-	_disc(c + Vector2(0.8, 1.0), 5.2, Color(0, 0, 0, 0.2), false)
-	_disc(c, 5.0, Color("#5a5f66"))
-	draw_circle(c, 3.4, Color("#72787f"))
-	draw_line(c + Vector2(-2, 0), c + Vector2(2, 0), INK, 0.7)
+	_disc(c + Vector2(0.8, 1.2), 5.2, Color(0.05, 0.06, 0.12, 0.2), false)
+	_disc(c, 5.0, Color("#b08552"))
+	draw_circle(c, 3.6, Color("#6e5134"))
+	for k in 8:
+		var a := k * TAU / 8.0
+		draw_line(c + Vector2.from_angle(a) * 3.7, c + Vector2.from_angle(a) * 4.9, Color("#8a6640"), 0.4)
+	_disc(c + Vector2(-0.8, 0.4), 1.4, Color("#f2efe6"), true, 0.3)
+	_disc(c + Vector2(1.2, -0.6), 1.1, Color("#e9e4d6"), true, 0.3)

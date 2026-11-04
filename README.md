@@ -44,7 +44,7 @@ i tekstowym.
 <table>
   <tr>
     <td width="50%"><img src="docs/media/portiernia.jpg" alt="Hol z portiernią"><br><sub>Pani Wiesia z portierni zawsze zagada (a Paulina siedzi w fotelu)</sub></td>
-    <td width="50%"><img src="docs/media/chill_room.jpg" alt="Chill room"><br><sub>Chill room: mecz w telewizorze, pilot w ręku</sub></td>
+    <td width="50%"><img src="docs/media/chill_room.jpg" alt="Chill room"><br><sub>Chill room: sofy, telewizor, boombox i pilot w kieszeni</sub></td>
   </tr>
   <tr>
     <td><img src="docs/media/palarnia.jpg" alt="Palarnia i zjazd do garażu"><br><sub>Palarnia jak przystanek (autobus nie przyjedzie) i zamknięty zjazd do garażu</sub></td>

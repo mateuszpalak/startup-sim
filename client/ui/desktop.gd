@@ -200,40 +200,54 @@ func _build_desktop() -> void:
 	_root.add_child(_toast)
 
 
-## The desktop wallpaper: a soft dusk sky, a few stars and a dark city
-## skyline with lit windows (drawn small, smoothly scaled up).
+## The desktop wallpaper: a sunset over the countryside - a blue-green sky
+## warming to peach at the horizon, a low sun with its glow, three rows of
+## hills (the far ones hazy) and round trees on the nearest.
 static func wallpaper() -> Texture2D:
 	var w := 320
 	var h := 180
 	var img := Image.create(w, h, false, Image.FORMAT_RGBA8)
-	var top := Color("#1f1a2e")
-	var mid := Color("#4a3552")
-	var low := Color("#b0706a")
+	var top := Color("#1f4450")
+	var mid := Color("#6f8f8f")
+	var low := Color("#f0b088")
+	var sun := Vector2(w * 0.68, h * 0.5)
 	for y in h:
 		var t := float(y) / h
-		var c := top.lerp(mid, t / 0.6) if t < 0.6 else mid.lerp(low, (t - 0.6) / 0.4)
+		var c := top.lerp(mid, t / 0.45) if t < 0.45 else mid.lerp(low, (t - 0.45) / 0.25)
 		for x in w:
-			img.set_pixel(x, y, c)
+			var d := Vector2(x, y).distance_to(sun)
+			var px := c.lerp(Color("#ffe2a8"), clampf(1.0 - d / 70.0, 0.0, 1.0) * 0.55)
+			if d < 11.0:
+				px = Color("#fff1c8")
+			img.set_pixel(x, y, px)
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 7
-	for k in 60:
-		img.set_pixel(rng.randi_range(0, w - 1), rng.randi_range(0, h / 2), Color(1, 0.95, 0.85, rng.randf_range(0.3, 0.8)))
-	var x := 0
-	while x < w:
-		var bw := rng.randi_range(14, 34)
-		var bh := rng.randi_range(28, 80)
-		var shade := Color("#17121c").lightened(rng.randf_range(0.0, 0.06))
-		for yy in range(h - bh, h):
-			for xx in range(x, mini(x + bw, w)):
-				img.set_pixel(xx, yy, shade)
-		for wy in range(h - bh + 5, h - 3, 7):
-			for wx in range(x + 3, mini(x + bw - 3, w), 5):
-				if rng.randf() < 0.3:
-					for dy in 3:
-						for dx in 2:
-							img.set_pixel(mini(wx + dx, w - 1), mini(wy + dy, h - 1), Color("#e8b85a"))
-		x += bw + rng.randi_range(0, 4)
+	var hills := [[0.56, 9.0, 0.021, Color("#7d9a8a")], [0.66, 11.0, 0.017, Color("#4f7a5a")], [0.78, 8.0, 0.025, Color("#2f5a38")]]
+	var near_top := PackedFloat32Array()
+	for layer in hills:
+		near_top.clear()
+		var phase := rng.randf() * TAU
+		for x in w:
+			var top_y := h * float(layer[0]) - sin(x * float(layer[2]) + phase) * float(layer[1]) - sin(x * 0.051 + phase * 2.0) * 3.0
+			near_top.append(top_y)
+			for y in range(maxi(int(top_y), 0), h):
+				var shade: Color = layer[3]
+				img.set_pixel(x, y, shade.darkened((y - top_y) / h * 0.5))
+	# Round trees along the nearest hill, lit from the sunset side.
+	var tx := 6
+	while tx < w:
+		var ty := int(near_top[tx])
+		var r := rng.randi_range(6, 11)
+		for yy in range(-r, r + 1):
+			for xx in range(-r, r + 1):
+				if xx * xx + yy * yy <= r * r:
+					var px := Vector2i(tx + xx, ty - r / 2 + yy)
+					if px.x >= 0 and px.x < w and px.y >= 0 and px.y < h:
+						var lit := float(xx) / r * 0.5 - float(yy) / r * 0.3
+						img.set_pixel(px.x, px.y, Color("#24462a").lerp(Color("#5f8a45"), clampf(lit, 0.0, 1.0)))
+		tx += r * 2 + rng.randi_range(4, 30)
 	return ImageTexture.create_from_image(img)
+
 
 func _icon(caption: String, kind: String, on_open: Callable) -> Control:
 	var b := Button.new()
