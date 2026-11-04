@@ -320,3 +320,20 @@ rysowanym w kodzie, bez obrazków i cudzych licencji; kamera zostaje z góry.
 - Menu pauzy przyciemnia grę na chłodno (niebiesko-zielono), ekspres w oknie
   jest czerwony jak w kuchni.
 
+
+## 10.64 Lepsze kroki i odgłosy uderzeń (2026-11-04)
+
+- **Kroki** syntetyzowane od nowa (`tools/sounds/gen_sounds.py`): bez
+  czystych tonów (stare „bum” z sinusoidy), tylko przefiltrowany szum i
+  krótkie rezonanse — uderzenie pięty i chwilę później cichsze przetoczenie
+  stopy. Drewno: głuchy stuk z pogłosem deski; wykładzina: miękko, z
+  szelestem materiału; płytki: twardy klik obcasa i krótkie echo łazienki;
+  na zewnątrz: chrzęst piasku i żwiru. **6 wariantów** każdej nawierzchni.
+- W grze krok co 14 px (ok. 2 na sekundę, w rytm nóg), losowy wariant
+  (nigdy dwa razy ten sam pod rząd), głośność ±1,5 dB, własne kroki ciszej
+  (−11 dB), cudze −16 dB.
+- **Uderzenia** (upuszczenie, zamek, lodówka, drzwiczki szafki): niski ton
+  zamieniony na rezonans tego samego szumu — krótki, wygasający stuk.
+  **Krople deszczu**: szumowe „tyknięcia” zamiast pisków.
+- Pozostałe dźwięki bit w bit bez zmian (kroki i krople mają własne
+  generatory liczb losowych; wspólny dostaje tyle losowań co dawniej).

@@ -7,8 +7,11 @@ const Audio = preload("res://audio/audio.gd")
 const Protocol = preload("res://net/protocol.gd")
 const Movement = preload("res://sim/movement.gd")
 
-## A step every this many px walked.
-const STEP_PX := 20.0
+## A step every this many px walked (~2 a second at a normal walk, with every
+## other swing of the legs).
+const STEP_PX := 14.0
+## Variants of each footstep (step_<surface>_1 .. _N).
+const STEP_VARIANTS := 6
 ## Remote steps are heard this close (px).
 const STEP_HEAR_PX := 260.0
 const VEHICLE_POLICE := 5
@@ -16,7 +19,7 @@ const VEHICLE_FIRE := 6
 
 var game
 var _walked := {}      # id (0 = me) -> [last px position, px since the last step]
-var _step_n := 0
+var _last_step := {}   # id -> the variant played last (never twice in a row)
 var _last_blip := {}   # speaker -> msec
 var _open := {}        # window -> was visible
 
@@ -39,16 +42,17 @@ func _process(_delta: float) -> void:
 	var outdoors: bool = map != null and map.room_outdoor.has(game.room_id)
 	# Steps: ours, then the people around.
 	if game.me.visible:
-		_step(0, game.me.position, map, -7.0)
+		_step(0, game.me.position, map, -11.0)
 	var seen := {0: true}
 	for id in game.remotes:
 		var r = game.remotes[id]
 		if r.visible and r.position.distance_to(game.me.position) < STEP_HEAR_PX:
-			_step(id, r.position, map, -13.0)
+			_step(id, r.position, map, -16.0)
 			seen[id] = true
 	for id in _walked.keys():
 		if not seen.has(id):
 			_walked.erase(id)
+			_last_step.erase(id)
 	# Ambience.
 	var floor0: bool = game.pred.floor == 0
 	a.bed("street_loop", -8.0 if outdoors else (-26.0 if floor0 else -34.0))
@@ -81,12 +85,18 @@ func _step(id: int, pos: Vector2, map, volume_db: float) -> void:
 	if w[1] < STEP_PX:
 		return
 	w[1] = 0.0
-	_step_n = _step_n % 3 + 1
-	var file := "step_%s_%d" % [_surface(map, pos), _step_n]
+	# A random variant (not the one just played), a little louder or softer.
+	var last: int = _last_step.get(id, 0)
+	var n := randi_range(1, STEP_VARIANTS - (1 if last else 0))
+	if last and n >= last:
+		n += 1
+	_last_step[id] = n
+	var file := "step_%s_%d" % [_surface(map, pos), n]
+	var db := volume_db + randf_range(-1.5, 1.5)
 	if id == 0:
-		Audio.inst.play(file, volume_db, 0.08)
+		Audio.inst.play(file, db, 0.06)
 	else:
-		Audio.inst.play_at(file, pos, volume_db, 0.08)
+		Audio.inst.play_at(file, pos, db, 0.06)
 
 
 ## What the floor under `pos` sounds like.
