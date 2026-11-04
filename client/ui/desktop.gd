@@ -4,7 +4,7 @@
 ## re-sends our last action when the server's state shows it got lost.
 extends Control
 
-const Ink = preload("res://ui/ink_ui.gd")
+const Os = preload("res://ui/office/xp_ui.gd")
 const Touch = preload("res://touch/touch.gd")
 
 const Protocol = preload("res://net/protocol.gd")
@@ -71,6 +71,7 @@ var _auto_applied := false
 
 
 func _ready() -> void:
+	theme = Os.theme()  # StartOS: everything inside in the computer's own look
 	get_viewport().size_changed.connect(_fit)
 	visibility_changed.connect(_fit)
 	_fit()
@@ -147,11 +148,11 @@ func _build_desktop() -> void:
 	_root.add_child(icons)
 	icons.add_child(_icon("Przeglądarka", "browser", func(): _open_window("browser")))
 	var mail_icon := _icon("Poczta", "mail", func(): _open_window("mail"))
-	Ink.style_label(_mail_icon_badge, 16, Color.WHITE)
+	Os.style_label(_mail_icon_badge, 16, Color.WHITE)
 	var badge_bg := StyleBoxFlat.new()
-	badge_bg.bg_color = Ink.RED
-	badge_bg.border_color = Ink.INK
-	badge_bg.set_border_width_all(Ink.LINE)
+	badge_bg.bg_color = Os.RED
+	badge_bg.border_color = Os.INK
+	badge_bg.set_border_width_all(Os.LINE)
 	badge_bg.content_margin_left = 6
 	badge_bg.content_margin_right = 6
 	_mail_icon_badge.add_theme_stylebox_override("normal", badge_bg)
@@ -163,14 +164,14 @@ func _build_desktop() -> void:
 
 	# Taskbar.
 	var bar := PanelContainer.new()
-	bar.add_theme_stylebox_override("panel", Ink.box("hud"))
+	bar.add_theme_stylebox_override("panel", Os.box("hud"))
 	bar.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
 	bar.offset_top = -52
 	_root.add_child(bar)
 	_bar = bar
 	var row := HBoxContainer.new()
 	bar.add_child(row)
-	var start_btn := Ink.button("◆ StartOS")
+	var start_btn := Os.start_button()
 	start_btn.tooltip_text = "Menu gry: ustawienia, wyjście"
 	start_btn.pressed.connect(func(): menu_requested.emit())
 	row.add_child(start_btn)
@@ -187,65 +188,80 @@ func _build_desktop() -> void:
 	else:
 		row.add_child(_taskbar)
 	_clock.add_theme_font_size_override("font_size", 15)
-	_clock.add_theme_color_override("font_color", Color(1, 1, 1, 0.85))
-	row.add_child(_clock)
+	_clock.add_theme_color_override("font_color", Color.WHITE)
+	var tray := Os.tray()
+	tray.get_child(0).add_child(_clock)
+	row.add_child(tray)
 
 	_toast.set_anchors_preset(Control.PRESET_TOP_RIGHT)
 	_toast.position = Vector2(-380, 16)
 	_toast.size = Vector2(360, 0)
 	_toast.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	Ink.style_label(_toast, 16, Ink.TEXT)
-	_toast.add_theme_stylebox_override("normal", Ink.box("hud"))
+	Os.style_label(_toast, 16, Os.TEXT_INK)
+	_toast.add_theme_stylebox_override("normal", Os.box("balloon"))
 	_toast.visible = false
 	_root.add_child(_toast)
 
 
-## The desktop wallpaper: a sunset over the countryside - a blue-green sky
-## warming to peach at the horizon, a low sun with its glow, three rows of
-## hills (the far ones hazy) and round trees on the nearest.
+## The desktop wallpaper: a bright spring day - a deep blue sky paling
+## towards the horizon, a few soft clouds, two rolling green hills (light
+## catching the near one), flowers in the grass and a lone tree on the ridge.
 static func wallpaper() -> Texture2D:
-	var w := 320
-	var h := 180
+	var w := 480
+	var h := 270
 	var img := Image.create(w, h, false, Image.FORMAT_RGBA8)
-	var top := Color("#1f4450")
-	var mid := Color("#6f8f8f")
-	var low := Color("#f0b088")
-	var sun := Vector2(w * 0.68, h * 0.5)
+	var top := Color("#1f5fd0")
+	var low := Color("#9fd0f5")
 	for y in h:
-		var t := float(y) / h
-		var c := top.lerp(mid, t / 0.45) if t < 0.45 else mid.lerp(low, (t - 0.45) / 0.25)
+		var c := top.lerp(low, pow(float(y) / (h * 0.7), 1.3)) if y < h * 0.7 else low
 		for x in w:
-			var d := Vector2(x, y).distance_to(sun)
-			var px := c.lerp(Color("#ffe2a8"), clampf(1.0 - d / 70.0, 0.0, 1.0) * 0.55)
-			if d < 11.0:
-				px = Color("#fff1c8")
-			img.set_pixel(x, y, px)
+			img.set_pixel(x, y, c)
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 7
-	var hills := [[0.56, 9.0, 0.021, Color("#7d9a8a")], [0.66, 11.0, 0.017, Color("#4f7a5a")], [0.78, 8.0, 0.025, Color("#2f5a38")]]
-	var near_top := PackedFloat32Array()
-	for layer in hills:
-		near_top.clear()
-		var phase := rng.randf() * TAU
+	# Clouds: soft white puffs (each a cluster of fading discs).
+	for k in 6:
+		var cc := Vector2(rng.randf_range(0, w), rng.randf_range(12, 60))
+		for j in 7:
+			var pc := cc + Vector2(rng.randf_range(-22, 22), rng.randf_range(-5, 5))
+			var r := rng.randf_range(6, 13)
+			for yy in range(int(pc.y - r), int(pc.y + r) + 1):
+				for xx in range(int(pc.x - r), int(pc.x + r) + 1):
+					if xx < 0 or yy < 0 or xx >= w or yy >= h:
+						continue
+					var d := Vector2(xx, yy).distance_to(pc) / r
+					if d < 1.0:
+						var a := (1.0 - d * d) * 0.55
+						img.set_pixel(xx, yy, img.get_pixel(xx, yy).lerp(Color.WHITE, a))
+	# Two hills: the far one bluish green, the near one bright, lit on its crest.
+	var hills := [[0.62, 14.0, 0.016, 1.2, Color("#5f9e4a"), Color("#4a8a3a")], [0.72, 18.0, 0.011, 4.0, Color("#6cc244"), Color("#3f8f2a")]]
+	var crest := PackedFloat32Array()
+	for hl in hills:
+		crest.clear()
 		for x in w:
-			var top_y := h * float(layer[0]) - sin(x * float(layer[2]) + phase) * float(layer[1]) - sin(x * 0.051 + phase * 2.0) * 3.0
-			near_top.append(top_y)
+			var top_y := h * float(hl[0]) - sin(x * float(hl[2]) + float(hl[3])) * float(hl[1])
+			crest.append(top_y)
 			for y in range(maxi(int(top_y), 0), h):
-				var shade: Color = layer[3]
-				img.set_pixel(x, y, shade.darkened((y - top_y) / h * 0.5))
-	# Round trees along the nearest hill, lit from the sunset side.
-	var tx := 6
-	while tx < w:
-		var ty := int(near_top[tx])
-		var r := rng.randi_range(6, 11)
-		for yy in range(-r, r + 1):
-			for xx in range(-r, r + 1):
-				if xx * xx + yy * yy <= r * r:
-					var px := Vector2i(tx + xx, ty - r / 2 + yy)
-					if px.x >= 0 and px.x < w and px.y >= 0 and px.y < h:
-						var lit := float(xx) / r * 0.5 - float(yy) / r * 0.3
-						img.set_pixel(px.x, px.y, Color("#24462a").lerp(Color("#5f8a45"), clampf(lit, 0.0, 1.0)))
-		tx += r * 2 + rng.randi_range(4, 30)
+				var t := clampf((y - top_y) / 50.0, 0.0, 1.0)
+				var col := (hl[4] as Color).lerp(hl[5], t).lightened(0.12 * (1.0 - t) * (1.0 - float(x) / w))
+				if y == int(top_y):  # the crest pixel: partly sky, so the edge is smooth
+					col = img.get_pixel(x, y).lerp(col, 1.0 - (top_y - floorf(top_y)))
+				img.set_pixel(x, y, col)
+	# Flowers in the near grass.
+	for k in 70:
+		var x := rng.randi_range(0, w - 1)
+		var y := rng.randi_range(int(crest[x]) + 6, h - 1)
+		img.set_pixel(x, y, [Color("#fff6a8"), Color.WHITE, Color("#ffb3c8")][k % 3])
+	# A lone tree on the ridge.
+	var tx := int(w * 0.78)
+	var ty := int(crest[tx])
+	for yy in range(ty - 6, ty + 2):
+		img.set_pixel(tx, yy, Color("#5a3d27"))
+	for yy in range(-9, 10):
+		for xx in range(-9, 10):
+			var d := Vector2(xx, yy * 1.15).length()
+			if d < 8.5:
+				var lit := clampf(0.5 - float(xx) / 16.0 - float(yy) / 16.0, 0.0, 1.0)
+				img.set_pixel(tx + xx, ty - 12 + yy, Color("#2f6a28").lerp(Color("#6fbf4a"), lit))
 	return ImageTexture.create_from_image(img)
 
 
@@ -273,7 +289,7 @@ func _icon(caption: String, kind: String, on_open: Callable) -> Control:
 ## Desktop icons, hand-drawn like the rest of the game (ink outlines):
 ## browser, mail, trash, chat, calendar, company, tasks.
 static func draw_icon(c: Control, kind: String) -> void:
-	var ink := Ink.INK
+	var ink := Os.INK
 	var o := Vector2(c.size.x / 2, 26)
 	match kind:
 		"browser":  # a globe
@@ -373,18 +389,20 @@ const TITLES := {"browser": "Przeglądarka — praca.example", "mail": "Poczta �
 
 func _open_window(name: String) -> void:
 	if not _windows.has(name):
-		var win := Ink.panel("paper")
+		var win := Os.panel("paper")
 		var col := VBoxContainer.new()
 		col.add_theme_constant_override("separation", 0)
 		win.add_child(col)
 		var title_bar := PanelContainer.new()
-		title_bar.add_theme_stylebox_override("panel", Ink.box("title"))
+		title_bar.add_theme_stylebox_override("panel", Os.box("title"))
 		var trow := HBoxContainer.new()
 		title_bar.add_child(trow)
-		var tl := _label(TITLES[name] % [profile.get("email", "")] if name == "mail" else TITLES[name], 16, Color.WHITE)
+		var tl := Label.new()
+		tl.text = TITLES[name] % [profile.get("email", "")] if name == "mail" else TITLES[name]
+		Os.style_title(tl)
 		tl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		trow.add_child(tl)
-		var close := Ink.button("X", false, true)
+		var close := Os.close_button()
 		if Touch.active:
 			close.custom_minimum_size = Vector2(48, 44)
 			tl.autowrap_mode = TextServer.AUTOWRAP_OFF
@@ -418,7 +436,7 @@ func _open_window(name: String) -> void:
 		_root.add_child(win)
 		_windows[name] = win
 		_body[name] = body
-		var tbtn := Ink.button({"browser": "Przeglądarka", "mail": "Poczta", "interview": "Rozmowa"}[name])
+		var tbtn := Os.task_button({"browser": "Przeglądarka", "mail": "Poczta", "interview": "Rozmowa"}[name])
 		if Touch.active:
 			tbtn.custom_minimum_size.y = 48
 		tbtn.pressed.connect(func(): _focus(name))
@@ -694,8 +712,8 @@ func _video_tile(parent: Container, who: String, look: int, appearance: Dictiona
 	var tile := PanelContainer.new()
 	var s := StyleBoxFlat.new()
 	s.bg_color = Color("#20242e")
-	s.border_color = Ink.INK
-	s.set_border_width_all(Ink.LINE)
+	s.border_color = Os.INK
+	s.set_border_width_all(Os.LINE)
 	tile.add_theme_stylebox_override("panel", s)
 	tile.custom_minimum_size = Vector2(150, 110) if _narrow() else Vector2(230, 170)
 	var stage := Control.new()
@@ -929,8 +947,8 @@ func _toast_msg(text: String) -> void:
 				_toast.visible = false)
 
 
-func _label(text: String, size: int, color := Ink.TEXT_INK, wrap := true) -> Label:
-	return Ink.label(text, size, color, wrap)
+func _label(text: String, size: int, color := Os.TEXT_INK, wrap := true) -> Label:
+	return Os.label(text, size, color, wrap)
 
 
 func _card(parent: Container) -> VBoxContainer:
@@ -938,7 +956,7 @@ func _card(parent: Container) -> VBoxContainer:
 
 
 func _card_in(parent: Container) -> VBoxContainer:
-	var panel := Ink.panel("card")
+	var panel := Os.panel("card")
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 8)
 	panel.add_child(box)
@@ -947,6 +965,6 @@ func _card_in(parent: Container) -> VBoxContainer:
 
 
 func _button(text: String, primary := true) -> Button:
-	var b := Ink.button(text, primary)
+	var b := Os.button(text, primary)
 	b.custom_minimum_size = Vector2(0, 50 if Touch.active else 36)
 	return b

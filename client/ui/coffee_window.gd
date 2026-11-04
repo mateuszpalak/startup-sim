@@ -135,8 +135,8 @@ func _draw_machine() -> void:
 	var busy: int = state.get("busy", 0)
 	var body := Rect2(18, 10, 154, 230)
 	c.draw_rect(body.grow(3), Ink.INK)
-	c.draw_rect(body, Color("#2f2f36"))
-	c.draw_rect(Rect2(body.position + Vector2(8, 8), Vector2(body.size.x - 16, 26)), Color("#45454f"))
+	c.draw_rect(body, Color("#b84a3a"))  # the same red espresso machine as in the kitchen
+	c.draw_rect(Rect2(body.position + Vector2(8, 8), Vector2(body.size.x - 16, 26)), Color("#8e3326"))
 	# A little display.
 	c.draw_rect(Rect2(98, 22, 60, 14), Color("#9fb98c"))
 	c.draw_string(Ink.font(), Vector2(102, 34), ("%d s" % busy) if busy > 0 else "OK", HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color("#1f2a17"))
@@ -162,7 +162,7 @@ func _draw_machine() -> void:
 	# The grounds drawer.
 	var drawer := Rect2(28, 188, 136, 40)
 	c.draw_rect(drawer.grow(2), Ink.INK)
-	c.draw_rect(drawer, Color("#45454f"))
+	c.draw_rect(drawer, Color("#9aa4ab"))
 	var gw := (drawer.size.x - 8) * grounds
 	c.draw_rect(Rect2(drawer.position + Vector2(4, 14), Vector2(gw, drawer.size.y - 18)), Color("#5e4130"))
 	c.draw_rect(Rect2(drawer.position.x + drawer.size.x / 2 - 14, drawer.position.y + 4, 28, 6), Color("#8b8f98"))

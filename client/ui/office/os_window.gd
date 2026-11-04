@@ -2,7 +2,7 @@
 ## close) and a body that holds one app.
 extends PanelContainer
 
-const Ink = preload("res://ui/ink_ui.gd")
+const Os = preload("res://ui/office/xp_ui.gd")
 const Touch = preload("res://touch/touch.gd")
 
 signal closed
@@ -14,22 +14,21 @@ var _title := Label.new()
 
 
 func setup(title: String, body: Control, pad := 12) -> void:
-	add_theme_stylebox_override("panel", Ink.box("paper"))
+	add_theme_stylebox_override("panel", Os.box("paper"))
 	var col := VBoxContainer.new()
 	col.add_theme_constant_override("separation", 0)
 	add_child(col)
 	var bar := PanelContainer.new()
-	bar.add_theme_stylebox_override("panel", Ink.box("title"))
+	bar.add_theme_stylebox_override("panel", Os.box("title"))
 	col.add_child(bar)
 	var row := HBoxContainer.new()
 	bar.add_child(row)
-	Ink.style_label(_title, 16, Color.WHITE)
+	Os.style_title(_title)
 	_title.text = title
 	_title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_title.clip_text = Touch.active
 	row.add_child(_title)
-	var x := Ink.button("X", false, true)
-	x.focus_mode = Control.FOCUS_NONE
+	var x := Os.close_button()
 	if Touch.active:
 		x.custom_minimum_size = Vector2(48, 44)
 	x.pressed.connect(func(): closed.emit())

@@ -63,7 +63,8 @@
 
 ## 10.39 Firmowy komputer: pulpit, poczta, tablica zadań
 
-- Komputer na biurku wygląda jak domowy pulpit (StartOS): tapeta z miastem,
+- Komputer na biurku wygląda jak domowy pulpit (StartOS, wygląd w duchu
+  pulpitów z początku lat 2000 — [oprawa 10.63](oprawa.md)): tapeta z niebem i wzgórzami,
   ikony — **Poczta, Przeglądarka, Komunikator, Kalendarz, Firma** (tylko
   założyciel), **Kosz** — okna do przeciągania i zamykania, pasek zadań
   (menu StartOS: zablokuj, zabierz laptop, zamknij; konto, jako które

@@ -297,3 +297,26 @@ rysowanym w kodzie, bez obrazków i cudzych licencji; kamera zostaje z góry.
 - Sprawdzone też na zrzutach: aplikacje komputera (tablica zadań,
   kalendarz, komunikator), okno lodówki, menu akcji (Tab), duża tabliczka
   na drzwiach, wszystkie stroje i pozy postaci.
+
+## 10.63 Komputer w stylu pulpitu z początku lat 2000, nowa ikona (2026-11-04)
+
+- **StartOS** (domowy pulpit z portalem i komputer w biurze) ma własny
+  wygląd, osobny od reszty interfejsu (`ui/office/xp_ui.gd`, to samo API co
+  `ui/ink_ui.gd`): błyszczące niebieskie paski tytułu z pogrubionym białym
+  tytułem i czerwonym kwadratowym krzyżykiem, beżowe okna w niebieskiej
+  ramce, zielony przycisk **start** (pogrubiony, pochylony napis), niebieski
+  pasek zadań z jaśniejszymi przyciskami okien i zasobnikiem z zegarem,
+  wypukłe przyciski z pomarańczową poświatą po najechaniu, białe pola z
+  cienką niebieskoszarą ramką, jasnożółte dymki powiadomień i systemowa
+  czcionka (Tahoma, a gdy jej nie ma — Verdana, Segoe UI…). Tapeta: niebo
+  z chmurami, dwa zielone wzgórza, kwiatki i samotne drzewo. Bez cudzych
+  logo i grafik — wszystko rysowane w kodzie.
+- **Ikona aplikacji** (klient 2D) i **ekran startowy** w nowych kolorach:
+  zachód słońca zamiast księżyca, miasto w granatowo-zielonych sylwetkach,
+  korony drzew, kremowy kubek z terakotowym paskiem. `tools/make_icons.py
+  client` generuje ikony tylko dla jednego klienta; kolor ulicy pod kubkiem
+  bierze z komentarza `<!-- street #… -->` w `icon.svg`. Klient 3D ma
+  dotychczasową ikonę.
+- Menu pauzy przyciemnia grę na chłodno (niebiesko-zielono), ekspres w oknie
+  jest czerwony jak w kuchni.
+
