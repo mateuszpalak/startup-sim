@@ -2,7 +2,9 @@
 
 *Architektura: [przegląd](architektura.md) · [serwer](architektura-serwer.md) · [klient](architektura-klient.md) · [protokół](protokol.md)*
 
-**Pulpit** (`ui/desktop.gd`, osobna warstwa nad grą): „StartOS” z ikonami
+**Pulpit** (`ui/desktop.gd`, osobna warstwa nad grą; wygląd komputera —
+pulpit, okna, aplikacje, też ten w biurze — z `ui/office/xp_ui.gd`, nie z
+`ui/ink_ui.gd`): „StartOS” z ikonami
 Przeglądarka / Poczta / Kosz, paskiem zadań i zegarem; okna (przeciągane):
 przeglądarka z portalem i formularzem zgłoszeniowym (dane postaci + „Dlaczego
 chcesz u nas pracować?” + zgoda), poczta (lista, podgląd, przyciski akcji),

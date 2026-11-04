@@ -11,11 +11,15 @@ mask the icon themselves, so they get the picture full-bleed instead:
   <client>/icons/android/adaptive_foreground_432.png  the mug (transparent),
                                                      inside the 66 % safe zone
 
-Usage: python3 tools/make_icons.py
+The street under the mug (full-bleed icons) takes its colour from a
+`<!-- street #rrggbb -->` comment in icon.svg, if there is one.
+
+Usage: python3 tools/make_icons.py [client ...]   (default: both clients)
 """
 import pathlib
 import re
 import subprocess
+import sys
 import tempfile
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
@@ -26,14 +30,14 @@ def svg(defs: str, view: str, body: str) -> str:
             f"{defs}{body}</svg>")
 
 
-def render(text: str, out: pathlib.Path, size: int, opaque: bool) -> None:
+def render(text: str, out: pathlib.Path, size: int, opaque: bool, bg: str = "#1f1a2e") -> None:
     with tempfile.NamedTemporaryFile("w", suffix=".svg", delete=False) as f:
         f.write(text)
     tmp = out.with_suffix(".tmp.png")
     subprocess.run(["rsvg-convert", "-w", str(size), "-h", str(size), "-o", str(tmp), f.name], check=True)
     cmd = ["magick", str(tmp)]
     if opaque:
-        cmd += ["-background", "#1f1a2e", "-alpha", "remove", "-alpha", "off"]
+        cmd += ["-background", bg, "-alpha", "remove", "-alpha", "off"]
     subprocess.run(cmd + ["-strip", f"PNG32:{out}" if not opaque else f"PNG24:{out}"], check=True)
     tmp.unlink()
     pathlib.Path(f.name).unlink()
@@ -49,19 +53,21 @@ def make(icons: pathlib.Path) -> None:
     # bottom (the tile's rim used to hide the gap under the mug).
     scene = scene.replace('<rect x="64" y="64" width="896" height="896" fill="url(#sky)"/>',
                           '<rect x="0" y="0" width="1024" height="1024" fill="url(#sky)"/>')
-    street = '<rect x="0" y="860" width="1024" height="164" fill="#1c1622"/>'
+    m = re.search(r"<!-- street (#[0-9a-fA-F]{6}) -->", src)
+    street_col = m.group(1) if m else "#1c1622"
+    street = f'<rect x="0" y="860" width="1024" height="164" fill="{street_col}"/>'
     frame = "64 64 896 896"  # the tile's framing, without its margin
     full = svg(defs, frame, scene + street + mug)
-    render(full, icons / "icon_ios.png", 1024, True)
-    render(full, icons / "android" / "icon_192.png", 192, True)
+    render(full, icons / "icon_ios.png", 1024, True, street_col)
+    render(full, icons / "android" / "icon_192.png", 192, True, street_col)
     # Adaptive: the launcher crops to ~66 % of the 108 dp layer, so the mug is
     # shrunk around its centre (~ 590, 545) to fit the safe circle.
-    render(svg(defs, frame, scene + street), icons / "android" / "adaptive_background_432.png", 432, True)
+    render(svg(defs, frame, scene + street), icons / "android" / "adaptive_background_432.png", 432, True, street_col)
     render(svg(defs, "0 0 1024 1024", f'<g transform="translate(512 512) scale(0.6) translate(-590 -545)">{mug}</g>'),
            icons / "android" / "adaptive_foreground_432.png", 432, False)
 
 
-for client in ("client", "client3d"):
+for client in sys.argv[1:] or ("client", "client3d"):
     (ROOT / client / "icons" / "android").mkdir(exist_ok=True)
     make(ROOT / client / "icons")
 print("icons written")

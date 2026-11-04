@@ -1,6 +1,6 @@
-## Character needs (top right) as round badges, Don't Starve style: each is
-## a jar of coloured liquid that drains as the need gets worse, with an ink
-## ring and an icon; the number shows on hover (and when it's critical the
+## Character needs (top right) as round glass badges: each is a jar of
+## coloured liquid that drains as the need gets worse, with a cream rim and
+## an icon; the number shows on hover (and when it's critical the
 ## badge pulses and shows it anyway). Wallet as a coin; warnings (dirty
 ## hands, upset stomach) on a paper note below. From the server's Stats.
 extends Control
@@ -10,14 +10,14 @@ const Touch = preload("res://touch/touch.gd")
 
 ## [name, true if high = bad, liquid colour, icon]
 const ROWS := [
-	["Głód", true, Color("#c9803a"), "food"],
-	["Energia", false, Color("#d8b83e"), "bolt"],
-	["Stres", true, Color("#8a5aa8"), "brain"],
-	["Toaleta", true, Color("#4f8fc0"), "drop"],
-	["Higiena", false, Color("#5aa89a"), "soap"],
-	["Upojenie", true, Color("#d9a032"), "mug"],
-	["Jelita", true, Color("#8a5a3a"), "roll"],
-	["Zdrowie", false, Color("#c8463c"), "heart"],
+	["Głód", true, Color("#e8914a"), "food"],
+	["Energia", false, Color("#f0cc4a"), "bolt"],
+	["Stres", true, Color("#a774c8"), "brain"],
+	["Toaleta", true, Color("#5aa6dc"), "drop"],
+	["Higiena", false, Color("#5cc4ae"), "soap"],
+	["Upojenie", true, Color("#f0b043"), "mug"],
+	["Jelita", true, Color("#b07a52"), "roll"],
+	["Zdrowie", false, Color("#e55a5a"), "heart"],
 ]
 const CRITICAL := 80
 const SIZE := 64.0
@@ -190,8 +190,8 @@ func _draw_coin() -> void:
 func _draw_glass(body: Control) -> void:
 	var r := SIZE / 2 - 3
 	var c := Vector2(SIZE / 2, SIZE / 2)
-	body.draw_circle(c + Vector2(2, 3), r, Color(0, 0, 0, 0.35))
-	body.draw_circle(c, r, Color("#1e1712"))
+	body.draw_circle(c + Vector2(2, 4), r + 1, Color(0.02, 0.04, 0.08, 0.3))
+	body.draw_circle(c, r, Ink.DARK_LO)
 
 
 ## The number below the badge.
@@ -243,9 +243,12 @@ func _draw_liquid(l: Control, i: int) -> void:
 func _draw_top(top: Control, i: int) -> void:
 	var r := SIZE / 2 - 3
 	var c := Vector2(SIZE / 2, SIZE / 2)
-	top.draw_arc(c, r - 7, PI * 1.1, PI * 1.45, 12, Color(1, 1, 1, 0.25), 3.0, true)
-	top.draw_arc(c, r, 0, TAU, 48, Ink.INK, 4.0, true)
-	top.draw_arc(c, r - 3, 0, TAU, 48, Color(Ink.DARK_HI, 0.8), 1.5, true)
+	# Glass: a soft gleam at the top left and a small glint.
+	top.draw_arc(c, r - 7, PI * 1.08, PI * 1.48, 14, Color(1, 1, 1, 0.38), 4.0, true)
+	top.draw_circle(c + Vector2(r * 0.42, -r * 0.5), 2.2, Color(1, 1, 1, 0.5))
+	# A cream porcelain rim with a thin dark edge.
+	top.draw_arc(c, r + 0.5, 0, TAU, 48, Color(Ink.INK, 0.7), 5.5, true)
+	top.draw_arc(c, r, 0, TAU, 48, Color("#f3ead4"), 3.0, true)
 	_draw_icon(top, ROWS[i][3], c)
 
 

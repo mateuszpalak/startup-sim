@@ -91,6 +91,39 @@ def sweep_lowpass(x, c0, c1):
     return out
 
 
+def biquad_bp(x, freq, q):
+    """A resonant band-pass (RBJ biquad, constant peak gain): rings at freq."""
+    w = TAU * freq / SR
+    alpha = math.sin(w) / (2 * q)
+    b0, b2 = alpha, -alpha
+    a0, a1, a2 = 1 + alpha, -2 * math.cos(w), 1 - alpha
+    out = []
+    x1 = x2 = y1 = y2 = 0.0
+    for v in x:
+        y = (b0 * v + b2 * x2 - a1 * y1 - a2 * y2) / a0
+        x2, x1 = x1, v
+        y2, y1 = y1, y
+        out.append(y)
+    return out
+
+
+def biquad_lp(x, freq, q=0.707):
+    """A two-pole low-pass (RBJ biquad): smoother than the one-pole lowpass."""
+    w = TAU * freq / SR
+    alpha = math.sin(w) / (2 * q)
+    c = math.cos(w)
+    b0, b1, b2 = (1 - c) / 2, 1 - c, (1 - c) / 2
+    a0, a1, a2 = 1 + alpha, -2 * c, 1 - alpha
+    out = []
+    x1 = x2 = y1 = y2 = 0.0
+    for v in x:
+        y = (b0 * v + b1 * x1 + b2 * x2 - a1 * y1 - a2 * y2) / a0
+        x2, x1 = x1, v
+        y2, y1 = y1, y
+        out.append(y)
+    return out
+
+
 def gain(x, g):
     return [v * g for v in x]
 
@@ -176,23 +209,68 @@ def write(name, x, peak=0.85):
 
 # ------------------------------------------------------------------ sounds
 
+STEP_VARIANTS = 6
+
+
+def burst(sec, decay, attack=0.0008):
+    """Noise that hits at once and dies away: the raw stuff of a footfall."""
+    return env(noise(sec), a=attack, d=decay, r=0.004)
+
+
+def footfall(heel, roll, roll_at):
+    """A step: the heel strikes, then the sole rolls down a moment later."""
+    return mix(heel, at(roll, roll_at))
+
+
+# Draws the first footsteps took from the shared generator: still taken, so
+# every other sound keeps exactly the noise it always had.
+OLD_STEP_DRAWS = 3 * (int(0.08 * SR) + int(0.12 * SR) + int(0.05 * SR) + 7 * (int(0.02 * SR) + 1) + int(0.1 * SR))
+
+
 def steps():
-    for k in range(3):
-        # Wood-ish floor: a dull knock.
-        body = env(tone(85 + k * 9, 0.12), a=0.002, d=35)
-        tap = env(lowpass(noise(0.08), 1400 + k * 200), a=0.001, d=60)
-        write(f"step_floor_{k + 1}", mix(gain(body, 0.7), tap), 0.6)
-        # Carpet: soft, muffled.
-        write(f"step_carpet_{k + 1}", env(lowpass(noise(0.12), 500 + k * 80), a=0.01, d=28), 0.35)
-        # Tiles: a hard heel click.
-        click = env(highpass(noise(0.05), 2500), a=0.0005, d=120)
-        ring = env(tone(1700 + k * 130, 0.06), a=0.0005, d=90)
-        write(f"step_tiles_{k + 1}", mix(click, gain(ring, 0.25), gain(body, 0.4)), 0.6)
-        # Outside: grit and gravel.
+    """Footsteps, STEP_VARIANTS of each, every one a little different: a heel
+    strike and a softer roll of the sole, shaped by the floor - no tones,
+    only filtered noise and short resonances, like a real shoe."""
+    global rng
+    shared = rng
+    rng = random.Random(4321)
+    _steps()
+    rng = shared
+    for _ in range(OLD_STEP_DRAWS):
+        rng.random()
+
+
+def _steps():
+    for k in range(STEP_VARIANTS):
+        v = rng.uniform(-1, 1)          # this variant's character
+        roll_at = 0.045 + rng.uniform(0, 0.03)
+        # Wood floor: a muffled knock with the board's hollow ring.
+        knock = biquad_bp(burst(0.09, 55), 190 + v * 25, 2.2)
+        board = biquad_bp(burst(0.12, 30), 420 + v * 50, 6.0)
+        scuff = biquad_lp(highpass(burst(0.05, 70), 400), 3000)
+        heel = mix(gain(knock, 1.0), gain(board, 0.35), gain(scuff, 0.25))
+        roll = mix(gain(biquad_bp(burst(0.07, 60), 230 + v * 20, 2.0), 0.45), gain(biquad_lp(burst(0.06, 80), 2200), 0.12))
+        write(f"step_floor_{k + 1}", footfall(heel, roll, roll_at), 0.42)
+        # Carpet: soft and dull, with a brush of fabric.
+        thud = biquad_lp(burst(0.12, 35, 0.004), 260 + v * 30)
+        fabric = gain(bandpass(burst(0.1, 40, 0.006), 900, 3200), 0.18)
+        roll = gain(biquad_lp(burst(0.09, 45, 0.006), 350), 0.5)
+        write(f"step_carpet_{k + 1}", footfall(mix(thud, fabric), roll, roll_at + 0.01), 0.3)
+        # Tiles: a hard heel click with a short bathroom echo.
+        click = biquad_bp(burst(0.03, 220, 0.0003), 2600 + v * 400, 1.4)
+        tock = biquad_bp(burst(0.06, 90, 0.0003), 1050 + v * 120, 9.0)
+        thump = biquad_lp(burst(0.06, 60), 300)
+        heel = mix(gain(click, 0.6), gain(tock, 0.55), gain(thump, 0.5))
+        roll = mix(gain(biquad_bp(burst(0.03, 200, 0.0003), 2300 + v * 300, 1.4), 0.25), gain(biquad_lp(burst(0.05, 70), 280), 0.3))
+        write(f"step_tiles_{k + 1}", reverb(footfall(heel, roll, roll_at - 0.01), 0.35, (0.011, 0.017, 0.023, 0.031), 0.35), 0.45)
+        # Outside: grit crunching under the sole, a dull thud of the paving.
         grit = []
-        for g in range(7):
-            grit = mix(grit, at(env(bandpass(noise(0.02), 1800, 5000), a=0.0005, d=150), g * 0.012 + rng.uniform(0, 0.01)))
-        write(f"step_out_{k + 1}", mix(gain(grit, 0.8), gain(env(lowpass(noise(0.1), 600), a=0.003, d=40), 0.5)), 0.5)
+        for g in range(26):
+            t0 = rng.uniform(0, 0.09) ** 1.3 * 2.2
+            grain = biquad_bp(burst(0.012, 380, 0.0002), rng.uniform(1800, 6000), 1.2)
+            grit = mix(grit, at(gain(grain, rng.uniform(0.2, 1.0) * (1.0 - t0 * 4)), t0))
+        thud = biquad_lp(burst(0.08, 50), 220 + v * 30)
+        write(f"step_out_{k + 1}", mix(gain(thud, 0.9), gain(grit, 0.5)), 0.4)
 
 
 def ui():
@@ -250,7 +328,8 @@ def alarms():
 def devices():
     write("ding", reverb(mix(bell(880, 1.4, 2.5), at(bell(698.5, 1.4, 2.5), 0.35)), 0.3), 0.6)
     clk = env(highpass(noise(0.02), 1800), a=0.0005, d=200)
-    clunk = env(mix(lowpass(noise(0.08), 900), gain(tone(140, 0.08), 0.6)), a=0.001, d=50)
+    n = noise(0.08)
+    clunk = env(mix(lowpass(n, 900), gain(biquad_bp(n, 140, 4.0), 1.6)), a=0.001, d=50)
     write("lock", cat(clk, silence(0.04), clunk), 0.6)
     write("switch", mix(clk, gain(env(tone(3000, 0.015), a=0.0005, d=300), 0.4)), 0.55)
     # Flush: a rising whoosh, gurgles, the tank refilling.
@@ -274,15 +353,18 @@ def devices():
     whirr = env(bandpass(noise(1.4), 200, 900), a=0.3, r=0.3)
     whirr = [v * (0.7 + 0.3 * math.sin(TAU * 6 * i / SR)) for i, v in enumerate(whirr)]
     write("dishwasher", mix(gain(beeps, 0.5), at(whirr, 0.35)), 0.6)
-    thunk = env(mix(lowpass(noise(0.1), 500), gain(tone(95, 0.12), 0.8)), a=0.002, d=30)
+    n = noise(0.1)
+    thunk = env(mix(lowpass(n, 500), gain(biquad_bp(n + [0.0] * int(0.02 * SR), 95, 4.0), 2.0)), a=0.002, d=30)
     suck = env(bandpass(noise(0.2), 800, 3000), a=0.02, d=15)
     hum = env(mix(tone(100, 0.9), gain(tone(200, 0.9), 0.4)), a=0.2, r=0.3)
     write("fridge", mix(thunk, at(gain(suck, 0.4), 0.03), at(gain(hum, 0.25), 0.15)), 0.6)
-    door = env(mix(lowpass(noise(0.07), 1200), gain(tone(180, 0.07), 0.5)), a=0.002, d=40)
+    n = noise(0.07)
+    door = env(mix(lowpass(n, 1200), gain(biquad_bp(n, 180, 3.5), 1.4)), a=0.002, d=40)
     clink = mix(bell(3300, 0.4, 10), at(bell(4100, 0.35, 12), 0.06), at(bell(2800, 0.3, 12), 0.13))
     write("cupboard", mix(door, at(gain(clink, 0.5), 0.1)), 0.6)
     write("pickup", env(tone(lambda t: 500 + 900 * t / 0.09, 0.09, "tri"), a=0.003, d=20), 0.45)
-    write("drop", env(mix(lowpass(noise(0.12), 700), gain(tone(110, 0.12), 0.8)), a=0.001, d=30), 0.55)
+    n = noise(0.12)
+    write("drop", env(mix(lowpass(n, 700), gain(biquad_bp(n, 110, 3.0), 2.0)), a=0.001, d=30), 0.55)
     crunch = []
     for b in range(9):
         crunch = mix(crunch, at(env(bandpass(noise(0.04), 1000, 5000), a=0.001, d=80), b * 0.065 + rng.uniform(0, 0.02)))
@@ -306,9 +388,11 @@ def weather():
     write("thunder", mix(gain(crack, 0.5), env(rum, a=0.05, d=0.9, r=0.8)), 0.9)
     # Rain bed: steady hiss + droplets; 8 s seamless.
     rain = bandpass(noise(8.6), 700, 6000)
+    drops = random.Random(77)  # the droplets' own noise: the shared generator stays as it was
     for b in range(900):
         f = rng.uniform(1500, 5000)
-        rain = mix(rain, at(gain(env(tone(f, 0.02), a=0.0005, d=250), rng.uniform(0.05, 0.3)), rng.uniform(0, 8.5)))
+        tick = biquad_bp([drops.uniform(-1, 1) for _ in range(int(0.02 * SR))], f, 2.5)
+        rain = mix(rain, at(gain(env(tick, a=0.0005, d=250), rng.uniform(0.05, 0.3) * 2.2), rng.uniform(0, 8.5)))
     write("rain_loop", crossfade_loop(rain, 8.0, 0.6), 0.5)
     # Street: low traffic rumble, a few cars passing; 12 s.
     street = lowpass(noise(12.8), 250)

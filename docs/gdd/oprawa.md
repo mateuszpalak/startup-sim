@@ -179,3 +179,161 @@ pełnym ekranie — zastąpiona stylem inspirowanym Don't Starve:
   starcie; dojazd zmienia je jak dotąd). Wcześniej potrzeby w domu stały w
   miejscu — kto wyszedł zmęczony i głodny, wracał rano taki sam.
 
+
+## 10.57 Wygląd „wioska w cieniu” (2026-11-03)
+
+Styl „papier i tusz” zastąpiony cieplejszym, kolorowym wyglądem w duchu
+ilustrowanych gier o życiu na wsi (inspiracja: Village in the Shade) — dalej
+rysowanym w kodzie, bez obrazków i cudzych licencji; kamera zostaje z góry.
+
+- **Efekt na cały obraz** (`game/mood.gdshader`): bez konturów tuszu;
+  żywsze kolory, chłodne cienie i ciepłe światło, miękka poświata wokół
+  jasnych miejsc, lekkie rozmycie przy górnej i dolnej krawędzi (jak makieta)
+  i głęboka, chłodna winieta.
+- **Malowana faktura mapy** (`map/painted.gdshader`): plamy jaśniejszego i
+  ciemniejszego, cieplejszego i chłodniejszego koloru przez całą mapę (bez
+  szwów między kaflami) i drobne pociągnięcia pędzla, przypięte do świata.
+- **Podłogi**: każda deska, płytka i kostka we własnym odcieniu; szałwiowa
+  wykładzina; bujna trawa z kępami, kwiatkami, kamykami i krzaczkami (z
+  kwiatami albo owocami); mech w spoinach chodnika; ciepły żwir.
+- **Ściany**: ciemny wierzch, ciepły tynk nad drewnianą boazerią, okna z
+  odbiciem nieba; pod ścianami szeroki, miękki cień, a przez okna padają na
+  podłogę skośne plamy słońca.
+- **Meble**: miękkie cienie zamiast twardych; krzesła tapicerowane, jaśniejsze
+  biurka z połyskiem, kubki na niektórych.
+- **Kontury** wszędzie cienkie, w ciemnym odcieniu koloru wypełnienia, a nie
+  czarne.
+- **Światło**: zapalona lampa to ciepłe kręgi światła (co kilka kafli), a nie
+  płaski filtr; wieczorem świecą tak też korytarze i hole.
+- **Postacie** w stylu chibi: kontury w odcieniu koloru, światłocień (cień z
+  prawej, światło z lewej), duże błyszczące oczy w jednym z sześciu kolorów
+  (z gruba rzęsą i dwoma błyskami), rumieńce, miękka grzywka i pasma przy
+  twarzy, połysk na włosach; uszy schowane pod włosami. Własną postać znaczy
+  pierścień wokół stóp (zamiast jasnego konturu).
+
+## 10.58 Drzewa, meble i interfejs w nowym stylu (2026-11-03)
+
+- **Drzewa** na trawnikach (`map/tree_view.gd`): tam, gdzie wokół jest sama
+  trawa, w luźnej siatce (te same na każdym kliencie; serwer o nich nie wie i
+  nie blokują przejścia). Zielone, kwitnące (różowe) i jesienne; korona z
+  kilku kęp, każda z własnym światłocieniem i listkami. Korona jest nad
+  postaciami i lekko kołysze się na wietrze; nad własną postacią robi się
+  półprzezroczysta. Pod nią pień z korzeniami i cień, przez który przebijają
+  ruchome plamy słońca (`map/dapple.gdshader`).
+- **Żywopłot** z gęstych krzaków, ciemniejsza, mszysta trawa.
+- **Meble**: sofy w kolorze terakoty z poduszkami, rośliny w doniczkach z
+  bujnymi liśćmi (czasem kwitną), samochody z połyskiem i niebem w szybach.
+- **Interfejs**: panele HUD granatowo-morskie, półprzezroczyste, z jasnym
+  cienkim obrysem i zaokrąglonymi rogami (bez postrzępionych brzegów); okna
+  na pergaminie z łagodniejszym obrysem; przyciski terakotowe.
+
+## 10.59 Reszta mebli, tarcze, przedmioty, wieczorne światło (2026-11-03)
+
+- **Meble**: każdy prostokątny mebel ma fazę (jasna krawędź u góry, cień u
+  dołu); regały w sklepie z drewna z półkami; kremowe blaty w kuchni;
+  lodówka w kolorze miętowym; diody szaf serwerowych z poświatą.
+- **Tarcze statystyk**: morskie szkło, kremowa porcelanowa obwódka,
+  żywsze kolory płynu, refleks i błysk.
+- **Przedmioty**: łagodniejszy, ciepły kontur, połysk na okrągłych
+  kształtach, w slotach i na półkach miękki cień pod przedmiotem.
+- **Wieczorem** pokoje oświetlone lampą są przygaszone między lampami, a pod
+  lampami jaśniej i cieplej — kręgi światła widać też na jasnych podłogach.
+
+## 10.60 Łazienki, lady i ekrany interfejsu (2026-11-03)
+
+- **Lady** (portiernia, recepcja, kasa): drewniany front z panelami,
+  polerowany blat ze słojami i jasną krawędzią, monitor z poświatą,
+  dzwonek, kubek z długopisami, na długiej ladzie papiery; pionowa lada też.
+- **Łazienki**: toaleta z zaokrągloną spłuczką i przyciskiem, deską i wodą z
+  połyskiem; umywalki z marmurowym blatem, owalną misą, chromowanym kranem,
+  mydłem i lustrem z refleksem; pisuary z połyskiem, wodą, przyciskiem i
+  przegrodą między sąsiednimi.
+- **Ramki interfejsu**: gładki obrys (bez „drżenia” i kresek), jasna linia u
+  góry wewnątrz, miękki cień pod spodem; obwódka przycisku w ciemnym
+  odcieniu jego koloru; ekran komputera w morskiej ramce. Postrzępione brzegi
+  zostały tylko jako opcja (`torn`).
+- **Tło ekranów logowania i tworzenia postaci** (`ui/backdrop.gdshader`):
+  głęboka zieleń morska u góry, ciepły zmierzch u dołu, rozmyte światełka
+  i winieta.
+
+## 10.61 Reszta świata i ekranów w nowym stylu (2026-11-04)
+
+- **Sale spotkań**: długi polerowany stół ze słojami i połyskiem, przy
+  każdym miejscu notes albo szklanka wody, dzbanek pośrodku; tapicerowane
+  krzesła dookoła.
+- **Drzwi**: progi z jasnym połyskiem, szklane drzwi w mosiężnej ramce z
+  odbiciami nieba, drzwi zaplecza z płycinami i gałką, mosiężna rozeta pod
+  dziurką od klucza w magazynku.
+- **Drobiazgi**: ławki z ciepłych desek na żelaznych nogach, stalowa
+  popielniczka z piaskiem, chromowane stojaki na rowery, zielone ścianki
+  działowe, wiklinowe kosze z papierami, błyszczący zielony kosz w kuchni,
+  szafy z płycinami, czerwony ekspres z manometrem i dyszą do pary.
+- **Pojazdy**: zaokrąglone karoserie, miękki cień, niebo w szybach,
+  reflektory i światła tylne; koguty policji i straży świecą z poświatą.
+- **Drzwi windy** z ciepłym refleksem, **drzwi kabin** w kolorze szałwii z
+  podświetlonym okienkiem „wolne / zajęte”.
+- **Pogoda**: deszcz jako jasne, półprzezroczyste smugi (bez konturu),
+  mgła i burzowe niebo w chłodnych, niebiesko-zielonych tonach.
+- **Ekran tytułowy**: zmierzch — niebo od morskiej zieleni do brzoskwini,
+  różowawe chmury, miasto w granatowo-zielonych sylwetkach z ciepłymi
+  oknami, na pierwszym planie trawa i korony drzew podświetlone słońcem.
+- **Tapeta komputera**: zachód słońca nad pagórkami z drzewami.
+- **README**: nowe zrzuty w galerii (`docs/media/*.jpg`) i nowy GIF ze zwiastuna (`tools/trailer`).
+
+## 10.62 Dym, palarnia, garaż, telewizor (2026-11-04)
+
+- **Dym w pomieszczeniach** bez konturu tuszu: chłodna, szaroniebieska
+  zasłona, kłęby z miękkim cieniem wokół całej chmury i jasnym światłem z
+  lewej u góry; dym z papierosa też bez ciemnego obrysu.
+- **Palarnia** jak stary przystanek: ciemnozielona malowana stal, szyby z
+  odbiciem nieba, ciepłe deski ławek, miękki cień dachu i emaliowana
+  tablica „PALARNIA” (morska z kremową ramką).
+- **Garaż**: roleta z jaśniejszymi krawędziami lameli; barierki balkonów w
+  ciemnej zieleni; bramki na kartę ze stalowymi słupkami i świecącą diodą.
+- **Tabliczki** przy drzwiach z mosiężnym połyskiem, **EXIT** świeci na
+  zielono.
+- **Telewizor**: smukła ciemnomorska ramka z cieniem na ścianie i
+  poświatą ekranu; kałuże, taca ze słodyczami i plamy z miękkim konturem.
+- Sprawdzone też na zrzutach: aplikacje komputera (tablica zadań,
+  kalendarz, komunikator), okno lodówki, menu akcji (Tab), duża tabliczka
+  na drzwiach, wszystkie stroje i pozy postaci.
+
+## 10.63 Komputer w stylu pulpitu z początku lat 2000, nowa ikona (2026-11-04)
+
+- **StartOS** (domowy pulpit z portalem i komputer w biurze) ma własny
+  wygląd, osobny od reszty interfejsu (`ui/office/xp_ui.gd`, to samo API co
+  `ui/ink_ui.gd`): błyszczące niebieskie paski tytułu z pogrubionym białym
+  tytułem i czerwonym kwadratowym krzyżykiem, beżowe okna w niebieskiej
+  ramce, zielony przycisk **start** (pogrubiony, pochylony napis), niebieski
+  pasek zadań z jaśniejszymi przyciskami okien i zasobnikiem z zegarem,
+  wypukłe przyciski z pomarańczową poświatą po najechaniu, białe pola z
+  cienką niebieskoszarą ramką, jasnożółte dymki powiadomień i systemowa
+  czcionka (Tahoma, a gdy jej nie ma — Verdana, Segoe UI…). Tapeta: niebo
+  z chmurami, dwa zielone wzgórza, kwiatki i samotne drzewo. Bez cudzych
+  logo i grafik — wszystko rysowane w kodzie.
+- **Ikona aplikacji** (klient 2D) i **ekran startowy** w nowych kolorach:
+  zachód słońca zamiast księżyca, miasto w granatowo-zielonych sylwetkach,
+  korony drzew, kremowy kubek z terakotowym paskiem. `tools/make_icons.py
+  client` generuje ikony tylko dla jednego klienta; kolor ulicy pod kubkiem
+  bierze z komentarza `<!-- street #… -->` w `icon.svg`. Klient 3D ma
+  dotychczasową ikonę.
+- Menu pauzy przyciemnia grę na chłodno (niebiesko-zielono), ekspres w oknie
+  jest czerwony jak w kuchni.
+
+
+## 10.64 Lepsze kroki i odgłosy uderzeń (2026-11-04)
+
+- **Kroki** syntetyzowane od nowa (`tools/sounds/gen_sounds.py`): bez
+  czystych tonów (stare „bum” z sinusoidy), tylko przefiltrowany szum i
+  krótkie rezonanse — uderzenie pięty i chwilę później cichsze przetoczenie
+  stopy. Drewno: głuchy stuk z pogłosem deski; wykładzina: miękko, z
+  szelestem materiału; płytki: twardy klik obcasa i krótkie echo łazienki;
+  na zewnątrz: chrzęst piasku i żwiru. **6 wariantów** każdej nawierzchni.
+- W grze krok co 14 px (ok. 2 na sekundę, w rytm nóg), losowy wariant
+  (nigdy dwa razy ten sam pod rząd), głośność ±1,5 dB, własne kroki ciszej
+  (−11 dB), cudze −16 dB.
+- **Uderzenia** (upuszczenie, zamek, lodówka, drzwiczki szafki): niski ton
+  zamieniony na rezonans tego samego szumu — krótki, wygasający stuk.
+  **Krople deszczu**: szumowe „tyknięcia” zamiast pisków.
+- Pozostałe dźwięki bit w bit bez zmian (kroki i krople mają własne
+  generatory liczb losowych; wspólny dostaje tyle losowań co dawniej).

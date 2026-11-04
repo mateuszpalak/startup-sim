@@ -31,6 +31,7 @@ const SKINS := [Color("#f2cfae"), Color("#e3b08c"), Color("#c68c63"), Color("#8d
 const HAIRS := [Color("#2b2118"), Color("#5a3b22"), Color("#a0703a"), Color("#d9b66b"), Color("#8a8a8a"), Color("#b5462e"), Color("#1d1d27")]
 const SHIRTS := [Color("#d64541"), Color("#2e86de"), Color("#27ae60"), Color("#f39c12"), Color("#8e44ad"), Color("#16a085"), Color("#e84393"), Color("#f5f6fa"), Color("#34495e"), Color("#c0a16b")]
 const PANTS := [Color("#2f3a56"), Color("#3b3b3b"), Color("#5a4a3a"), Color("#4a5a3a"), Color("#6b7a8f")]
+const EYES := [Color("#6b3f22"), Color("#3f7fc0"), Color("#4f9a52"), Color("#c08a2e"), Color("#7a6a9e"), Color("#3a2a24")]
 
 var look := LOOK_PLAYER
 var facing := FACING_DOWN
@@ -57,13 +58,14 @@ var umbrella := false
 var status := 0
 ## Item in hands (ItemArt kinds), visible to everyone.
 var held := 0
-## White outline marks the local player.
+## The local player: a ring around the feet.
 var highlight := false
 var skin := SKINS[0]
 var hair := HAIRS[0]
 var hair_style := 0   # 0 short, 1 long, 2 bun, 3 spiky, 4 ponytail, 5 bald
 var shirt := SHIRTS[0]
 var pants := PANTS[0]
+var eye_color := EYES[0]
 var tie := Color("#c0392b")
 
 var nick_label := Label.new()
@@ -143,6 +145,7 @@ func set_appearance(a: Dictionary) -> void:
 	hair = HAIRS[clampi(a.hair_color, 0, HAIRS.size() - 1)]
 	shirt = SHIRTS[clampi(a.shirt, 0, SHIRTS.size() - 1)]
 	pants = PANTS[clampi(a.pants, 0, PANTS.size() - 1)]
+	eye_color = EYES[(a.skin * 3 + a.hair_color * 5 + a.hair_style) % EYES.size()]
 	queue_redraw()
 
 
@@ -154,6 +157,7 @@ func set_seed(seed_id: int) -> void:
 	hair_style = (h / 53) % 6
 	shirt = SHIRTS[(h / 211) % SHIRTS.size()]
 	pants = PANTS[(h / 1237) % PANTS.size()]
+	eye_color = EYES[(h / 89) % EYES.size()]
 	tie = [Color("#c0392b"), Color("#2e86de"), Color("#27ae60")][(h / 17) % 3]
 	match look:
 		LOOK_PORTER:  # Pani Wiesia
@@ -316,23 +320,30 @@ func _frame() -> int:
 
 
 # ------------------------------------------------------------------- drawing
-# Hand-drawn look (Don't Starve-ish): a big round head with big eyes, a small
-# trapezoid body, stick-thin limbs, everything with an ink outline. Units are
-# world pixels; the origin is between the feet.
+# Chibi storybook look: a big round head with big shiny anime eyes, a fringe
+# and locks of hair, a small body, cel shading (light from the top left), and
+# outlines a deep shade of each colour rather than black. Units are world
+# pixels; the origin is between the feet.
 
-const OL := 0.75                 # ink outline width
-const INK := Color("#1d1712")
+const OL := 0.6                  # outline width
+const INK := Color("#2b1d1a")
+const SHADE := Color(0.16, 0.1, 0.3, 0.2)   # cel shadow over a fill
 const HEAD_R := 6.2
 const HEAD_Y := -20.5            # head centre (standing)
 
 
 func _ink() -> Color:
-	return Color("#fff6dc") if highlight else INK
+	return INK
+
+
+## The outline of a fill: a deep shade of the same colour.
+func _edge(col: Color) -> Color:
+	return col.darkened(0.62).lerp(INK, 0.35)
 
 
 ## A limb: a stick with round ends, outlined.
 func _limb(a: Vector2, b: Vector2, w: float, col: Color) -> void:
-	var ink := _ink()
+	var ink := _edge(col)
 	draw_line(a, b, ink, w + OL * 2, true)
 	draw_circle(a, w / 2 + OL, ink)
 	draw_circle(b, w / 2 + OL, ink)
@@ -342,7 +353,7 @@ func _limb(a: Vector2, b: Vector2, w: float, col: Color) -> void:
 
 
 func _blob(c: Vector2, r: float, col: Color) -> void:
-	draw_circle(c, r + OL, _ink())
+	draw_circle(c, r + OL, _edge(col))
 	draw_circle(c, r, col)
 
 
@@ -352,7 +363,7 @@ func _shape(pts: PackedVector2Array, col: Color, outline := true) -> void:
 	if outline:
 		var closed := pts.duplicate()
 		closed.append(pts[0])
-		draw_polyline(closed, _ink(), OL * 1.4, true)
+		draw_polyline(closed, _edge(col), OL * 1.4, true)
 
 
 ## Points of an arc of the head circle (angles in radians, 0 = right, y down).
@@ -378,9 +389,14 @@ func _draw() -> void:
 	var asleep := status in LYING
 	var retching := status == ACT_VOMITING
 
-	# Soft shadow at the feet.
+	# Soft shadow at the feet; the local player also gets a ring around them,
+	# inked so it reads on light tiles and dark carpet alike.
 	draw_set_transform(Vector2(0, 0.6), 0.0, Vector2(1.0, 0.35))
-	draw_circle(Vector2.ZERO, 5.5, Color(0, 0, 0, 0.3))
+	if highlight:
+		draw_arc(Vector2.ZERO, 9.0, 0, TAU, 32, INK, 3.2, true)
+		draw_arc(Vector2.ZERO, 9.0, 0, TAU, 32, Color("#fff6dc"), 1.8, true)
+	for k in [7.0, 6.0, 5.0]:
+		draw_circle(Vector2.ZERO, k, Color(0.05, 0.05, 0.15, 0.12))
 	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 
 	var hip := Vector2(0, -7.0 + drop - bob)
@@ -424,6 +440,10 @@ func _draw() -> void:
 		Vector2(-sw, shoulder_y), Vector2(sw, shoulder_y),
 		Vector2(hw, hip.y + 0.6), Vector2(-hw, hip.y + 0.6)])
 	_shape(body, shirt)
+	# Cel shading: the far side of the body in shadow, a soft light on the near one.
+	draw_colored_polygon(PackedVector2Array([Vector2(sw * 0.25, shoulder_y + 0.4), Vector2(sw - 0.4, shoulder_y + 0.4),
+		Vector2(hw - 0.3, hip.y + 0.2), Vector2(hw * 0.15, hip.y + 0.2)]), SHADE)
+	draw_line(Vector2(-sw + 0.9, shoulder_y + 0.8), Vector2(-hw + 0.9, hip.y - 0.6), Color(1, 1, 1, 0.18), 0.7, true)
 	# Clothing details.
 	if not back:
 		match look:
@@ -471,17 +491,16 @@ func _draw() -> void:
 		_limb(Vector2(mx, shoulder_y - 1), Vector2(mx, 0), 0.6, Color("#a0764b"))
 		_shape(PackedVector2Array([Vector2(mx - 2.4, 0), Vector2(mx + 2.4, 0), Vector2(mx + 1.6, -1.6), Vector2(mx - 1.6, -1.6)]), Color("#d9d4c7"))
 
-	# Head: big and round.
-	_blob(head, HEAD_R, skin)
-	# Ears (front view).
-	if not side and not back:
+	# Head: big and round, a cel-shaded crescent at the bottom right.
+	if not side and not back and (hair_style in [3, 5] or look in [LOOK_POLICE, LOOK_FIREFIGHTER]):
 		_blob(head + Vector2(-HEAD_R + 0.2, 0.8), 1.0, skin)
 		_blob(head + Vector2(HEAD_R - 0.2, 0.8), 1.0, skin)
-		draw_circle(head, HEAD_R, skin)  # hide the inner ear outline
+	_blob(head, HEAD_R, skin.darkened(0.12))
+	draw_circle(head + Vector2(-0.45, -0.55), HEAD_R - 0.5, skin)
 	_draw_hair(head, side, dir)
 	# Face: big dark eyes with a glint, a small mouth.
 	if not back:
-		var eyes: Array = [Vector2(-2.2, 0.6), Vector2(2.2, 0.6)] if not side else [Vector2(dir * 2.6, 0.6)]
+		var eyes: Array = [Vector2(-2.4, 0.9), Vector2(2.4, 0.9)] if not side else [Vector2(dir * 2.7, 0.9)]
 		for e in eyes:
 			var ep: Vector2 = head + e
 			if status == ACT_KNOCKED_OUT:  # x_x
@@ -491,13 +510,16 @@ func _draw() -> void:
 			if asleep or retching:
 				draw_line(ep + Vector2(-1.0, 0), ep + Vector2(1.0, 0), INK, 0.6, true)  # eyes shut
 				continue
-			draw_set_transform(ep, 0.0, Vector2(0.8, 1.0))
-			draw_circle(Vector2.ZERO, 1.25, INK)
-			draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
-			draw_circle(ep + Vector2(-0.35, -0.45), 0.38, Color(1, 1, 1, 0.9))
+			_anime_eye(ep, side)
 			if drunk >= 2:
 				# Heavy eyelids.
-				draw_line(ep + Vector2(-1.1, -0.7), ep + Vector2(1.1, -0.7), skin.darkened(0.25), 1.0, true)
+				draw_line(ep + Vector2(-1.4, -1.0), ep + Vector2(1.4, -1.0), skin.darkened(0.25), 1.4, true)
+		# Rosy cheeks, always a little.
+		for e in eyes:
+			var cp: Vector2 = head + e + Vector2((-0.9 * dir) if side else (e.x * 0.3), 2.5)
+			draw_set_transform(cp, 0.0, Vector2(1.4, 0.8))
+			draw_circle(Vector2.ZERO, 0.9, Color(0.96, 0.45, 0.5, 0.35))
+			draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 		if drunk > 0:
 			# Red cheeks and nose, redder the more drunk.
 			var red := Color(0.9, 0.2, 0.2, 0.18 + 0.12 * drunk)
@@ -508,18 +530,32 @@ func _draw() -> void:
 		var tired := slow or status == ACT_SOFA
 		if side:
 			draw_line(head + Vector2(dir * 5.6, 1.6), head + Vector2(dir * 6.4, 2.3), INK, 0.5, true)  # nose
-			draw_line(head + Vector2(dir * 2.6, 3.6), head + Vector2(dir * 3.8, 3.4), INK, 0.45, true)
+			draw_line(head + Vector2(dir * 2.9, 3.7), head + Vector2(dir * 3.9, 3.5), Color("#7a3a32"), 0.45, true)
 		elif tired:
 			draw_line(head + Vector2(-1.0, 3.6), head + Vector2(1.0, 3.6), INK, 0.45, true)
 		else:
-			draw_arc(head + Vector2(0, 2.6), 1.2, 0.3, PI - 0.3, 8, INK, 0.45, true)
+			draw_arc(head + Vector2(0, 3.2), 0.8, 0.35, PI - 0.35, 8, Color("#7a3a32"), 0.45, true)
 	_draw_headwear(head, side, dir)
 	_draw_status(head, shoulder_y, hip.y, side, dir)
 	_draw_drunk(head, side, dir)
 	_draw_deeds(head, shoulder_y, hip.y, side, dir)
 
 
-## Hair over the head: short, long, bun, spiky (Wilson-like), ponytail, bald.
+## A big shiny anime eye: a dark rim, a coloured iris lighter at the bottom,
+## the pupil, a thick upper lash and two glints.
+func _anime_eye(ep: Vector2, side: bool) -> void:
+	draw_set_transform(ep, 0.0, Vector2(1.0 if side else 1.15, 1.45))
+	draw_circle(Vector2.ZERO, 1.3, INK)
+	draw_circle(Vector2(0, 0.15), 1.0, eye_color)
+	draw_circle(Vector2(0, 0.45), 0.6, eye_color.lightened(0.35))
+	draw_circle(Vector2(0, -0.2), 0.5, INK)
+	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+	draw_arc(ep + Vector2(0, 0.2), 1.55, PI * 1.12, PI * 1.88, 8, INK, 0.75, true)
+	draw_circle(ep + Vector2(-0.45, -0.75), 0.42, Color(1, 1, 1, 0.95))
+	draw_circle(ep + Vector2(0.45, 0.8), 0.22, Color(1, 1, 1, 0.8))
+
+
+## Hair over the head: short, long, bun, spiky, ponytail, bald.
 func _draw_hair(head: Vector2, side: bool, dir: float) -> void:
 	if look in [LOOK_POLICE, LOOK_FIREFIGHTER]:
 		return  # under the cap / helmet
@@ -562,14 +598,43 @@ func _draw_hair(head: Vector2, side: bool, dir: float) -> void:
 			var px := -dir * (r - 0.5) if side else r - 0.5
 			_limb(head + Vector2(px, -1), head + Vector2(px + (-dir if side else 1.0) * 1.5, 5), 1.8, h)
 	_shape(cap, h)
+	if hair_style != 3:
+		_draw_fringe(head, r, h, side, dir)
 	if hair_style == 3:  # spikes
 		for k in 5:
 			var a := lerpf(PI * 1.1, PI * 1.9, k / 4.0)
 			var base := head + Vector2(cos(a), sin(a)) * (r - 0.6)
 			var tip := head + Vector2(cos(a), sin(a)) * (r + 3.0)
 			_shape(PackedVector2Array([base + Vector2(-1.1, 0.3).rotated(a + PI / 2), tip, base + Vector2(1.1, -0.3).rotated(a + PI / 2)]), h)
-	# Shine.
-	draw_arc(head, r - 1.4, PI * 1.25, PI * 1.45, 5, Color(h.lightened(0.35), 0.8), 0.6, true)
+	# The glossy ring of light across the hair, and a little second glint.
+	draw_arc(head, r - 1.7, PI * 1.18, PI * 1.58, 10, Color(h.lightened(0.5), 0.75), 0.9, true)
+	draw_arc(head, r - 1.7, PI * 1.66, PI * 1.76, 4, Color(h.lightened(0.5), 0.6), 0.7, true)
+
+
+## Bangs over the forehead (jagged tips) and a lock down each cheek; seen
+## from the side, only on the face's side.
+func _draw_fringe(head: Vector2, r: float, h: Color, side: bool, dir: float) -> void:
+	var x0 := -r + 1.2
+	var x1 := r - 1.2
+	if side:
+		x0 = -0.5 if dir > 0 else -r + 1.0
+		x1 = r - 1.0 if dir > 0 else 0.5
+	# Soft scallops: each lock a rounded tip, the middle ones a little longer.
+	var pts := PackedVector2Array([head + Vector2(x1, -r + 1.6), head + Vector2(x0, -r + 1.6)])
+	var n := 5 if not side else 3
+	for k in n * 4 + 1:
+		var u := float(k) / (n * 4)
+		var lock := fmod(u * n, 1.0)
+		var depth := 1.3 + sin(u * PI) * 0.6
+		pts.append(head + Vector2(lerpf(x0, x1, u), -2.9 + sin(lock * PI) * depth))
+	_shape(pts, h)
+	if hair_style in [0, 1, 2, 4]:
+		for sx in ([-1.0, 1.0] if not side else [-dir]):
+			var x: float = sx * (r - 0.9)
+			if side:
+				x = dir * (r - 1.6)
+			_shape(PackedVector2Array([head + Vector2(x - 0.9 * sx, -2.0), head + Vector2(x + 0.6 * sx, -1.5),
+				head + Vector2(x + 0.2 * sx, 3.8), head + Vector2(x - 0.4 * sx, 3.2)]), h)
 
 
 ## Caps and helmets.
@@ -641,7 +706,7 @@ func _draw_status(head: Vector2, shoulder_y: float, hip_y: float, side: bool, di
 			_blob(Vector2(0, top - 3.5), 2.0, Color("#f4f4f4"))
 			draw_circle(Vector2(0, top - 3.5), 0.8, Color("#b8bec4"))
 		ACT_SMOKING:
-			# Cigarette at the mouth; smoke curls up in inked puffs.
+			# Cigarette at the mouth; smoke curls up in soft puffs.
 			var cx := head.x + (dir * 3.2 if side else 1.4)
 			var cy := head.y + 3.4
 			draw_line(Vector2(cx, cy), Vector2(cx + (dir if side else 1.0) * 2.6, cy), Color("#f4f1ea"), 0.8)
@@ -650,8 +715,8 @@ func _draw_status(head: Vector2, shoulder_y: float, hip_y: float, side: bool, di
 				var k := float((ms + i * 500) % 1500) / 1500.0
 				var p := Vector2(cx + 2.5 + sin(k * TAU + i) * 1.5, cy - 1.5 - k * 10.0)
 				var r := 0.8 + k * 1.8
-				draw_circle(p, r + 0.4, Color(INK, 0.35 * (1.0 - k)))
-				draw_circle(p, r, Color(0.82, 0.8, 0.76, 0.75 * (1.0 - k)))
+				draw_circle(p, r + 0.4, Color(0.4, 0.46, 0.52, 0.25 * (1.0 - k)))
+				draw_circle(p, r, Color(0.86, 0.87, 0.86, 0.75 * (1.0 - k)))
 	if status == ACT_WASHING:
 		for i in 3:
 			var k := float((ms + i * 250) % 750) / 750.0

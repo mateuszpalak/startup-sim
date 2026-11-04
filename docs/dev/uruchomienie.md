@@ -83,7 +83,7 @@ Po `--`, np. `godot --path client -- --nick=Ala --autoconnect`.
 | `--fake-keyboard=0.4` | z `--touch`: udawana klawiatura ekranowa na tej części okna (gdy pole tekstowe ma fokus) |
 | `--perf` | co 2 s: FPS, wywołania rysowania, co się najczęściej przerysowuje |
 | `--zoom=1.5` | przybliżenie kamery |
-| `--no-mood` | bez efektu „tuszu i papieru” (tylko do testów — w grze jest zawsze) |
+| `--no-mood` | bez efektu na cały obraz (kolory, poświata, rozmycie krawędzi, winieta; tylko do testów — w grze jest zawsze) |
 
 ### `--goto` — kroki oddzielone `;`
 

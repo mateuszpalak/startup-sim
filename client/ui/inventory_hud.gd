@@ -1,5 +1,5 @@
-## Inventory bar (bottom centre, Don't Starve style): a dark wooden strip
-## with the hands slot (bigger) and three pockets, keys 1-3 above the
+## Inventory bar (bottom centre): a deep blue-green strip with the hands
+## slot (bigger) and three pockets, keys 1-3 above the
 ## pockets, the name of what you hold above the bar.
 ## Keys: 1-3 take out / put back, Q drop, G give, F use (handled in game.gd).
 extends Control

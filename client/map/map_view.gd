@@ -7,6 +7,8 @@ const Ink = preload("res://ui/ink_ui.gd")
 
 
 const MapPainter = preload("res://map/map_painter.gd")
+const PAINTED = preload("res://map/painted.gdshader")
+const TreeView = preload("res://map/tree_view.gd")
 ## Resolution of the floor picture: pixels per world pixel.
 const ART_SCALE := 3
 
@@ -15,6 +17,8 @@ const ART_SCALE := 3
 ## Stair signs; the game moves this node to a layer above
 ## the world's ink effect (and shows it with the floor).
 var labels := Node2D.new()
+## Trees on the lawns; the game moves `trees.canopy` over the people.
+var trees := TreeView.new()
 
 
 func build(map, zoom: float, floor_names := {}) -> void:
@@ -37,7 +41,13 @@ func build(map, zoom: float, floor_names := {}) -> void:
 	sprite.scale = Vector2.ONE / ART_SCALE
 	sprite.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
 	sprite.centered = false
+	var mat := ShaderMaterial.new()
+	mat.shader = PAINTED
+	mat.set_shader_parameter("world_size", Vector2(map.width * tp, map.height * tp))
+	sprite.material = mat
 	add_child(sprite)
+	add_child(trees)
+	trees.build(map)
 	# Stairs: where they lead.
 	for link in map.links:
 		if link.kind != "stairs" or not floor_names.has(link.to_floor):

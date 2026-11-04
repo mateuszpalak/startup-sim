@@ -25,7 +25,7 @@ func _ready() -> void:
 	visible = false
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	get_viewport().size_changed.connect(_fit)
-	_dim.color = Color(0.05, 0.03, 0.02, 0.55)
+	_dim.color = Color(0.02, 0.05, 0.07, 0.55)  # the cool blue-green of the shade
 	add_child(_dim)
 	_card.add_theme_stylebox_override("panel", Ink.box("paper"))
 	add_child(_card)

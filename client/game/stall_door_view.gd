@@ -18,7 +18,7 @@ func set_state(p_locked: bool, p_open: bool) -> void:
 		queue_redraw()
 
 
-const INK := Color("#2a2118")
+const INK := Color("#55606a")  # the rim: a deep shade of the panel
 
 
 func _panel(r: Rect2, fill: Color) -> void:
@@ -31,11 +31,14 @@ func _draw() -> void:
 	draw_set_transform(Vector2.ZERO, PI / 2 if across else 0.0, Vector2.ONE)
 	if open:
 		# Swung open against the partition above: just its edge.
-		_panel(Rect2(-8, -8, 2.6, 15), Color("#b9bfc2"))
+		_panel(Rect2(-8, -8, 2.6, 15), Color("#9fb9b9"))
 		return
-	_panel(Rect2(-3, -8, 6, 15.5), Color("#c4c9cb"))
+	_panel(Rect2(-3, -8, 6, 15.5), Color("#a9c4c4"))
 	draw_line(Vector2(-2.2, -7), Vector2(2.2, -7), Color(1, 1, 1, 0.45), 0.6, true)
 	draw_rect(Rect2(-3, 4.8, 6, 2.7), Color("#8f959b"))
 	# The latch sign: a little round window, red "occupied" / green "free".
 	draw_circle(Vector2(0, -1.5), 1.6, INK)
-	draw_circle(Vector2(0, -1.5), 1.15, Color("#c9463a") if locked else Color("#6fb04a"))
+	var sign_col := Color("#e0503e") if locked else Color("#6fc04a")
+	draw_circle(Vector2(0, -1.5), 2.4, Color(sign_col, 0.25))
+	draw_circle(Vector2(0, -1.5), 1.15, sign_col)
+	draw_circle(Vector2(-0.35, -1.85), 0.35, Color(1, 1, 1, 0.7))

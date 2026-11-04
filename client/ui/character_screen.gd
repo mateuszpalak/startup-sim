@@ -38,6 +38,9 @@ func _ready() -> void:
 	_fit()
 	var bg := ColorRect.new()
 	bg.color = Color("#1e2230")
+	var bg_mat := ShaderMaterial.new()
+	bg_mat.shader = preload("res://ui/backdrop.gdshader")
+	bg.material = bg_mat
 	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(bg)
 	var center := CenterContainer.new()
