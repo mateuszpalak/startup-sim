@@ -132,11 +132,11 @@ func _draw() -> void:
 		var op := opacity(a)
 		var tiles: Array = rooms[r]
 		# The veil: every tile of the room.
-		var haze := Color(0.66, 0.63, 0.58, op)
+		var haze := Color(0.68, 0.71, 0.72, op)
 		for rect in _rects[floor_shown][r]:
 			draw_rect(rect, haze)
-		# Billowing puffs (Don't Starve-like): one ink rim around the whole
-		# cloud (all rims first, then all fills), soft shading inside.
+		# Billowing puffs: a soft, cool shadow around the whole cloud (all of
+		# it first, then all fills), lit from the top left inside.
 		var puffs := []
 		var step := maxi(2, int(round(5.0 - a * 3.0)))
 		for k in range(0, tiles.size(), step):
@@ -151,15 +151,15 @@ func _draw() -> void:
 			if rad < px * 0.3:
 				continue
 			puffs.append([(Vector2(tile) + Vector2(0.5, 0.5)) * px + off, rad])
-		var rim := Color(0.14, 0.11, 0.08, minf(0.7, 0.2 + op * 0.55))
-		var base := Color(0.62, 0.6, 0.56, minf(0.97, 0.3 + op * 0.7))
+		var rim := Color(0.36, 0.42, 0.48, minf(0.45, 0.12 + op * 0.35))
+		var base := Color(0.7, 0.73, 0.75, minf(0.97, 0.3 + op * 0.7))
 		for pf in puffs:
-			draw_circle(pf[0], pf[1] + 0.8, rim)
+			draw_circle(pf[0] + Vector2(0.6, 1.0), pf[1] + 1.2, rim)
 		for pf in puffs:
 			draw_circle(pf[0], pf[1], base)
 		# Light from above-left, shadow bottom-right, both soft.
-		var lit := Color(0.72, 0.7, 0.66, base.a * 0.6)
-		var shade := Color(0.5, 0.48, 0.45, base.a * 0.35)
+		var lit := Color(0.88, 0.87, 0.84, base.a * 0.6)
+		var shade := Color(0.52, 0.57, 0.62, base.a * 0.35)
 		for pf in puffs:
 			draw_circle(pf[0] + Vector2(pf[1] * 0.18, pf[1] * 0.22), pf[1] * 0.75, shade)
 		for pf in puffs:

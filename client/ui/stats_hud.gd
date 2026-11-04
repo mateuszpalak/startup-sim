@@ -1,6 +1,6 @@
-## Character needs (top right) as round badges, Don't Starve style: each is
-## a jar of coloured liquid that drains as the need gets worse, with an ink
-## ring and an icon; the number shows on hover (and when it's critical the
+## Character needs (top right) as round glass badges: each is a jar of
+## coloured liquid that drains as the need gets worse, with a cream rim and
+## an icon; the number shows on hover (and when it's critical the
 ## badge pulses and shows it anyway). Wallet as a coin; warnings (dirty
 ## hands, upset stomach) on a paper note below. From the server's Stats.
 extends Control

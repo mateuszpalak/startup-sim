@@ -706,7 +706,7 @@ func _draw_status(head: Vector2, shoulder_y: float, hip_y: float, side: bool, di
 			_blob(Vector2(0, top - 3.5), 2.0, Color("#f4f4f4"))
 			draw_circle(Vector2(0, top - 3.5), 0.8, Color("#b8bec4"))
 		ACT_SMOKING:
-			# Cigarette at the mouth; smoke curls up in inked puffs.
+			# Cigarette at the mouth; smoke curls up in soft puffs.
 			var cx := head.x + (dir * 3.2 if side else 1.4)
 			var cy := head.y + 3.4
 			draw_line(Vector2(cx, cy), Vector2(cx + (dir if side else 1.0) * 2.6, cy), Color("#f4f1ea"), 0.8)
@@ -715,8 +715,8 @@ func _draw_status(head: Vector2, shoulder_y: float, hip_y: float, side: bool, di
 				var k := float((ms + i * 500) % 1500) / 1500.0
 				var p := Vector2(cx + 2.5 + sin(k * TAU + i) * 1.5, cy - 1.5 - k * 10.0)
 				var r := 0.8 + k * 1.8
-				draw_circle(p, r + 0.4, Color(INK, 0.35 * (1.0 - k)))
-				draw_circle(p, r, Color(0.82, 0.8, 0.76, 0.75 * (1.0 - k)))
+				draw_circle(p, r + 0.4, Color(0.4, 0.46, 0.52, 0.25 * (1.0 - k)))
+				draw_circle(p, r, Color(0.86, 0.87, 0.86, 0.75 * (1.0 - k)))
 	if status == ACT_WASHING:
 		for i in 3:
 			var k := float((ms + i * 250) % 750) / 750.0

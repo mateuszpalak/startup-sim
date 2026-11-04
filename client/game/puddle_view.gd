@@ -16,7 +16,7 @@ const BLOOD_GLOW := Color(0.45, 0.0, 0.0, 0.25)
 const BLOOD_FILL := Color("#8e1216")
 const POOP := Color("#6b4423")
 const POOP_DARK := Color("#4a2e17")
-const INK := Color("#1d1712")
+const INK := Color("#3a2a22")  # outlines: a soft deep brown
 
 var last_seen_tick := 0
 var vomit := false
@@ -75,10 +75,10 @@ func _draw() -> void:
 	draw_set_transform(Vector2.ZERO)
 
 
-## A swirl of three blobs, inked, a shine, and two flies circling.
+## A swirl of three blobs with a soft outline, a shine, and two flies circling.
 func _draw_pile() -> void:
 	draw_set_transform(Vector2(0, 1), 0.0, Vector2(1.0, 0.45))
-	draw_circle(Vector2.ZERO, 7.5, Color(0, 0, 0, 0.25))
+	draw_circle(Vector2.ZERO, 7.5, Color(0.03, 0.05, 0.1, 0.22))
 	draw_set_transform(Vector2.ZERO)
 	for b in [[Vector2(0, 0), 5.2], [Vector2(0, -3.2), 3.8], [Vector2(0.4, -5.8), 2.4]]:
 		draw_circle(b[0], b[1] + 0.7, INK)

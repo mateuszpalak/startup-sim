@@ -1,10 +1,10 @@
 ## A TV on the wall (3 tiles wide): what's on is drawn here, in the game's
-## ink style, from the channel and how long it's been on - the same moment
+## storybook style, from the channel and how long it's been on - the same moment
 ## for everybody (the server says when it started). Channels: 1 cartoons,
 ## 2 news, 3 weather, 4 a football match, 5 nature (an aquarium).
 extends Node2D
 
-const INK := Color("#1d1712")
+const INK := Color("#2b1d1a")
 const W := 44.0
 const H := 26.0
 const NEWS := ["PILNE: kałuża w holu", "Prezes: owocowe czwartki codziennie", "Tramwaj spóźniony (znowu)",
@@ -33,12 +33,18 @@ func _process(delta: float) -> void:
 func _draw() -> void:
 	# The set: a black frame on the wall, the screen in it (bottom edge on the wall line).
 	var r := Rect2(Vector2(2, -H + 6), Vector2(W, H))
-	draw_rect(r.grow(2.0), INK)
-	draw_rect(r.grow(1.2), Color("#2b2b33"))
+	# A slim dark frame with a soft shadow on the wall, a light top edge.
+	for g in [4.0, 3.0]:
+		draw_rect(Rect2(r.position + Vector2(1, 2), r.size).grow(g), Color(0.03, 0.05, 0.1, 0.12))
+	draw_rect(r.grow(2.0), Color("#1e2a30"))
+	draw_rect(r.grow(1.2), Color("#2e3c44"))
+	draw_line(r.position + Vector2(-1.2, -1.6), Vector2(r.end.x + 1.2, r.position.y - 1.6), Color(1, 1, 1, 0.18), 0.6)
 	if channel == 0:
-		draw_rect(r, Color("#15161c"))
-		draw_line(r.position + Vector2(6, 4), r.position + Vector2(16, 14), Color(1, 1, 1, 0.08), 3.0)
+		draw_rect(r, Color("#17232a"))
+		draw_line(r.position + Vector2(6, 4), r.position + Vector2(16, 14), Color(1, 1, 1, 0.1), 3.0)
 		return
+	# The screen gives off a soft glow on the wall around it.
+	draw_rect(r.grow(5.0), Color(0.6, 0.85, 1.0, 0.06))
 	match channel:
 		1: _cartoon(r)
 		2: _news(r)
@@ -47,7 +53,8 @@ func _draw() -> void:
 		5: _aquarium(r)
 	# Glass and a little red "on" light.
 	draw_line(r.position + Vector2(4, 3), r.position + Vector2(12, 11), Color(1, 1, 1, 0.07), 2.0)
-	draw_circle(Vector2(r.end.x - 2, r.end.y + 1.2), 0.6, Color("#e74c3c"))
+	draw_circle(Vector2(r.end.x - 2, r.end.y + 1.2), 1.4, Color(1.0, 0.4, 0.3, 0.3))
+	draw_circle(Vector2(r.end.x - 2, r.end.y + 1.2), 0.6, Color("#ff5a4f"))
 
 
 func _cartoon(r: Rect2) -> void:

@@ -1,4 +1,4 @@
-## How bright each room of the shown floor is (Don't Starve-ish darkness):
+## How bright each room of the shown floor is (soft, shady darkness):
 ## outdoors = time of day x weather; a room with windows gets some of that;
 ## a room without windows is dark; a lamp switched on (the server's Lights)
 ## lights it up with a warm tone. Common areas are always lit. Also draws the

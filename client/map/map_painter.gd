@@ -534,7 +534,8 @@ func _plaques() -> void:
 					plate = Rect2(o + Vector2(4, 9.5 if s[1].y > 0 else 2.5), Vector2(8, 4))
 				else:
 					plate = Rect2(o + Vector2(10.0 if s[1].x > 0 else 1.0, 2), Vector2(5, 7))
-				_box(plate, Color("#d9c27a"), true, 0.4, 0.45)
+				_box(plate, Color("#e2c26a"), true, 0.4, 0.45)
+				draw_line(plate.position + Vector2(0.8, 0.7), plate.position + Vector2(plate.size.x * 0.5, 0.7), Color(1, 1, 0.9, 0.6), 0.4)
 				var mid := plate.get_center()
 				draw_line(mid - Vector2(plate.size.x / 2 - 1.6, 0), mid + Vector2(plate.size.x / 2 - 1.6, 0), Color(INK, 0.7), 0.5)
 
@@ -559,27 +560,33 @@ func _shelters() -> void:
 			if map.room_at_tile(x, y) != room:
 				break
 			roof = roof.merge(Rect2(Vector2(x, y) * TP, Vector2(TP, TP)))
-	draw_rect(roof, Color(0, 0, 0, 0.16))
+	for g in [3.0, 1.5, 0.0]:  # the roof's shade on the paving, soft at the edge
+		draw_rect(roof.grow(g), Color(0.03, 0.06, 0.1, 0.07))
 	for y in map.height:
 		for x in map.width:
 			var o := Vector2(x, y) * TP
 			match _type(x, y):
 				"shelter_glass":
 					var g := Rect2(o + Vector2(3, 0.5), Vector2(10, TP - 1))
-					draw_rect(g, Color("#a9cfdc", 0.55))
-					draw_line(g.position + Vector2(2, 2), g.position + Vector2(5, 6), Color(1, 1, 1, 0.5), 0.7)
-					draw_rect(g, Color("#6e7c84"), false, 0.8)
-				"shelter_bench":
-					_box(Rect2(o + Vector2(2, 0.5), Vector2(9, TP - 1)), Color("#9a7550"), true, 0.5, 0.45)
 					for i in 3:
-						draw_line(o + Vector2(4 + i * 3, 1), o + Vector2(4 + i * 3, TP - 1), Color("#7a5a3a"), 0.5)
+						draw_rect(Rect2(g.position + Vector2(i * g.size.x / 3.0, 0), Vector2(g.size.x / 3.0, g.size.y)), Color("#9fd0e0", 0.45).lerp(Color("#d6eef5", 0.55), i / 2.0))
+					draw_line(g.position + Vector2(2, 2), g.position + Vector2(5, 6), Color(1, 1, 1, 0.65), 0.7)
+					draw_rect(g, Color("#3f5d4f"), false, 0.8)
+				"shelter_bench":
+					_box(Rect2(o + Vector2(2, 0.5), Vector2(9, TP - 1)), Color("#b98552"), true, 0.5, 0.45)
+					for i in 3:
+						draw_line(o + Vector2(4 + i * 3, 1), o + Vector2(4 + i * 3, TP - 1), Color("#8a5f38"), 0.5)
 	# The roof's front edge, with its posts, and the sign on top.
 	var edge := Rect2(Vector2(roof.position.x, roof.position.y - 2), Vector2(roof.size.x, 3))
-	_box(edge, Color("#5d666d"), true, 0.6)
-	_box(Rect2(Vector2(roof.end.x - 2.5, roof.position.y), Vector2(2.5, roof.size.y)), Color("#5d666d"), true, 0.5)
+	# Painted dark green steel, like an old bus stop.
+	var steel := Color("#3f5d4f")
+	_box(edge, steel, true, 0.6)
+	_box(Rect2(Vector2(roof.end.x - 2.5, roof.position.y), Vector2(2.5, roof.size.y)), steel, true, 0.5)
+	# An enamel sign: deep teal, a cream border, cream letters.
 	var sign_r := Rect2(Vector2(roof.end.x - 30, roof.position.y - 10), Vector2(28, 9))
-	_box(sign_r, Color("#2f6fb0"), true, 0.5, 0.4)
-	draw_string(ThemeDB.fallback_font, sign_r.position + Vector2(2, 6.6), "PALARNIA", HORIZONTAL_ALIGNMENT_LEFT, -1, 5, Color.WHITE)
+	_box(sign_r, Color("#1f6070"), true, 0.8, 0.4)
+	draw_rect(sign_r.grow(-1.0), Color("#f2e6c8"), false, 0.4)
+	draw_string(ThemeDB.fallback_font, sign_r.position + Vector2(2, 6.6), "PALARNIA", HORIZONTAL_ALIGNMENT_LEFT, -1, 5, Color("#f6ecd4"))
 
 
 ## A green EXIT sign over the stairwell's door (on the side you come from).
@@ -601,7 +608,8 @@ func _exit_signs() -> void:
 				continue
 			var o := Vector2(at) * TP
 			var sign_r := Rect2(o + Vector2(2.5 + d.x * 3.0, 4.5 + (3.0 if d.y > 0 else 0.0)), Vector2(11, 6))
-			_box(sign_r, Color("#2f9e4f"), true, 0.4, 0.4)
+			draw_circle(sign_r.get_center(), 8.0, Color(0.4, 1.0, 0.55, 0.12))  # it glows
+			_box(sign_r, Color("#2fae58"), true, 0.4, 0.4)
 			draw_string(ThemeDB.fallback_font, sign_r.position + Vector2(1.6, 4.9), "EXIT", HORIZONTAL_ALIGNMENT_LEFT, -1, 4, Color("#f4f8ef"))
 
 
@@ -644,10 +652,11 @@ func _tile_object(x: int, y: int) -> void:
 			draw_rect(g, Color("#c9a35a"), false, 0.7)
 			draw_line(Vector2(o.x + TP / 2, g.position.y), Vector2(o.x + TP / 2, g.end.y), Color("#c9a35a"), 0.6)
 		"card_gate":
-			_box(Rect2(o + Vector2(0, 2), Vector2(3, 12)), Color("#6f7278"))
-			_box(Rect2(o + Vector2(TP - 3, 2), Vector2(3, 12)), Color("#6f7278"))
-			_box(Rect2(o + Vector2(3, 7), Vector2(7, 2)), Color("#d4a94a"), true, 0.3, 0.45)
-			draw_circle(o + Vector2(1.5, 4), 0.6, Color("#6fd06b"))
+			_box(Rect2(o + Vector2(0, 2), Vector2(3, 12)), Color("#9aa4ab"))
+			_box(Rect2(o + Vector2(TP - 3, 2), Vector2(3, 12)), Color("#9aa4ab"))
+			_box(Rect2(o + Vector2(3, 7), Vector2(7, 2)), Color("#e2c060"), true, 0.3, 0.45)
+			draw_circle(o + Vector2(1.5, 4), 1.6, Color(0.45, 0.95, 0.5, 0.25))
+			draw_circle(o + Vector2(1.5, 4), 0.6, Color("#7ef08a"))
 		"ramp_wall":  # a concrete parapet along the ramp
 			if _type(x, y - 1) == t or _type(x, y + 1) == t:  # running up-down
 				_box(Rect2(o + Vector2(4, 0), Vector2(8, TP)), Color("#b5b2aa"), true, 0.5, 0.3)
@@ -660,10 +669,12 @@ func _tile_object(x: int, y: int) -> void:
 			var along_x := _type(x - 1, y) == t or _type(x + 1, y) == t
 			for i in range(1, 8):
 				if along_x:
-					draw_line(o + Vector2(0, 2 + i * 1.6), o + Vector2(TP, 2 + i * 1.6), Color("#4b4f55"), 0.5)
+					draw_line(o + Vector2(0, 2 + i * 1.6), o + Vector2(TP, 2 + i * 1.6), Color("#5a6068"), 0.5)
+					draw_line(o + Vector2(0, 2.5 + i * 1.6), o + Vector2(TP, 2.5 + i * 1.6), Color(1, 1, 1, 0.08), 0.4)
 				else:
-					draw_line(o + Vector2(2 + i * 1.6, 0), o + Vector2(2 + i * 1.6, TP), Color("#4b4f55"), 0.5)
-			draw_rect(r, INK, false, 0.5)
+					draw_line(o + Vector2(2 + i * 1.6, 0), o + Vector2(2 + i * 1.6, TP), Color("#5a6068"), 0.5)
+					draw_line(o + Vector2(2.5 + i * 1.6, 0), o + Vector2(2.5 + i * 1.6, TP), Color(1, 1, 1, 0.08), 0.4)
+			draw_rect(r, Color("#22272c"), false, 0.5)
 		"boom_barrier":  # red and white, across the way in; the post at one end
 			var across := _type(x - 1, y) == t or _type(x + 1, y) == t
 			var first := _type(x - 1, y) != t if across else _type(x, y - 1) != t
@@ -703,10 +714,10 @@ func _tile_object(x: int, y: int) -> void:
 			var vert := _type(x, y - 1) == "railing" or _type(x, y + 1) == "railing"
 			if horiz:
 				for px in [2.0, 7.0, 12.0]:
-					_stroke(o + Vector2(px, 8), o + Vector2(px, 14), Color("#2f2f36"), 1.0)
-				_box(Rect2(o + Vector2(0, 5.5), Vector2(TP, 2.2)), Color("#44444e"), true, 0.3, 0.45)
+					_stroke(o + Vector2(px, 8), o + Vector2(px, 14), Color("#2f4a3e"), 1.0)
+				_box(Rect2(o + Vector2(0, 5.5), Vector2(TP, 2.2)), Color("#3f5d4f"), true, 0.3, 0.45)
 			if vert:
-				_box(Rect2(o + Vector2(6.5, 0), Vector2(2.2, TP)), Color("#44444e"), true, 0.3, 0.45)
+				_box(Rect2(o + Vector2(6.5, 0), Vector2(2.2, TP)), Color("#3f5d4f"), true, 0.3, 0.45)
 
 
 # ------------------------------------------------------------------- props

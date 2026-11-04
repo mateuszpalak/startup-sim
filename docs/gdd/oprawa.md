@@ -279,3 +279,21 @@ rysowanym w kodzie, bez obrazków i cudzych licencji; kamera zostaje z góry.
   oknami, na pierwszym planie trawa i korony drzew podświetlone słońcem.
 - **Tapeta komputera**: zachód słońca nad pagórkami z drzewami.
 - **README**: nowe zrzuty w galerii (`docs/media/*.jpg`) i nowy GIF ze zwiastuna (`tools/trailer`).
+
+## 10.62 Dym, palarnia, garaż, telewizor (2026-11-04)
+
+- **Dym w pomieszczeniach** bez konturu tuszu: chłodna, szaroniebieska
+  zasłona, kłęby z miękkim cieniem wokół całej chmury i jasnym światłem z
+  lewej u góry; dym z papierosa też bez ciemnego obrysu.
+- **Palarnia** jak stary przystanek: ciemnozielona malowana stal, szyby z
+  odbiciem nieba, ciepłe deski ławek, miękki cień dachu i emaliowana
+  tablica „PALARNIA” (morska z kremową ramką).
+- **Garaż**: roleta z jaśniejszymi krawędziami lameli; barierki balkonów w
+  ciemnej zieleni; bramki na kartę ze stalowymi słupkami i świecącą diodą.
+- **Tabliczki** przy drzwiach z mosiężnym połyskiem, **EXIT** świeci na
+  zielono.
+- **Telewizor**: smukła ciemnomorska ramka z cieniem na ścianie i
+  poświatą ekranu; kałuże, taca ze słodyczami i plamy z miękkim konturem.
+- Sprawdzone też na zrzutach: aplikacje komputera (tablica zadań,
+  kalendarz, komunikator), okno lodówki, menu akcji (Tab), duża tabliczka
+  na drzwiach, wszystkie stroje i pozy postaci.
